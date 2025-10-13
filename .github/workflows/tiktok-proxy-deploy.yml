@@ -38,7 +38,7 @@ jobs:
       - name: Verify Secrets
         run: |
           if [ -z "${{ secrets.GCP_ARTIFACT_REGISTRY_REPO_NAME }}" ]; then
-            echo "::error file=.github/workflows/tiktok-proxy-deploy.yml::The GCP_ARTIFACT_REGISTRY_REPO_NAME secret is not set or empty. Please check your repository's Settings > Secrets and variables > Actions."
+            echo "::error file=.github/workflows/tiktok-proxy-deploy.yml::The GCP_ARTIFACT_REGISTRY_REPO_NAME secret is not set or empty. Please checkk your repository's Settings > Secrets and variables > Actions."
             exit 1
           else
             echo "GCP_ARTIFACT_REGISTRY_REPO_NAME secret is set."

@@ -47,7 +47,7 @@ serve(async (req: Request) => {
 
     // 2. Fetch user info from TikTok API
     const userResponse = await fetch(
-      `https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_large_url`,
+      `https://open.tiktokapis.com/v2/user/info/?fields=open_id,username,display_name,avatar_large_url`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
@@ -79,7 +79,8 @@ serve(async (req: Request) => {
       {
         user_id: jarvisUser.id,
         tiktok_open_id: userInfo.open_id,
-        tiktok_username: userInfo.display_name,
+        tiktok_username: userInfo.username,
+        tiktok_display_name: userInfo.display_name,
         tiktok_avatar_url: userInfo.avatar_large_url,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,

@@ -117,13 +117,18 @@ export type Database = {
           access_token: string
           created_at: string | null
           expires_in: number
+          follower_count: number | null
           id: string
+          likes_count: number | null
           refresh_expires_in: number
           refresh_token: string
           scope: string | null
+          stats_updated_at: string | null
           tiktok_avatar_url: string | null
+          tiktok_display_name: string | null
           tiktok_open_id: string
           tiktok_username: string | null
+          token_status: Database["public"]["Enums"]["tiktok_account_status"]
           token_type: string | null
           updated_at: string | null
           user_id: string
@@ -132,13 +137,18 @@ export type Database = {
           access_token: string
           created_at?: string | null
           expires_in: number
+          follower_count?: number | null
           id?: string
+          likes_count?: number | null
           refresh_expires_in: number
           refresh_token: string
           scope?: string | null
+          stats_updated_at?: string | null
           tiktok_avatar_url?: string | null
+          tiktok_display_name?: string | null
           tiktok_open_id: string
           tiktok_username?: string | null
+          token_status?: Database["public"]["Enums"]["tiktok_account_status"]
           token_type?: string | null
           updated_at?: string | null
           user_id: string
@@ -147,13 +157,18 @@ export type Database = {
           access_token?: string
           created_at?: string | null
           expires_in?: number
+          follower_count?: number | null
           id?: string
+          likes_count?: number | null
           refresh_expires_in?: number
           refresh_token?: string
           scope?: string | null
+          stats_updated_at?: string | null
           tiktok_avatar_url?: string | null
+          tiktok_display_name?: string | null
           tiktok_open_id?: string
           tiktok_username?: string | null
+          token_status?: Database["public"]["Enums"]["tiktok_account_status"]
           token_type?: string | null
           updated_at?: string | null
           user_id?: string
@@ -169,6 +184,7 @@ export type Database = {
     }
     Enums: {
       draft_status: "draft" | "published" | "failed"
+      tiktok_account_status: "active" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -297,6 +313,7 @@ export const Constants = {
   public: {
     Enums: {
       draft_status: ["draft", "published", "failed"],
+      tiktok_account_status: ["active", "expired"],
     },
   },
 } as const

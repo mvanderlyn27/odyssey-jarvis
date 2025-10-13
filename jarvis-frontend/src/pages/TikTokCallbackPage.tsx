@@ -2,19 +2,30 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase as jarvisClient } from "../lib/supabase/jarvisClient";
 import { useAuthStore } from "../store/useAuthStore";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+type Status = "loading" | "success" | "error";
 
 const TikTokCallbackPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { tiktokCodeVerifier, setTikTokCodeVerifier } = useAuthStore();
-  const [message, setMessage] = useState("Handling TikTok callback...");
+  const [status, setStatus] = useState<Status>("loading");
+  const [message, setMessage] = useState("Verifying your TikTok authorization...");
+  const [isHydrated, setIsHydrated] = useState(useAuthStore.persist.hasHydrated);
 
   useEffect(() => {
+    const unsub = useAuthStore.persist.onFinishHydration(() => setIsHydrated(true));
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
     const code = searchParams.get("code");
 
     if (code && tiktokCodeVerifier) {
-      // Clean up the code_verifier from the Zustand store
-      setTikTokCodeVerifier(null);
+      setTikTokCodeVerifier(null); // Clean up immediately
 
       const exchangeCodeForToken = async () => {
         try {
@@ -22,34 +33,41 @@ const TikTokCallbackPage = () => {
             body: { code, code_verifier: tiktokCodeVerifier },
           });
 
-          if (error) {
-            throw new Error(`Function invocation error: ${error.message}`);
-          }
+          if (error) throw new Error(`Function error: ${error.message}`);
+          if (data.error) throw new Error(`API error: ${data.error_description || data.error}`);
 
-          if (data.error) {
-            throw new Error(`TikTok API error: ${data.error}`);
-          }
-
+          setStatus("success");
           setMessage("TikTok account linked successfully! Redirecting...");
-          // Redirect to the TikTok management page after a short delay
-          setTimeout(() => {
-            navigate("/tiktok");
-          }, 2000);
+          setTimeout(() => navigate("/tiktok"), 2000);
         } catch (error: any) {
-          setMessage(`Error: ${error.message}`);
+          setStatus("error");
+          setMessage(error.message);
         }
       };
 
       exchangeCodeForToken();
     } else {
-      setMessage("Authorization failed. No code or verifier found.");
+      setStatus("error");
+      setMessage("Authorization failed. No authorization code or verifier was found.");
     }
-  }, [searchParams, tiktokCodeVerifier, setTikTokCodeVerifier, navigate]);
+  }, [isHydrated, searchParams, tiktokCodeVerifier, setTikTokCodeVerifier, navigate]);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">TikTok Authorization</h1>
-      <p>{message}</p>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-full max-w-md mx-4">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">TikTok Authorization</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center">
+          {status === "loading" && (
+            <div className="flex flex-col items-center">
+              <p>{message}</p>
+            </div>
+          )}
+          {status === "success" && <p className="text-green-600">{message}</p>}
+          {status === "error" && <p className="text-red-600">Error: {message}</p>}
+        </CardContent>
+      </Card>
     </div>
   );
 };

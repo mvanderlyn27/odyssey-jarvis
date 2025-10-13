@@ -1,47 +1,59 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-// Define the type for the account prop based on our DB schema
-type TikTokAccount = {
-  id: string;
-  tiktok_username: string;
-  tiktok_avatar_url: string;
-  // Add other fields as needed
-};
+import { Button } from "../ui/button";
+import { TikTokAccount } from "@/features/tiktok/types";
 
 interface TikTokAccountCardProps {
   account: TikTokAccount;
+  onReauthenticate: () => void;
+  onRefresh: () => void;
 }
 
-const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account }) => {
+const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate, onRefresh }) => {
   return (
     <Card className="w-full max-w-sm cursor-pointer hover:shadow-lg transition-shadow">
       <CardHeader>
         <div className="flex items-center space-x-4">
           <Avatar>
-            <AvatarImage src={account.tiktok_avatar_url} alt={`@${account.tiktok_username}`} />
-            <AvatarFallback>{account.tiktok_username.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={account.tiktok_avatar_url ?? undefined} alt={`@${account.tiktok_username}`} />
+            <AvatarFallback>{account.tiktok_username?.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <CardTitle>{account.tiktok_username}</CardTitle>
+            <CardTitle>{account.tiktok_display_name}</CardTitle>
             <a
               href={`https://www.tiktok.com/@${account.tiktok_username}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:underline"
-              onClick={(e) => e.stopPropagation()} // Prevent card click when link is clicked
-            >
-              View on TikTok
+              onClick={(e) => e.stopPropagation()}>
+              @{account.tiktok_username}
             </a>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        {/* Placeholder for stats */}
         <div className="text-sm text-muted-foreground">
-          <p>Followers: TBD</p>
-          <p>Likes: TBD</p>
+          {account.token_status === "expired" ? (
+            <div className="flex items-center justify-between">
+              <p className="text-red-600">Token expired.</p>
+              <Button variant="outline" size="sm" onClick={onReauthenticate}>
+                Re-authenticate
+              </Button>
+            </div>
+          ) : account.is_stale ? (
+            <div className="flex items-center justify-between">
+              <p className="text-yellow-600">Stats are out of date.</p>
+              <Button variant="outline" size="sm" onClick={onRefresh}>
+                Refresh
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p>Followers: {account.follower_count?.toLocaleString() ?? "N/A"}</p>
+              <p>Likes: {account.likes_count?.toLocaleString() ?? "N/A"}</p>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -119,47 +119,104 @@ This phase ensures the internal tool is recognized and authorized by TikTok for 
 10. **Prepare for Submission:** In the **App review** section, explain the API and scope usage in detail.
 11. **Submit for Review:** Upload a demo video showing the end-to-end flow and submit. The app status will change from `Draft` to `In review`, and finally to `Live` upon approval.
 
-## 8. Phase 2: Webapp Implementation
+## 8. Phase 2: Detailed Webapp Implementation Plan
 
-### 8.1. User Authentication and TikTok Account Linking
+This section provides a detailed breakdown of the implementation, including the data flow, component responsibilities, and necessary file changes.
 
-- **Primary Authentication:** Users will log in to the Jarvis tool using a standard email/password method. This will be managed by the `jarvisClient` and Supabase Authentication.
-- **Linking TikTok Accounts:** Once logged into Jarvis, a user can link one or more TikTok accounts to post drafts to. This process uses the TikTok Login Kit:
-    1.  The user initiates the linking process from the Jarvis UI.
-    2.  This triggers the TikTok OAuth flow, prompting the user to authorize the application with the necessary `video.upload` scope for their TikTok account.
-    3.  A backend service (Supabase Edge Function) will handle the OAuth callback, exchange the authorization code for an access token using the Client Secret, and securely store the token associated with that specific TikTok account in our main Supabase database.
-    4.  The frontend will display the list of linked TikTok accounts that the Jarvis user can now post drafts to.
-- **Future Improvement:** OAuth tokens will initially be stored in the main Supabase database. A later improvement will be to create a dedicated internal tools database to centralize credentials for multiple tools.
+### 8.1. Database Schema for TikTok Accounts
 
-### 8.2. Post Analytics
+First, we need a table in our Supabase database to store the linked TikTok accounts.
 
-- A component will fetch and display all posts from the selected, paired TikTok account.
-- Data will be fetched from the TikTok API using the stored access tokens.
-- Analytics (likes, comments, shares, views) will be displayed in a table or grid format.
+**`tiktok_accounts` Table Schema:**
+```sql
+CREATE TABLE tiktok_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL, -- Foreign key to the Jarvis user
+  tiktok_open_id VARCHAR(255) UNIQUE NOT NULL,
+  tiktok_username VARCHAR(255),
+  tiktok_avatar_url TEXT,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT NOT NULL,
+  expires_in INTEGER NOT NULL,
+  refresh_expires_in INTEGER NOT NULL,
+  token_type VARCHAR(50),
+  scope VARCHAR(255),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+- **Action:** This SQL statement needs to be added as a new Supabase migration.
+
+### 8.2. TikTok Account Linking Flow (Detailed)
+
+This flow describes how a Jarvis user links their TikTok account.
+
+**Overall Flow:**
+`Frontend (User Action)` -> `TikTok Auth Page` -> `Frontend (Callback Page)` -> `Supabase Edge Function` -> `TikTok API` -> `Supabase DB`
+
+**Step-by-Step Breakdown:**
+
+1.  **Initiate Linking (Frontend):**
+    *   **File:** `jarvis-frontend/src/components/tiktok/TikTokAccountManager.tsx`
+    *   **Action:** A user clicks the "Link New TikTok Account" button.
+    *   **Logic:** The `handleLinkAccount` function will:
+        *   Generate a `code_verifier` and `code_challenge` using the `pkce-challenge` library.
+        *   Store the `code_verifier` in the Zustand store for later use.
+        *   Construct the authorization URL for `https://www.tiktok.com/v2/auth/authorize/` with the necessary parameters (`client_key`, `scope`, `redirect_uri`, `code_challenge`, etc.).
+        *   Redirect the user to this TikTok URL.
+
+2.  **Handle OAuth Callback (Frontend):**
+    *   **File:** `jarvis-frontend/src/pages/TikTokCallbackPage.tsx`
+    *   **Action:** After the user authorizes the app on TikTok, they are redirected back to our app at the specified `redirect_uri`.
+    *   **Logic:**
+        *   The page will extract the `code` from the URL query parameters.
+        *   It will retrieve the `code_verifier` from the Zustand store.
+        *   It will then invoke our Supabase Edge Function, passing the `code` and `code_verifier`.
+
+3.  **Exchange Token and Store Data (Backend):**
+    *   **File:** `jarvis-frontend/supabase/functions/tiktok-auth/index.ts`
+    *   **Action:** The Edge Function receives the `code` and `code_verifier` from the frontend.
+    *   **Logic (Needs Update):**
+        *   The function will make a POST request to the TikTok token endpoint (`https://open.tiktokapis.com/v2/oauth/token/`) to exchange the authorization code for an `access_token` and `refresh_token`.
+        *   **New Logic:** After successfully getting the tokens, it will make another request to the TikTok User Info endpoint (`https://open.tiktokapis.com/v2/user/info/`) using the new access token to get the user's `open_id`, `username`, and `avatar_url`.
+        *   **New Logic:** It will then use the Supabase admin client to `upsert` this information into our `tiktok_accounts` table, associating it with the currently logged-in Jarvis user. The `tiktok_open_id` will be the unique constraint for the upsert.
+        *   It will return a success or error message to the frontend.
+
+4.  **Display Linked Accounts (Frontend):**
+    *   **New File:** `jarvis-frontend/src/hooks/useTikTokAccounts.ts`
+        *   **Purpose:** A custom Tanstack Query hook to fetch all linked TikTok accounts for the current Jarvis user from the `tiktok_accounts` table. It will handle loading, error, and data states.
+    *   **New File:** `jarvis-frontend/src/components/tiktok/TikTokAccountCard.tsx`
+        *   **Purpose:** A presentational component to display a single linked TikTok account.
+        *   **Content:** It will show the TikTok avatar, username, a link to their profile (`https://www.tiktok.com/@{username}`), and some placeholder stats. It will be a clickable card that can later navigate to a detail page.
+    *   **New File:** `jarvis-frontend/src/components/tiktok/TikTokAccountList.tsx`
+        *   **Purpose:** A component that uses the `useTikTokAccounts` hook to fetch the data.
+        *   **Logic:** It will map over the returned accounts and render a `TikTokAccountCard` for each one. It will also handle the loading and error states.
+    *   **File to Modify:** `jarvis-frontend/src/pages/TikTokPage.tsx`
+        *   **Action:** This page will be simplified.
+        *   **New Content:** It will render the `TikTokAccountManager` component (for the "Link New Account" button) and the `TikTokAccountList` component.
 
 ### 8.3. Draft Creation and Uploading (Photo Slides)
 
-- **Image Organizer:**
-    - A drag-and-drop interface will allow users to upload and reorder images.
-    - Images will be validated against TikTok's requirements.
-- **Media Requirements:**
-    - **Formats:** WebP, JPEG
-    - **Dimensions:** Maximum 1080p
-    - **File Size:** Maximum 20MB per image
-- **Image Hosting via Verified Domain Proxy:** To meet TikTok's requirement that photo URLs are served from a verified domain, we will implement a lightweight proxy.
-    -   **Technology:** Google Cloud Run. This is a cost-effective and scalable solution.
-    -   **Purpose:**
-        -   Expose a public endpoint on our verified domain (e.g., `https://our-verified-domain.com/photo/:image_name`).
-        -   When this endpoint is hit, the proxy will fetch the actual image file from our Supabase Storage bucket.
-        -   The proxy will then stream the image back in the response to the requester (TikTok's servers).
-        -   `Cache-Control` headers can be used to optimize performance.
-    -   **Implementation:** This will involve creating a small service (e.g., with Node.js/Express or Go), containerizing it with Docker, and deploying it to Cloud Run. The deployment process can be automated with a GitHub Action.
+This flow remains largely the same as the initial design, but we can clarify the frontend components.
 
-- **Draft Upload (Content Posting API):**
-    1.  **Prepare Photo URLs:** Uploaded images must be hosted on a URL that was verified during the app setup phase. This will be achieved using the proxy described above.
-    2.  **Initiate Upload:** Invoke the Content Posting API photo endpoint (`/v2/post/publish/content/init/`) with the access token, `post_mode` set to `MEDIA_UPLOAD`, `media_type` set to `PHOTO`, and an array of the hosted photo URLs.
-    3.  **Handle Response:** A successful call returns a `publish_id`.
-    4.  **User Finalization:** The UI must inform the user that they need to open the TikTok app, check their inbox notifications, and complete the post from there.
+1.  **Image Hosting:** The `tiktok-proxy` service is complete and will be used to serve images from Supabase Storage via a verified domain.
+
+2.  **Draft Creation UI:**
+    *   **File:** `jarvis-frontend/src/components/tiktok/DraftCreator.tsx`
+    *   **Logic:**
+        *   A drag-and-drop interface for uploading images.
+        *   It will upload the selected images to a Supabase Storage bucket.
+        *   Upon successful upload, it will receive the public URLs for these images.
+        *   It will construct the proxied URLs (e.g., `https://our-verified-domain.com/photo/image_name.jpg`).
+
+3.  **Initiate Upload to TikTok:**
+    *   **New File:** `jarvis-frontend/src/services/tiktokAPI.ts`
+        *   **Purpose:** To encapsulate all API calls to TikTok.
+        *   **Function:** Will contain a function like `initiatePhotoPost(accessToken, photoUrls)` that calls the TikTok Content Posting API (`/v2/post/publish/content/init/`).
+    *   **Logic:**
+        *   The `DraftCreator.tsx` component will call this service function, passing the access token of the selected TikTok account and the array of proxied photo URLs.
+        *   It will handle the response from the API, which includes the `publish_id`.
+        *   The UI will then display a message to the user instructing them to complete the post in the TikTok app.
 
 ## 9. UI/UX with Shadcn
 

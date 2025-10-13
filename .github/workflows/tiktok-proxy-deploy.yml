@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main # Trigger for production deployments
+    paths:
+      - "tiktok-proxy/**"
   workflow_dispatch: # Allows manual triggering
 
 env:
@@ -37,9 +39,11 @@ jobs:
         run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker image
+        working-directory: ./tiktok-proxy
         run: docker build -t "${{ env.IMAGE_NAME_BASE }}:${{ github.sha }}" .
 
       - name: Push Docker image to Artifact Registry
+        working-directory: ./tiktok-proxy
         run: docker push "${{ env.IMAGE_NAME_BASE }}:${{ github.sha }}"
 
   deploy_production:

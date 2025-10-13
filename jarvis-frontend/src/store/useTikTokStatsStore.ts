@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { supabase as jarvisClient } from "../lib/supabase/jarvisClient";
 
 interface TikTokStats {
   follower_count: number;
@@ -31,18 +32,14 @@ export const useTikTokStatsStore = create<TikTokStatsState>()(
         set({ loading: true });
 
         try {
-          const response = await fetch(import.meta.env.VITE_TIKTOK_PROXY_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ access_token: accessToken }),
+          const { data, error } = await jarvisClient.functions.invoke("tiktok-user-stats", {
+            body: { access_token: accessToken },
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`TikTok Proxy API error: ${errorData.error.message}`);
+          if (error) {
+            const responseBody = await error.context.json();
+            throw new Error(`Function error: ${responseBody.error || error.message}`);
           }
-
-          const data = await response.json();
           const newStats = data.data.user;
 
           set((state) => ({

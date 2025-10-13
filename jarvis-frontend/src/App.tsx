@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TikTokPage from "./pages/TikTokPage";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
+import TikTokVideosPage from "./pages/TikTokVideosPage";
 import DraftDetailPage from "./pages/DraftDetailPage";
 
 const MainLayout = () => (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/tiktok" />} />
             <Route path="tiktok" element={<TikTokPage />} />
+            <Route path="tiktok/:openId" element={<TikTokVideosPage />} />
             <Route path="drafts" element={<DraftsPage />}>
               <Route path=":id" element={<DraftDetailPage />} />
             </Route>

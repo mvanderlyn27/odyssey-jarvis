@@ -3,12 +3,18 @@ import { supabase } from "@/lib/supabase/jarvisClient";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const Auth = ({ children }: { children: React.ReactNode }) => {
-  const setSession = useAuthStore((state) => state.setSession);
+  const { setSession, setLoading } = useAuthStore();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setSession(session);
-    });
+      setLoading(false);
+    };
+
+    getSession();
 
     const {
       data: { subscription },
@@ -17,7 +23,7 @@ const Auth = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [setSession]);
+  }, [setSession, setLoading]);
 
   return <>{children}</>;
 };

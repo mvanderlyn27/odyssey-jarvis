@@ -14,26 +14,148 @@ export type Database = {
   }
   public: {
     Tables: {
-      tiktok_accounts: {
+      draft_assets: {
         Row: {
-          auth_token: string | null
+          asset_type: string
+          asset_url: string
+          created_at: string | null
+          draft_id: number
+          id: string
+          order: number
+        }
+        Insert: {
+          asset_type: string
+          asset_url: string
+          created_at?: string | null
+          draft_id: number
+          id?: string
+          order: number
+        }
+        Update: {
+          asset_type?: string
+          asset_url?: string
+          created_at?: string | null
+          draft_id?: number
+          id?: string
+          order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_assets_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drafts: {
+        Row: {
           created_at: string
           id: number
-          name: string | null
+          status: Database["public"]["Enums"]["draft_status"]
+          updated_at: string
           user_id: string
         }
         Insert: {
-          auth_token?: string | null
           created_at?: string
           id?: number
-          name?: string | null
+          status?: Database["public"]["Enums"]["draft_status"]
+          updated_at?: string
           user_id: string
         }
         Update: {
-          auth_token?: string | null
           created_at?: string
           id?: number
-          name?: string | null
+          status?: Database["public"]["Enums"]["draft_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      published_posts: {
+        Row: {
+          draft_id: number
+          id: number
+          published_at: string
+          tiktok_account_id: string
+          tiktok_publish_id: string | null
+        }
+        Insert: {
+          draft_id: number
+          id?: number
+          published_at?: string
+          tiktok_account_id: string
+          tiktok_publish_id?: string | null
+        }
+        Update: {
+          draft_id?: number
+          id?: number
+          published_at?: string
+          tiktok_account_id?: string
+          tiktok_publish_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "published_posts_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "published_posts_tiktok_account_id_fkey"
+            columns: ["tiktok_account_id"]
+            isOneToOne: false
+            referencedRelation: "tiktok_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tiktok_accounts: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          expires_in: number
+          id: string
+          refresh_expires_in: number
+          refresh_token: string
+          scope: string | null
+          tiktok_avatar_url: string | null
+          tiktok_open_id: string
+          tiktok_username: string | null
+          token_type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          expires_in: number
+          id?: string
+          refresh_expires_in: number
+          refresh_token: string
+          scope?: string | null
+          tiktok_avatar_url?: string | null
+          tiktok_open_id: string
+          tiktok_username?: string | null
+          token_type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          expires_in?: number
+          id?: string
+          refresh_expires_in?: number
+          refresh_token?: string
+          scope?: string | null
+          tiktok_avatar_url?: string | null
+          tiktok_open_id?: string
+          tiktok_username?: string | null
+          token_type?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -46,7 +168,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      draft_status: "draft" | "published" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -173,6 +295,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      draft_status: ["draft", "published", "failed"],
+    },
   },
 } as const

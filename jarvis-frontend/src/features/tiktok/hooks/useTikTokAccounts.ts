@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../../store/useAuthStore";
-import { tiktokQueries } from "../queries";
+import { queries } from "../../../lib/queries";
 import { fetchTikTokAccounts } from "../api";
 
 export const useTikTokAccounts = () => {
@@ -8,7 +8,7 @@ export const useTikTokAccounts = () => {
   const userId = session?.user?.id;
 
   return useQuery({
-    ...tiktokQueries.accounts.all(userId!),
+    ...queries.tiktokAccounts.all(userId!),
     queryFn: () => fetchTikTokAccounts(userId),
     enabled: !!userId,
   });

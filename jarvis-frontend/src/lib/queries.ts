@@ -1,11 +1,15 @@
 import { createQueryKeyStore } from "@lukemorales/query-key-factory";
 
-export const tiktokQueries = createQueryKeyStore({
-  accounts: {
+export const queries = createQueryKeyStore({
+  tiktokAccounts: {
     all: (userId: string) => ["tiktokAccounts", userId],
   },
-  posts: {
+  tiktokPosts: {
     all: (accountId: string) => ["tiktokPosts", accountId],
     detail: (postId: string) => ["tiktokPost", postId],
+  },
+  drafts: {
+    all: (userId: string) => ["drafts", userId],
+    detail: (draftId: string) => ["draft", draftId],
   },
 });

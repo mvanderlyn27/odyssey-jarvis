@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TikTokPage from "./pages/TikTokPage";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
+import DraftDetailPage from "./pages/DraftDetailPage";
 
 const MainLayout = () => (
   <div className="flex h-screen bg-background">
@@ -18,8 +19,9 @@ const MainLayout = () => (
   </div>
 );
 
+import DraftsPage from "./pages/DraftsPage";
+
 // Placeholder pages
-const DraftsPage = () => <div>TikTok Drafts Page</div>;
 const AdminPage = () => <div>Admin Panel Page</div>;
 
 function App() {
@@ -31,6 +33,7 @@ function App() {
             <Route index element={<Navigate to="/tiktok" />} />
             <Route path="tiktok" element={<TikTokPage />} />
             <Route path="drafts" element={<DraftsPage />} />
+            <Route path="drafts/:id" element={<DraftDetailPage />} />
             <Route path="admin" element={<AdminPage />} />
           </Route>
         </Route>

@@ -5,8 +5,10 @@ const TikTokPage = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">TikTok Management</h1>
-      <TikTokAccountManager />
-      <TikTokAccountList />
+      <div>
+        <TikTokAccountManager />
+        <TikTokAccountList />
+      </div>
     </div>
   );
 };

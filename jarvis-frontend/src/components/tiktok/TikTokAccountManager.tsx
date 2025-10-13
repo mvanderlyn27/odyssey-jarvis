@@ -13,7 +13,7 @@ export const initiateTikTokAuth = async (setTikTokCodeVerifier: (code: string) =
 
   const params = new URLSearchParams({
     client_key: import.meta.env.VITE_TIKTOK_CLIENT_KEY,
-    scope: "user.info.basic,video.upload",
+    scope: "user.info.basic,video.upload,user.info.profile,user.info.stats,video.list",
     response_type: "code",
     redirect_uri: import.meta.env.VITE_TIKTOK_REDIRECT_URI,
     state: csrfState,

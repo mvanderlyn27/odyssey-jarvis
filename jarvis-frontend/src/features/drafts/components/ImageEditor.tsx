@@ -1,26 +1,23 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import ReactCrop, { Crop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { Button } from "@/components/ui/button";
+import { useImageEditorStore } from "@/store/useImageEditorStore";
 
 interface ImageEditorProps {
-  file?: File | null;
   assetUrl?: string;
-  onSave: (croppedImage: Blob) => void;
+  initialCrop?: Crop;
+  onSaveAll: (results: { croppedImage: Blob; crop: Crop; originalFile: File }[]) => void;
+  onSaveAndClose: (croppedImage: Blob, crop: Crop) => void;
   onCancel: () => void;
+  onRemove?: () => void;
 }
 
-const ImageEditor = ({ file, assetUrl, onSave, onCancel }: ImageEditorProps) => {
-  const [crop, setCrop] = useState<Crop>({
-    unit: "%",
-    x: 0,
-    y: 0,
-    width: 100,
-    height: 100,
-  });
-  const [imgSrc, setImgSrc] = useState<string>(assetUrl || "");
+const ImageEditor = ({ assetUrl, initialCrop, onSaveAll, onSaveAndClose, onCancel, onRemove }: ImageEditorProps) => {
+  const { files, currentImageIndex, setCurrentImageIndex, crops, setCrop } = useImageEditorStore();
+  const [imgSrc, setImgSrc] = useState<string>("");
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [internalCrop, setInternalCrop] = useState<Crop | undefined>(initialCrop);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     imgRef.current = e.currentTarget;
@@ -28,32 +25,79 @@ const ImageEditor = ({ file, assetUrl, onSave, onCancel }: ImageEditorProps) => 
     const aspectRatio = 9 / 16;
     const imageAspectRatio = width / height;
 
+    if (initialCrop) {
+      setInternalCrop(initialCrop);
+      return;
+    }
+
+    const cropFromStore = crops[currentImageIndex];
+    if (cropFromStore) {
+      setInternalCrop(cropFromStore);
+      return;
+    }
+
+    const newCrop: Crop = {
+      unit: "px",
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    };
+
     if (imageAspectRatio > aspectRatio) {
-      const newWidth = height * aspectRatio;
-      setCrop({
-        unit: "px",
-        x: (width - newWidth) / 2,
-        y: 0,
-        width: newWidth,
-        height: height,
-      });
+      newCrop.width = height * aspectRatio;
+      newCrop.height = height;
+      newCrop.x = (width - newCrop.width) / 2;
+      newCrop.y = 0;
     } else {
-      const newHeight = width / aspectRatio;
-      setCrop({
-        unit: "px",
-        x: 0,
-        y: (height - newHeight) / 2,
-        width: width,
-        height: newHeight,
-      });
+      newCrop.height = width / aspectRatio;
+      newCrop.width = width;
+      newCrop.x = 0;
+      newCrop.y = (height - newCrop.height) / 2;
+    }
+    setInternalCrop(newCrop);
+  };
+
+  const handleNext = () => {
+    if (internalCrop) {
+      setCrop(currentImageIndex, internalCrop);
+    }
+    if (currentImageIndex < files.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
     }
   };
 
   const handleSave = async () => {
-    if (imgRef.current && crop.width && crop.height) {
-      const croppedImage = await getCroppedImg(imgRef.current, crop);
-      onSave(croppedImage);
+    if (!imgRef.current || !internalCrop?.width || !internalCrop?.height) return;
+
+    // Single image edit workflow
+    if (files.length === 0) {
+      const newCroppedImage = await getCroppedImg(imgRef.current, internalCrop);
+      onSaveAndClose(newCroppedImage, internalCrop);
+      return;
     }
+
+    // Multi-image save all workflow
+    // First, save the crop for the current image
+    const finalCrops = [...crops];
+    if (internalCrop) {
+      finalCrops[currentImageIndex] = internalCrop;
+    }
+
+    const results = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const crop = finalCrops[i];
+      if (file && crop) {
+        // To crop the image, we need to load it into an image element first
+        const tempImg = new Image();
+        tempImg.src = URL.createObjectURL(file);
+        await new Promise((resolve) => (tempImg.onload = resolve));
+        const croppedImage = await getCroppedImg(tempImg, crop);
+        results.push({ croppedImage, crop, originalFile: file });
+      }
+    }
+    onSaveAll(results);
   };
 
   const getCroppedImg = (image: HTMLImageElement, crop: Crop): Promise<Blob> => {
@@ -90,53 +134,70 @@ const ImageEditor = ({ file, assetUrl, onSave, onCancel }: ImageEditorProps) => 
   };
 
   useEffect(() => {
-    if (file) {
+    if (files.length > 0) {
       const reader = new FileReader();
       reader.addEventListener("load", () => setImgSrc(reader.result as string));
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(files[currentImageIndex]);
     } else if (assetUrl) {
       setImgSrc(assetUrl);
     }
-  }, [file, assetUrl]);
+  }, [files, currentImageIndex, assetUrl]);
 
-  const handleReplaceImage = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const reader = new FileReader();
-      reader.addEventListener("load", () => setImgSrc(reader.result as string));
-      reader.readAsDataURL(event.target.files[0]);
-    }
-  };
+  const isLastImage = currentImageIndex === files.length - 1;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 rounded-lg">
-        <ReactCrop crop={crop} onChange={(c) => setCrop(c)} aspect={9 / 16}>
-          <img src={imgSrc} onLoad={onImageLoad} alt="Crop preview" />
-        </ReactCrop>
+      <div className="bg-white p-4 rounded-lg max-w-4xl w-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <ReactCrop crop={internalCrop} onChange={setInternalCrop} aspect={9 / 16}>
+              <img
+                src={imgSrc}
+                onLoad={onImageLoad}
+                alt="Crop preview"
+                className="w-full"
+                crossOrigin={imgSrc.startsWith("http") ? "anonymous" : undefined}
+              />
+            </ReactCrop>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Images</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {files.map((file, index) => (
+                <img
+                  key={index}
+                  src={URL.createObjectURL(file)}
+                  alt={`Thumbnail ${index}`}
+                  className={`w-full aspect-square object-cover rounded-md cursor-pointer ${
+                    index === currentImageIndex ? "ring-2 ring-primary" : ""
+                  }`}
+                  onClick={() => setCurrentImageIndex(index)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
         <div className="flex justify-between mt-4">
-          <Button onClick={handleReplaceImage} variant="outline">
-            Replace Image
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileChange}
-            accept="image/webp,image/jpeg"
-          />
+          <div>
+            {onRemove && (
+              <Button onClick={onRemove} variant="destructive" className="ml-2">
+                Remove
+              </Button>
+            )}
+          </div>
           <div>
             <Button onClick={onCancel} variant="ghost">
               Cancel
             </Button>
-            <Button onClick={handleSave} className="ml-2">
-              Save
-            </Button>
+            {files.length > 1 && !isLastImage ? (
+              <Button onClick={handleNext} className="ml-2">
+                Next
+              </Button>
+            ) : (
+              <Button onClick={handleSave} className="ml-2">
+                {files.length > 1 ? "Save All" : "Save"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

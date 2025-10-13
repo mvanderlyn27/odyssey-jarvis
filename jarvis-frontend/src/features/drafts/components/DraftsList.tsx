@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDrafts } from "../hooks/useDrafts";
 import { Link, useNavigate } from "react-router-dom";
+import { useDraftStore } from "@/store/useDraftStore";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ const DraftsList = () => {
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
+  const { draft: activeDraft, isDirty } = useDraftStore();
 
   const createDraftMutation = useMutation({
     mutationFn: () => {
@@ -70,7 +72,14 @@ const DraftsList = () => {
                 <Card className="overflow-hidden">
                   <div className="w-full aspect-[9/16] bg-gray-200">{renderThumbnail(draft)}</div>
                   <CardHeader>
-                    <CardTitle>Draft #{draft.id}</CardTitle>
+                    <CardTitle className="flex items-center">
+                      Draft #{draft.id}
+                      {activeDraft?.id === draft.id && isDirty && (
+                        <span className="ml-2 text-xs text-yellow-500 bg-yellow-100 px-2 py-1 rounded-full">
+                          Unsaved
+                        </span>
+                      )}
+                    </CardTitle>
                   </CardHeader>
                 </Card>
               </Link>

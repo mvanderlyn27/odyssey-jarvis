@@ -7,48 +7,31 @@ import DraftPublisher from "@/features/drafts/components/DraftPublisher";
 import { useDraftStore, DraftAsset } from "@/store/useDraftStore";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 const DndContextTyped = DndContext as any;
-import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { arrayMove, SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import ImageEditor from "@/features/drafts/components/ImageEditor";
-import { uploadMedia, addDraftAsset, updateDraftAssets } from "@/features/drafts/api";
-
-const SortableAsset = ({ asset, url, onClick }: { asset: DraftAsset; url: string; onClick: () => void }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: asset.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="w-full aspect-[9/16] relative">
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded-full cursor-grab">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </div>
-      <div className="w-full h-full" onClick={onClick}>
-        {asset.asset_type === "slides" ? (
-          <img src={url} alt={`Draft asset ${asset.id}`} className="w-full h-full object-cover rounded-lg" />
-        ) : (
-          <video src={url} className="w-full h-full object-cover rounded-lg" controls />
-        )}
-      </div>
-    </div>
-  );
-};
+import SortableAsset from "@/features/drafts/components/SortableAsset";
+import { useImageEditorStore } from "@/store/useImageEditorStore";
+import { syncDraftAssets } from "@/features/drafts/api";
+import { Crop } from "react-image-crop";
 
 const DraftDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const { draft, setDraft, reorderAssets, updateAsset, addAsset: addAssetToStore } = useDraftStore();
-  const [editingFile, setEditingFile] = useState<File | null>(null);
+  const {
+    draft,
+    setDraft,
+    reorderAssets,
+    updateAsset,
+    addAsset: addAssetToStore,
+    removeAsset,
+    isDirty,
+    setDirty,
+  } = useDraftStore();
+  const { setFiles: setEditorFiles, reset: resetEditor } = useImageEditorStore();
   const [editingAsset, setEditingAsset] = useState<DraftAsset | null>(null);
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const {
     data: initialDraft,
@@ -65,8 +48,22 @@ const DraftDetailPage = () => {
     }
   }, [initialDraft, setDraft]);
 
-  const assets = useMemo(() => draft?.draft_assets?.filter(Boolean) || [], [draft]);
-  const { signedUrls } = useSignedUrls(assets);
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
+
+  const assets = useMemo(() => draft?.draft_assets?.filter((asset) => asset.status !== "deleted") || [], [draft]);
+  const { signedUrls } = useSignedUrls(assets.filter((asset) => asset.asset_url && !asset.file));
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -89,46 +86,63 @@ const DraftDetailPage = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setEditingAsset(null);
-      setEditingFile(event.target.files[0]);
+      setEditorFiles(Array.from(event.target.files));
+      setIsEditorOpen(true);
     }
   };
 
-  const handleSaveCroppedImage = async (croppedImage: Blob) => {
-    if (!draft) return;
-    const file = new File([croppedImage], "cropped.jpg", { type: "image/jpeg" });
-    const uploadedMedia = await uploadMedia(file, draft.id.toString());
-
+  const handleRemoveAsset = () => {
     if (editingAsset) {
-      const updatedAsset = {
-        ...editingAsset,
-        asset_url: uploadedMedia.asset_url,
-      };
-      updateAsset(updatedAsset);
-    } else {
-      const newAsset = await addDraftAsset({
-        draft_id: draft.id,
-        asset_url: uploadedMedia.asset_url,
-        asset_type: uploadedMedia.asset_type,
-        order: assets.length + 1,
-      });
-      if (newAsset) {
-        addAssetToStore(newAsset);
-      }
+      removeAsset(editingAsset.id);
+      setIsEditorOpen(false);
+      setEditingAsset(null);
+      setEditingImageUrl(null);
+    }
+  };
+
+  const handleSaveAll = (results: { croppedImage: Blob; crop: Crop; originalFile: File }[]) => {
+    if (!draft) return;
+
+    for (const result of results) {
+      const { croppedImage, crop, originalFile } = result;
+      const randomName = `${Math.random().toString(36).substring(2, 15)}.jpg`;
+      const file = new File([croppedImage], randomName, { type: "image/jpeg" });
+      addAssetToStore({
+        id: crypto.randomUUID(),
+        asset_type: "slides",
+        asset_url: "",
+        file,
+        originalFile,
+        crop,
+      } as any);
     }
 
-    queryClient.invalidateQueries(queries.drafts.detail(id!));
-    setEditingFile(null);
+    setIsEditorOpen(false);
     setEditingAsset(null);
     setEditingImageUrl(null);
+    resetEditor();
+  };
+
+  const handleSaveAndClose = (croppedImage: Blob, crop: Crop) => {
+    if (editingAsset) {
+      const randomName = `${Math.random().toString(36).substring(2, 15)}.jpg`;
+      const file = new File([croppedImage], randomName, { type: "image/jpeg" });
+      updateAsset({ id: editingAsset.id, file, crop });
+    }
+    setIsEditorOpen(false);
+    setEditingAsset(null);
+    setEditingImageUrl(null);
+    resetEditor();
   };
 
   const saveChangesMutation = useMutation({
     mutationFn: () => {
       if (!draft) throw new Error("No draft to save");
-      return updateDraftAssets(draft.id, assets);
+      return syncDraftAssets(draft.id, draft.draft_assets);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(queries.drafts.detail(id!));
+      setDirty(false);
     },
   });
 
@@ -138,24 +152,37 @@ const DraftDetailPage = () => {
 
   return (
     <div className="container mx-auto p-4">
-      {(editingFile || editingImageUrl) && (
+      {isEditorOpen && (
         <ImageEditor
-          file={editingFile}
-          assetUrl={editingImageUrl || undefined}
-          onSave={handleSaveCroppedImage}
+          assetUrl={
+            (editingAsset as any)?.originalFile
+              ? URL.createObjectURL((editingAsset as any).originalFile)
+              : editingImageUrl || undefined
+          }
+          initialCrop={(editingAsset as any)?.crop}
+          onSaveAll={handleSaveAll}
+          onSaveAndClose={handleSaveAndClose}
           onCancel={() => {
-            setEditingFile(null);
+            resetEditor();
+            setIsEditorOpen(false);
             setEditingImageUrl(null);
           }}
+          onRemove={editingAsset ? handleRemoveAsset : undefined}
         />
       )}
       <div className="mb-4 flex justify-between items-center">
         <Link to="/drafts" className="text-sm text-foreground hover:underline">
           &larr; Back to Drafts
         </Link>
-        <Button onClick={() => saveChangesMutation.mutate()} disabled={saveChangesMutation.isPending} className="mt-4">
-          {saveChangesMutation.isPending ? "Saving..." : "Save Changes"}
-        </Button>
+        <div className="flex items-center">
+          {isDirty && <span className="mr-2 text-sm text-yellow-500">Unsaved changes</span>}
+          <Button
+            onClick={() => saveChangesMutation.mutate()}
+            disabled={saveChangesMutation.isPending || !isDirty}
+            className="mt-4">
+            {saveChangesMutation.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-8">
         <div>
@@ -163,7 +190,7 @@ const DraftDetailPage = () => {
             <DndContextTyped sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={assets.map((asset) => asset.id)} strategy={horizontalListSortingStrategy}>
                 {assets.map((asset) => {
-                  const url = signedUrls[asset.asset_url];
+                  const url = asset.file ? URL.createObjectURL(asset.file) : signedUrls[asset.asset_url];
                   if (!url) return null;
                   return (
                     <SortableAsset
@@ -173,6 +200,7 @@ const DraftDetailPage = () => {
                       onClick={() => {
                         setEditingAsset(asset);
                         setEditingImageUrl(url);
+                        setIsEditorOpen(true);
                       }}
                     />
                   );
@@ -186,6 +214,7 @@ const DraftDetailPage = () => {
               <input
                 id="file-upload"
                 type="file"
+                multiple
                 className="hidden"
                 onChange={handleFileChange}
                 accept="image/webp,image/jpeg,video/mp4"

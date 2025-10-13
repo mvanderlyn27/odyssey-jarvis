@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/jarvisClient";
+import { DraftAssetWithStatus } from "@/store/useDraftStore";
 
 const getFileType = (fileType: string) => {
   if (fileType.startsWith("image/")) return "slides";
@@ -100,11 +101,51 @@ export const addDraftAsset = async (asset: {
   asset_type: string;
   order: number;
 }) => {
-  const { data, error } = await supabase.from("draft_assets").insert(asset);
+  const { data, error } = await supabase.from("draft_assets").insert(asset).select().single();
 
   if (error) {
     throw new Error(error.message);
   }
 
   return data;
+};
+
+export const syncDraftAssets = async (draftId: number, assets: DraftAssetWithStatus[]) => {
+  const deletedAssets = assets.filter((asset) => asset.status === "deleted");
+  if (deletedAssets.length > 0) {
+    const { error } = await supabase
+      .from("draft_assets")
+      .delete()
+      .in(
+        "id",
+        deletedAssets.map((a) => a.id)
+      );
+    if (error) throw new Error(error.message);
+  }
+
+  const newOrModifiedAssets = assets.filter((asset) => asset.status === "new" || asset.status === "modified");
+  for (const asset of newOrModifiedAssets) {
+    if (asset.file) {
+      const uploadedMedia = await uploadMedia(asset.file, draftId.toString());
+      asset.asset_url = uploadedMedia.asset_url;
+    }
+  }
+
+  const orderedAssets = assets
+    .filter((asset) => asset.status !== "deleted")
+    .map((asset, index) => ({
+      id: asset.id,
+      draft_id: draftId,
+      asset_url: asset.asset_url,
+      asset_type: asset.asset_type,
+      order: index,
+    }));
+
+  if (orderedAssets.length > 0) {
+    const { data, error } = await supabase.from("draft_assets").upsert(orderedAssets).select();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  return [];
 };

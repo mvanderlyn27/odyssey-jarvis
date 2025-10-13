@@ -1,4 +1,3 @@
-import React from "react";
 import { useTikTokAccounts } from "../../features/tiktok/hooks/useTikTokAccounts";
 import TikTokAccountCard from "./TikTokAccountCard";
 import { Skeleton } from "@/components/ui/skeleton";

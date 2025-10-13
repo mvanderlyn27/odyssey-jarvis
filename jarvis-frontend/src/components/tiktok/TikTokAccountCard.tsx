@@ -2,8 +2,10 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../ui/button";
+import { Skeleton } from "../ui/skeleton";
 import { TikTokAccount } from "@/features/tiktok/types";
 import { useTikTokStats } from "@/features/tiktok/hooks/useTikTokStats";
+import { useTikTokStatsStore } from "@/store/useTikTokStatsStore";
 
 interface TikTokAccountCardProps {
   account: TikTokAccount;
@@ -12,6 +14,7 @@ interface TikTokAccountCardProps {
 
 const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate }) => {
   const stats = useTikTokStats(account);
+  const { loading } = useTikTokStatsStore();
 
   return (
     <Card className="w-full max-w-sm cursor-pointer hover:shadow-lg transition-shadow">
@@ -43,6 +46,17 @@ const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauth
                 Re-authenticate
               </Button>
             </div>
+          ) : loading ? (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-12 justify-self-end" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-12 justify-self-end" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-12 justify-self-end" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-12 justify-self-end" />
+            </div>
           ) : stats ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               <p>Followers:</p>
@@ -55,7 +69,7 @@ const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauth
               <p className="text-right">{stats.video_count?.toLocaleString() ?? "N/A"}</p>
             </div>
           ) : (
-            <p>Loading stats...</p>
+            <p>Could not load stats.</p>
           )}
         </div>
       </CardContent>

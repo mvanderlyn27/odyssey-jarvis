@@ -10,6 +10,7 @@ interface TikTokStats {
 
 interface TikTokStatsState {
   stats: Record<string, TikTokStats & { lastFetched: number | null }>;
+  loading: boolean;
   fetchStats: (accessToken: string, openId: string) => Promise<void>;
 }
 
@@ -17,6 +18,7 @@ export const useTikTokStatsStore = create<TikTokStatsState>()(
   persist(
     (set, get) => ({
       stats: {},
+      loading: false,
       fetchStats: async (accessToken, openId) => {
         const now = Date.now();
         const accountStats = get().stats[openId];
@@ -25,6 +27,8 @@ export const useTikTokStatsStore = create<TikTokStatsState>()(
           // 5-minute cache
           return;
         }
+
+        set({ loading: true });
 
         try {
           const response = await fetch(import.meta.env.VITE_TIKTOK_PROXY_URL, {
@@ -49,9 +53,11 @@ export const useTikTokStatsStore = create<TikTokStatsState>()(
                 lastFetched: now,
               },
             },
+            loading: false,
           }));
         } catch (error) {
           console.error("Failed to fetch TikTok stats:", error);
+          set({ loading: false });
         }
       },
     }),

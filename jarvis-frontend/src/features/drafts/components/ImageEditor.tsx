@@ -21,44 +21,13 @@ const ImageEditor = ({ assetUrl, initialCrop, onSaveAll, onSaveAndClose, onCance
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     imgRef.current = e.currentTarget;
-    const { width, height } = e.currentTarget;
-    const aspectRatio = 9 / 16;
-    const imageAspectRatio = width / height;
-
-    if (initialCrop) {
-      setInternalCrop(initialCrop);
-      return;
-    }
-
-    const cropFromStore = crops[currentImageIndex];
-    if (cropFromStore) {
-      setInternalCrop(cropFromStore);
-      return;
-    }
-
-    const newCrop: Crop = {
-      unit: "px",
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-    };
-
-    if (imageAspectRatio > aspectRatio) {
-      newCrop.width = height * aspectRatio;
-      newCrop.height = height;
-      newCrop.x = (width - newCrop.width) / 2;
-      newCrop.y = 0;
-    } else {
-      newCrop.height = width / aspectRatio;
-      newCrop.width = width;
-      newCrop.x = 0;
-      newCrop.y = (height - newCrop.height) / 2;
-    }
-    setInternalCrop(newCrop);
+    // Prioritize initialCrop from props, then from the store.
+    // If neither exists, `internalCrop` will be undefined, and no crop will be shown.
+    setInternalCrop(initialCrop || crops[currentImageIndex]);
   };
 
   const handleNext = () => {
+    // Save the current crop to the store if it exists.
     if (internalCrop) {
       setCrop(currentImageIndex, internalCrop);
     }
@@ -68,36 +37,59 @@ const ImageEditor = ({ assetUrl, initialCrop, onSaveAll, onSaveAndClose, onCance
   };
 
   const handleSave = async () => {
-    if (!imgRef.current || !internalCrop?.width || !internalCrop?.height) return;
+    if (!imgRef.current) return;
 
-    // Single image edit workflow
-    if (files.length === 0) {
-      const newCroppedImage = await getCroppedImg(imgRef.current, internalCrop);
-      onSaveAndClose(newCroppedImage, internalCrop);
-      return;
-    }
-
-    // Multi-image save all workflow
-    // First, save the crop for the current image
-    const finalCrops = [...crops];
-    if (internalCrop) {
-      finalCrops[currentImageIndex] = internalCrop;
-    }
-
-    const results = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const crop = finalCrops[i];
-      if (file && crop) {
-        // To crop the image, we need to load it into an image element first
-        const tempImg = new Image();
-        tempImg.src = URL.createObjectURL(file);
-        await new Promise((resolve) => (tempImg.onload = resolve));
-        const croppedImage = await getCroppedImg(tempImg, crop);
-        results.push({ croppedImage, crop, originalFile: file });
+    // If the user has interacted and created a crop, use it.
+    if (internalCrop && internalCrop.width && internalCrop.height) {
+      // Single image edit workflow
+      if (files.length === 0) {
+        const newCroppedImage = await getCroppedImg(imgRef.current, internalCrop);
+        onSaveAndClose(newCroppedImage, internalCrop);
+        return;
       }
+
+      // Multi-image save all workflow
+      const finalCrops = [...crops];
+      finalCrops[currentImageIndex] = internalCrop;
+
+      const results = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const crop = finalCrops[i];
+        if (file && crop && crop.width) {
+          const tempImg = new Image();
+          tempImg.src = URL.createObjectURL(file);
+          await new Promise((resolve) => (tempImg.onload = resolve));
+          const croppedImage = await getCroppedImg(tempImg, crop);
+          results.push({ croppedImage, crop, originalFile: file });
+        } else if (file) {
+          // If there's no crop, return the original file.
+          const fullCrop: Crop = { unit: "px", x: 0, y: 0, width: 0, height: 0 };
+          results.push({ croppedImage: file, crop: fullCrop, originalFile: file });
+        }
+      }
+      onSaveAll(results);
+    } else {
+      // The user did not interact with the cropper.
+      // We will treat this as "save the full, uncropped image".
+      const fullCrop: Crop = { unit: "px", x: 0, y: 0, width: 0, height: 0 };
+
+      // Single image workflow
+      if (files.length === 0) {
+        const response = await fetch(imgSrc);
+        const blob = await response.blob();
+        onSaveAndClose(blob, fullCrop);
+        return;
+      }
+
+      // Multi-image workflow
+      const results = files.map((file) => ({
+        croppedImage: file,
+        crop: fullCrop,
+        originalFile: file,
+      }));
+      onSaveAll(results);
     }
-    onSaveAll(results);
   };
 
   const getCroppedImg = (image: HTMLImageElement, crop: Crop): Promise<Blob> => {

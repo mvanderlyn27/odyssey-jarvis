@@ -4,7 +4,7 @@ import { queries } from "@/lib/queries";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 import { useMemo, useEffect, useState } from "react";
 import DraftPublisher from "@/features/drafts/components/DraftPublisher";
-import { useDraftStore, DraftAsset } from "@/store/useDraftStore";
+import { useDraftStore, DraftAssetWithStatus } from "@/store/useDraftStore";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 const DndContextTyped = DndContext as any;
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
@@ -29,7 +29,7 @@ const DraftDetailPage = () => {
     setDirty,
   } = useDraftStore();
   const { setFiles: setEditorFiles, reset: resetEditor } = useImageEditorStore();
-  const [editingAsset, setEditingAsset] = useState<DraftAsset | null>(null);
+  const [editingAsset, setEditingAsset] = useState<DraftAssetWithStatus | null>(null);
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
@@ -63,7 +63,8 @@ const DraftDetailPage = () => {
   }, [isDirty]);
 
   const assets = useMemo(() => draft?.draft_assets?.filter((asset) => asset.status !== "deleted") || [], [draft]);
-  const { signedUrls } = useSignedUrls(assets.filter((asset) => asset.asset_url && !asset.file));
+  const assetsForSignedUrls = useMemo(() => assets.filter((asset) => asset.asset_url && !asset.file), [assets]);
+  const { signedUrls } = useSignedUrls(assetsForSignedUrls);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -114,7 +115,7 @@ const DraftDetailPage = () => {
         file,
         originalFile,
         crop,
-      } as any);
+      });
     }
 
     setIsEditorOpen(false);
@@ -123,11 +124,21 @@ const DraftDetailPage = () => {
     resetEditor();
   };
 
-  const handleSaveAndClose = (croppedImage: Blob, crop: Crop) => {
+  const handleSaveAndClose = async (croppedImage: Blob, crop: Crop) => {
     if (editingAsset) {
       const randomName = `${Math.random().toString(36).substring(2, 15)}.jpg`;
       const file = new File([croppedImage], randomName, { type: "image/jpeg" });
-      updateAsset({ id: editingAsset.id, file, crop });
+
+      let originalFile = editingAsset.originalFile;
+      if (editingAsset.status === "existing" && editingImageUrl && !originalFile) {
+        // If it's the first edit of an existing asset, fetch the original image
+        // to store it for all future re-edits.
+        const response = await fetch(editingImageUrl);
+        const blob = await response.blob();
+        originalFile = new File([blob], "original.jpg", { type: blob.type });
+      }
+
+      updateAsset({ id: editingAsset.id, file, crop, originalFile });
     }
     setIsEditorOpen(false);
     setEditingAsset(null);
@@ -154,11 +165,7 @@ const DraftDetailPage = () => {
     <div className="container mx-auto p-4">
       {isEditorOpen && (
         <ImageEditor
-          assetUrl={
-            (editingAsset as any)?.originalFile
-              ? URL.createObjectURL((editingAsset as any).originalFile)
-              : editingImageUrl || undefined
-          }
+          assetUrl={editingImageUrl || undefined}
           initialCrop={(editingAsset as any)?.crop}
           onSaveAll={handleSaveAll}
           onSaveAndClose={handleSaveAndClose}
@@ -190,17 +197,38 @@ const DraftDetailPage = () => {
             <DndContextTyped sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={assets.map((asset) => asset.id)} strategy={horizontalListSortingStrategy}>
                 {assets.map((asset) => {
-                  const url = asset.file ? URL.createObjectURL(asset.file) : signedUrls[asset.asset_url];
-                  if (!url) return null;
+                  // Determine the display URL: use the local cropped file if it exists, otherwise the signed URL.
+                  const displayUrl = asset.file ? URL.createObjectURL(asset.file) : signedUrls[asset.asset_url];
+
+                  // Determine the editor URL: always prioritize the original file, then the signed URL.
+                  // This is crucial to prevent the "tiny crop" issue.
+                  const editorUrl = asset.originalFile
+                    ? URL.createObjectURL(asset.originalFile)
+                    : signedUrls[asset.asset_url];
+
+                  // Don't render if we don't have a URL to display.
+                  if (!displayUrl) {
+                    return (
+                      <div
+                        key={asset.id}
+                        className="w-full aspect-[9/16] flex items-center justify-center bg-gray-200 rounded-lg">
+                        Processing...
+                      </div>
+                    );
+                  }
+
                   return (
                     <SortableAsset
                       key={asset.id}
                       asset={asset}
-                      url={url}
+                      url={displayUrl}
                       onClick={() => {
-                        setEditingAsset(asset);
-                        setEditingImageUrl(url);
-                        setIsEditorOpen(true);
+                        // Only open the editor if we have a valid URL for the original image.
+                        if (editorUrl) {
+                          setEditingAsset(asset);
+                          setEditingImageUrl(editorUrl);
+                          setIsEditorOpen(true);
+                        }
                       }}
                     />
                   );

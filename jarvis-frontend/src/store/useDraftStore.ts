@@ -22,9 +22,14 @@ type DraftState = {
   isDirty: boolean;
   setDraft: (draft: Tables<"drafts"> & { draft_assets: DraftAsset[] }) => void;
   addAsset: (
-    asset: Omit<DraftAsset, "id" | "created_at" | "draft_id" | "order" | "url"> & { file: File; id: string }
+    asset: Omit<DraftAsset, "id" | "created_at" | "draft_id" | "order" | "url"> & {
+      file: File;
+      id: string;
+      originalFile?: File;
+      crop?: Crop;
+    }
   ) => void;
-  updateAsset: (asset: Partial<DraftAsset> & { id: string; file?: File; crop?: Crop }) => void;
+  updateAsset: (asset: Partial<DraftAsset> & { id: string; file?: File; crop?: Crop; originalFile?: File }) => void;
   removeAsset: (assetId: string) => void;
   reorderAssets: (assets: DraftAssetWithStatus[]) => void;
   reset: () => void;
@@ -51,13 +56,12 @@ export const useDraftStore = create<DraftState>()((set) => ({
     set((state) => {
       if (!state.draft) return state;
       const newAsset: DraftAssetWithStatus = {
-        ...asset,
         draft_id: state.draft.id,
         order: state.draft.draft_assets.length,
         status: "new",
         created_at: new Date().toISOString(),
-        file: asset.file,
-        originalFile: asset.file, // Store the original file
+        ...asset,
+        originalFile: asset.originalFile || asset.file, // Store the original file
         url: URL.createObjectURL(asset.file),
       };
       return {
@@ -78,14 +82,18 @@ export const useDraftStore = create<DraftState>()((set) => ({
           draft_assets: state.draft.draft_assets.map((asset) => {
             if (asset.id !== updatedAsset.id) return asset;
 
-            const isExisting = asset.status === "existing";
-            const newStatus = isExisting ? "modified" : asset.status;
+            const isFirstEditOfExisting = asset.status === "existing" && updatedAsset.file;
+            const newStatus = isFirstEditOfExisting ? "modified" : asset.status;
+
+            // Preserve the original file on the first edit of an existing asset
+            const originalFile = isFirstEditOfExisting ? asset.file || updatedAsset.originalFile : asset.originalFile;
 
             return {
               ...asset,
               ...updatedAsset,
               status: newStatus,
               file: updatedAsset.file || asset.file,
+              originalFile,
               crop: updatedAsset.crop || asset.crop,
               url: updatedAsset.file ? URL.createObjectURL(updatedAsset.file) : asset.url,
             };

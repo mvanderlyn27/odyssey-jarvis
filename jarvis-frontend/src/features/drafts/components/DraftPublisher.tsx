@@ -6,10 +6,10 @@ import { useTikTokAccounts } from "@/features/tiktok/hooks/useTikTokAccounts";
 import SingleAccountSelector from "@/components/tiktok/SingleAccountSelector";
 import { usePublishDraft } from "../hooks/usePublishDraft";
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateDraft } from "../api";
-import { queries } from "@/lib/queries";
-import { useAuthStore } from "@/store/useAuthStore";
+// import { useMutation, useQueryClient } from "@tanstack/react-query";
+// import { updateDraft } from "../api";
+// import { queries } from "@/lib/queries";
+// import { useAuthStore } from "@/store/useAuthStore";
 
 const DraftPublisher = ({ draft }: { draft: any }) => {
   const { data: tikTokAccounts } = useTikTokAccounts();
@@ -17,9 +17,9 @@ const DraftPublisher = ({ draft }: { draft: any }) => {
   const [description, setDescription] = useState("");
   const [accountId, setAccountId] = useState<string | null>(null);
   const publishMutation = usePublishDraft();
-  const queryClient = useQueryClient();
-  const session = useAuthStore((state) => state.session);
-  const userId = session?.user?.id;
+  // const queryClient = useQueryClient();
+  // const session = useAuthStore((state) => state.session);
+  // const userId = session?.user?.id;
 
   useEffect(() => {
     if (draft) {
@@ -28,13 +28,13 @@ const DraftPublisher = ({ draft }: { draft: any }) => {
     }
   }, [draft]);
 
-  const saveMutation = useMutation({
-    mutationFn: () => updateDraft(draft.id, { title, description }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(queries.drafts.detail(draft.id));
-      queryClient.invalidateQueries(queries.drafts.all(userId!));
-    },
-  });
+  // const saveMutation = useMutation({
+  //   mutationFn: () => updateDraft(draft.id, { title, description }),
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries(queries.drafts.detail(draft.id));
+  //     queryClient.invalidateQueries(queries.drafts.all(userId!));
+  //   },
+  // });
 
   const handlePublish = () => {
     if (!accountId || !title) {

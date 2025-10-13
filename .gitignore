@@ -1,2 +1,5 @@
 jarvis-tool/.env
 jarvis-tool/.env.development
+jarvis-frontend/.env
+.gitignore
+jarvis-frontend/.env.development

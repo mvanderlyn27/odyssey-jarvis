@@ -11,9 +11,17 @@ export const uploadMedia = async (file: File, draftId: string) => {
   if (fileType === "unknown") {
     throw new Error("Unsupported file type.");
   }
-  const filePath = `${fileType}/${draftId}/${file.name}`;
 
-  const { data, error } = await supabase.storage.from("tiktok_assets").upload(filePath, file);
+  let filePath: string;
+  if (fileType === "slides") {
+    filePath = `slides/${draftId}/${file.name}`;
+  } else {
+    filePath = `videos/${file.name}`;
+  }
+
+  const { data, error } = await supabase.storage
+    .from("sb_publishable__ib_NziVEPH0amhf76s29Q_ZACadSO3")
+    .upload(filePath, file);
 
   if (error) {
     throw new Error(`Storage Error: ${error.message}`);

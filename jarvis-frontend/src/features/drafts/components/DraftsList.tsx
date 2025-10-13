@@ -1,13 +1,37 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDrafts } from "../hooks/useDrafts";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createDraft } from "../api";
+import { useAuthStore } from "@/store/useAuthStore";
+import { queries } from "@/lib/queries";
 
 const DraftsList = () => {
   const { data: drafts, isLoading, isError } = useDrafts();
   const assets = useMemo(() => drafts?.map((draft: any) => draft.draft_assets?.[0]).filter(Boolean), [drafts]);
   const { signedUrls } = useSignedUrls(assets);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const session = useAuthStore((state) => state.session);
+  const userId = session?.user?.id;
+
+  const createDraftMutation = useMutation({
+    mutationFn: () => {
+      if (!userId) throw new Error("User not found");
+      return createDraft(userId);
+    },
+    onSuccess: (newDraft) => {
+      queryClient.invalidateQueries({ queryKey: queries.drafts.all(userId!).queryKey });
+      navigate(`/drafts/${newDraft.id}`);
+    },
+  });
+
+  const handleCreateDraft = () => {
+    createDraftMutation.mutate();
+  };
 
   const renderThumbnail = (draft: any) => {
     if (!draft.draft_assets || draft.draft_assets.length === 0) {
@@ -30,8 +54,11 @@ const DraftsList = () => {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Your Drafts</CardTitle>
+        <Button onClick={handleCreateDraft} disabled={createDraftMutation.isPending}>
+          {createDraftMutation.isPending ? "Creating..." : "+ New Draft"}
+        </Button>
       </CardHeader>
       <CardContent>
         {isLoading && <p>Loading drafts...</p>}

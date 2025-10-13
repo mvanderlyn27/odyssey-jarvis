@@ -42,6 +42,21 @@ export const createDraft = async (userId: string) => {
   return data;
 };
 
+export const updateDraftAssets = async (draftId: number, assets: { id: string; order: number }[]) => {
+  const updates = assets.map((asset, index) => ({
+    id: asset.id,
+    order: index + 1,
+  }));
+
+  const { data, error } = await supabase.from("draft_assets").upsert(updates).eq("draft_id", draftId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
 export const getDraft = async (draftId: string) => {
   const { data, error } = await supabase
     .from("drafts")

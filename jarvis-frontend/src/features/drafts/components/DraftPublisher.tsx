@@ -73,10 +73,7 @@ const DraftPublisher = ({ draft }: { draft: any }) => {
           <SingleAccountSelector accounts={tikTokAccounts || []} onAccountChange={(id: string) => setAccountId(id)} />
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? "Saving..." : "Save Changes"}
-        </Button>
+      <CardFooter className="flex justify-end">
         <Button
           onClick={handlePublish}
           disabled={publishMutation.isPending || draft.status !== "draft"}

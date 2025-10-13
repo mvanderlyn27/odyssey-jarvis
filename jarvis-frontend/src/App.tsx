@@ -7,17 +7,23 @@ import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import TikTokVideosPage from "./pages/TikTokVideosPage";
 import DraftDetailPage from "./pages/DraftDetailPage";
 
-const MainLayout = () => (
-  <div className="flex h-screen bg-background">
-    <SideMenu />
-    <div className="flex-1 flex flex-col">
-      <Header />
-      <main className="flex-1 p-6">
-        <Outlet />
-      </main>
+import { useState } from "react";
+
+const MainLayout = () => {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  return (
+    <div className="flex h-screen bg-background">
+      <SideMenu isCollapsed={isSidebarCollapsed} onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+        <main className="flex-1 p-6 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 import DraftsPage from "./pages/DraftsPage";
 import TikTokAccountsPage from "./pages/TikTokAccountsPage";

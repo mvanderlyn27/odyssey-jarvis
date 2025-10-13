@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { supabase as jarvisClient } from "../../lib/supabase/jarvisClient";
 import { useAuthStore } from "../../store/useAuthStore";
 
-const SideMenu = () => {
+interface SideMenuProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
   const setSession = useAuthStore((state) => state.setSession);
   const navigate = useNavigate();
 
@@ -18,27 +23,49 @@ const SideMenu = () => {
   };
 
   return (
-    <aside className="w-64 p-4 border-r flex flex-col h-screen">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Jarvis</h2>
-        <nav className="flex flex-col space-y-2">
-          <Button asChild variant="ghost">
-            <NavLink to="/tiktok/accounts">TikTok Accounts</NavLink>
-          </Button>
-          <Button asChild variant="ghost">
-            <NavLink to="/tiktok/analytics">TikTok Analytics</NavLink>
-          </Button>
-          <Button asChild variant="ghost">
-            <NavLink to="/drafts">TikTok Drafts</NavLink>
-          </Button>
-          <Button asChild variant="ghost">
-            <NavLink to="/admin">Admin Panel</NavLink>
-          </Button>
-        </nav>
+    <aside
+      className={`p-4 border-r flex flex-col h-screen transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"}`}>
+      <div className="flex items-center justify-between">
+        {!isCollapsed && <h2 className="text-2xl font-bold">Jarvis</h2>}
+        <Button variant="ghost" onClick={onToggle}>
+          {isCollapsed ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          )}
+        </Button>
       </div>
+      <nav className="flex flex-col space-y-2 mt-4">
+        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
+          <NavLink to="/tiktok/accounts">{isCollapsed ? "📞" : "TikTok Accounts"}</NavLink>
+        </Button>
+        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
+          <NavLink to="/tiktok/analytics">{isCollapsed ? "📊" : "TikTok Analytics"}</NavLink>
+        </Button>
+        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
+          <NavLink to="/drafts">{isCollapsed ? "📝" : "TikTok Drafts"}</NavLink>
+        </Button>
+        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
+          <NavLink to="/admin">{isCollapsed ? "⚙️" : "Admin Panel"}</NavLink>
+        </Button>
+      </nav>
       <div className="mt-auto">
         <Button variant="outline" onClick={handleLogout} className="w-full">
-          Logout
+          {isCollapsed ? "🚪" : "Logout"}
         </Button>
       </div>
     </aside>

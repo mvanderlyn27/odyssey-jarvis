@@ -16,13 +16,8 @@ const TikTokVideosPage = () => {
   const navigate = useNavigate();
   const { data: accounts } = useTikTokAccounts();
   const account = accounts?.find((acc) => acc.tiktok_open_id === openId);
-  const {
-    data: videos,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useTikTokVideos(account?.access_token ?? "", openId ?? "");
+
+  const { data: videos, isLoading, isError, error, refetch } = useTikTokVideos(account!);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recency");
 
   const sortedVideos = useMemo(() => {
@@ -48,7 +43,7 @@ const TikTokVideosPage = () => {
       return { totalViews: 0, totalLikes: 0, totalComments: 0, totalShares: 0 };
     }
     return videos.reduce(
-      (acc, video) => {
+      (acc: any, video: any) => {
         acc.totalViews += video.view_count || 0;
         acc.totalLikes += video.like_count || 0;
         acc.totalComments += video.comment_count || 0;

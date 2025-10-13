@@ -42,6 +42,35 @@ export const createDraft = async (userId: string) => {
   return data;
 };
 
+export const getDraft = async (draftId: string) => {
+  const { data, error } = await supabase
+    .from("drafts")
+    .select(
+      `
+      *,
+      draft_assets (*)
+    `
+    )
+    .eq("id", draftId)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+export const updateDraft = async (draftId: number, updates: { title?: string; description?: string }) => {
+  const { data, error } = await supabase.from("drafts").update(updates).eq("id", draftId).select().single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
 export const deleteDraft = async (draftId: string) => {
   const { error } = await supabase.from("drafts").delete().eq("id", draftId);
 

@@ -52,22 +52,28 @@ export type Database = {
       drafts: {
         Row: {
           created_at: string
+          description: string | null
           id: number
           status: Database["public"]["Enums"]["draft_status"]
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: number
           status?: Database["public"]["Enums"]["draft_status"]
+          title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: number
           status?: Database["public"]["Enums"]["draft_status"]
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -117,14 +123,10 @@ export type Database = {
           access_token: string
           created_at: string | null
           expires_in: number
-          follower_count: number | null
-          following_count: number | null
           id: string
-          likes_count: number | null
           refresh_expires_in: number
           refresh_token: string
           scope: string | null
-          stats_updated_at: string | null
           tiktok_avatar_url: string | null
           tiktok_display_name: string | null
           tiktok_open_id: string
@@ -133,20 +135,15 @@ export type Database = {
           token_type: string | null
           updated_at: string | null
           user_id: string
-          video_count: number | null
         }
         Insert: {
           access_token: string
           created_at?: string | null
           expires_in: number
-          follower_count?: number | null
-          following_count?: number | null
           id?: string
-          likes_count?: number | null
           refresh_expires_in: number
           refresh_token: string
           scope?: string | null
-          stats_updated_at?: string | null
           tiktok_avatar_url?: string | null
           tiktok_display_name?: string | null
           tiktok_open_id: string
@@ -155,20 +152,15 @@ export type Database = {
           token_type?: string | null
           updated_at?: string | null
           user_id: string
-          video_count?: number | null
         }
         Update: {
           access_token?: string
           created_at?: string | null
           expires_in?: number
-          follower_count?: number | null
-          following_count?: number | null
           id?: string
-          likes_count?: number | null
           refresh_expires_in?: number
           refresh_token?: string
           scope?: string | null
-          stats_updated_at?: string | null
           tiktok_avatar_url?: string | null
           tiktok_display_name?: string | null
           tiktok_open_id?: string
@@ -177,7 +169,6 @@ export type Database = {
           token_type?: string | null
           updated_at?: string | null
           user_id?: string
-          video_count?: number | null
         }
         Relationships: []
       }

@@ -68,3 +68,21 @@ export const fetchTikTokVideosAndAggregate = async (accessTokens: string[]) => {
 
   return data;
 };
+
+export const initiateTikTokPost = async (
+  accessToken: string,
+  accountId: string,
+  mediaUrls: { video_url?: string; image_urls?: string[] },
+  title: string,
+  description: string
+) => {
+  const { data, error } = await supabase.functions.invoke("tiktok-content-post-init", {
+    body: { accessToken, mediaUrls, accountId, title, description },
+  });
+
+  if (error) {
+    throw new Error(`Failed to initiate TikTok post: ${error.message}`);
+  }
+
+  return data;
+};

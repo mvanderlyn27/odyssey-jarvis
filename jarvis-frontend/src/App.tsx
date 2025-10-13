@@ -6,8 +6,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import TikTokVideosPage from "./pages/TikTokVideosPage";
 import DraftDetailPage from "./pages/DraftDetailPage";
-import TikTokAccountsPage from "./pages/TikTokAccountsPage";
-import TikTokAnalyticsPage from "./pages/TikTokAnalyticsPage";
 
 const MainLayout = () => (
   <div className="flex h-screen bg-background">
@@ -22,6 +20,8 @@ const MainLayout = () => (
 );
 
 import DraftsPage from "./pages/DraftsPage";
+import TikTokAccountsPage from "./pages/TikTokAccountsPage";
+import TikTokAnalyticsPage from "./pages/TikTokAnalyticsPage";
 
 // Placeholder pages
 const AdminPage = () => <div>Admin Panel Page</div>;

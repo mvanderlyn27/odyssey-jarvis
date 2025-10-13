@@ -28,11 +28,6 @@ serve(async (req: Request) => {
       "id,title,video_description,duration,cover_image_url,embed_link,view_count,like_count,comment_count,share_count,create_time";
     const url = `https://open.tiktokapis.com/v2/video/list/?fields=${fields}`;
 
-    const body = {
-      max_count: max_count || 20,
-      ...(cursor && { cursor }),
-    };
-
     // --- Start Pagination Logic ---
     let allVideos: any[] = [];
     let hasMore = true;

@@ -21,8 +21,11 @@ if (!SUPABASE_BUCKET_NAME) {
 
 const fetchFromSupabase = async (filePath, res) => {
   if (!filePath) {
+    console.error('[PROXY ERROR] File path is required.');
     return res.status(400).send('File path is required.');
   }
+
+  console.log(`[PROXY INFO] Attempting to fetch from Supabase with path: ${filePath}`);
 
   try {
     // Generate a signed URL for the private object.
@@ -30,11 +33,14 @@ const fetchFromSupabase = async (filePath, res) => {
     const { data, error: signError } = await supabase
       .storage
       .from(SUPABASE_BUCKET_NAME)
-      .createSignedUrl(filePath, 60);
+      .createSignedUrl(filePath, 3600);
 
     if (signError) {
+      console.error(`[PROXY ERROR] Supabase signError:`, signError);
       throw signError;
     }
+
+    console.log(`[PROXY INFO] Generated signed URL: ${data.signedUrl}`);
 
     // Fetch the media from the signed URL
     const response = await axios({
@@ -62,13 +68,13 @@ const fetchFromSupabase = async (filePath, res) => {
 
 app.get('/slides/:post_id/:image_name', async (req, res) => {
   const { post_id, image_name } = req.params;
-  const filePath = `slides/${post_id}/${image_name}`;
+  const filePath = `slides/${post_id}/${decodeURIComponent(image_name)}`;
   await fetchFromSupabase(filePath, res);
 });
 
 app.get('/videos/:video_name', async (req, res) => {
   const { video_name } = req.params;
-  const filePath = `videos/${video_name}`;
+  const filePath = `videos/${decodeURIComponent(video_name)}`;
   await fetchFromSupabase(filePath, res);
 });
 

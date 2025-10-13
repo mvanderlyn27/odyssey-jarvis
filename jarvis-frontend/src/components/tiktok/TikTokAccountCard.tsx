@@ -3,9 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../ui/button";
-import { Skeleton } from "../ui/skeleton";
 import { TikTokAccount } from "@/features/tiktok/types";
-import { useTikTokStats } from "@/features/tiktok/hooks/useTikTokStats";
 
 interface TikTokAccountCardProps {
   account: TikTokAccount;
@@ -14,8 +12,6 @@ interface TikTokAccountCardProps {
 }
 
 const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate, onRemove }) => {
-  const { data: stats, isLoading } = useTikTokStats(account);
-
   const handleRemoveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -55,30 +51,17 @@ const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauth
                   Re-authenticate
                 </Button>
               </div>
-            ) : isLoading ? (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-12 justify-self-end" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-12 justify-self-end" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-12 justify-self-end" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-12 justify-self-end" />
-              </div>
-            ) : stats ? (
+            ) : (
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <p>Followers:</p>
-                <p className="text-right">{stats.follower_count?.toLocaleString() ?? "N/A"}</p>
+                <p className="text-right">{account.follower_count?.toLocaleString() ?? "N/A"}</p>
                 <p>Following:</p>
-                <p className="text-right">{stats.following_count?.toLocaleString() ?? "N/A"}</p>
+                <p className="text-right">{account.following_count?.toLocaleString() ?? "N/A"}</p>
                 <p>Likes:</p>
-                <p className="text-right">{stats.likes_count?.toLocaleString() ?? "N/A"}</p>
+                <p className="text-right">{account.likes_count?.toLocaleString() ?? "N/A"}</p>
                 <p>Videos:</p>
-                <p className="text-right">{stats.video_count?.toLocaleString() ?? "N/A"}</p>
+                <p className="text-right">{account.video_count?.toLocaleString() ?? "N/A"}</p>
               </div>
-            ) : (
-              <p>Could not load stats.</p>
             )}
           </div>
         </Link>

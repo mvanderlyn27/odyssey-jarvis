@@ -1,15 +1,24 @@
-import { useTikTokAccounts } from "../../features/tiktok/hooks/useTikTokAccounts";
 import { removeTikTokAccount } from "../../features/tiktok/api";
 import TikTokAccountCard from "./TikTokAccountCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { TikTokAccount } from "@/features/tiktok/types";
 
 interface TikTokAccountListProps {
+  accounts: TikTokAccount[];
+  isLoading: boolean;
+  isError?: boolean;
+  error?: Error | null;
   onReauthenticate: () => void;
 }
 
-const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ onReauthenticate }) => {
-  const { data: accounts, isLoading, isError, error } = useTikTokAccounts();
+const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
+  accounts,
+  isLoading,
+  isError,
+  error,
+  onReauthenticate,
+}) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -40,7 +49,7 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ onReauthenticate 
   }
 
   if (isError) {
-    return <div>Error fetching accounts: {error.message}</div>;
+    return <div>Error fetching accounts: {error?.message}</div>;
   }
 
   if (!accounts || accounts.length === 0) {

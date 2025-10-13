@@ -16,6 +16,7 @@ export const initiateTikTokAuth = async (setTikTokCodeVerifier: (code: string) =
     scope: "user.info.basic,video.upload,user.info.profile,user.info.stats,video.list",
     response_type: "code",
     redirect_uri: import.meta.env.VITE_TIKTOK_REDIRECT_URI,
+    disable_auto_auth: "1",
     state: csrfState,
     code_challenge: code_challenge,
     code_challenge_method: "S256",

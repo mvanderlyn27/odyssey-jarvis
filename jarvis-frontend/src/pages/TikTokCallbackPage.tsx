@@ -20,30 +20,34 @@ const TikTokCallbackPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated) {
+      return; // Wait for the Zustand store to rehydrate from localStorage.
+    }
 
     const code = searchParams.get("code");
 
+    // If we have the code and the verifier from the store, we can proceed.
     if (code && tiktokCodeVerifier) {
-      setTikTokCodeVerifier(null); // Clean up immediately
+      const verifier = tiktokCodeVerifier;
+      setTikTokCodeVerifier(null); // Clean up immediately to prevent reuse.
 
       const exchangeCodeForToken = async () => {
         try {
           const { data, error } = await jarvisClient.functions.invoke("tiktok-auth", {
-            body: { code, code_verifier: tiktokCodeVerifier },
+            body: { code, code_verifier: verifier },
           });
 
           if (error) {
-            // The error object from a function invocation is a FunctionsError.
-            // We need to parse the response to get the actual error message.
             const responseBody = await error.context.json();
             throw new Error(`Function error: ${responseBody.error || error.message}`);
           }
-          if (data.error) throw new Error(`API error: ${data.error_description || data.error}`);
+          if (data.error) {
+            throw new Error(`API error: ${data.error_description || data.error}`);
+          }
 
           setStatus("success");
           setMessage("TikTok account linked successfully! Redirecting...");
-          setTimeout(() => navigate("/tiktok"), 2000);
+          setTimeout(() => navigate("/tiktok/accounts"), 2000);
         } catch (error: any) {
           setStatus("error");
           setMessage(error.message);
@@ -51,11 +55,32 @@ const TikTokCallbackPage = () => {
       };
 
       exchangeCodeForToken();
-    } else {
+    } else if (!code) {
+      // If there's no code in the URL, it's a clear error.
       setStatus("error");
-      setMessage("Authorization failed. No authorization code or verifier was found.");
+      setMessage("Authorization failed. No authorization code was found.");
     }
+    // If there's a code but no verifier, we just wait. The component will show the
+    // loading state. The useEffect will re-run when the verifier is hydrated.
+    // A timeout is added below as a safeguard against waiting forever.
   }, [isHydrated, searchParams, tiktokCodeVerifier, setTikTokCodeVerifier, navigate]);
+
+  useEffect(() => {
+    // This effect is a safeguard to prevent an infinite loading state.
+    if (!isHydrated || status !== "loading") {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      // If after 5 seconds we are still loading, it's likely the verifier was lost.
+      if (status === "loading" && !useAuthStore.getState().tiktokCodeVerifier) {
+        setStatus("error");
+        setMessage("Authorization timed out. The verification token was not found. Please try again.");
+      }
+    }, 5000); // 5-second timeout
+
+    return () => clearTimeout(timeoutId);
+  }, [isHydrated, status]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

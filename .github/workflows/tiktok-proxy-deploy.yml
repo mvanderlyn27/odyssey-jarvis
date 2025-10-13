@@ -35,6 +35,15 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Verify Secrets
+        run: |
+          if [ -z "${{ secrets.GCP_ARTIFACT_REGISTRY_REPO_NAME }}" ]; then
+            echo "::error file=.github/workflows/tiktok-proxy-deploy.yml::The GCP_ARTIFACT_REGISTRY_REPO_NAME secret is not set or empty. Please check your repository's Settings > Secrets and variables > Actions."
+            exit 1
+          else
+            echo "GCP_ARTIFACT_REGISTRY_REPO_NAME secret is set."
+          fi
+
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 

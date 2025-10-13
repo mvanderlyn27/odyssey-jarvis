@@ -1,11 +1,8 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase/jarvisClient";
 import { useAuthStore } from "@/store/useAuthStore";
-import LoginPage from "@/pages/LoginPage";
-import App from "@/App";
 
-const Auth = () => {
-  const session = useAuthStore((state) => state.session);
+const Auth = ({ children }: { children: React.ReactNode }) => {
   const setSession = useAuthStore((state) => state.setSession);
 
   useEffect(() => {
@@ -22,10 +19,7 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [setSession]);
 
-  if (!session) {
-    return <LoginPage />;
-  }
-  return <App />;
+  return <>{children}</>;
 };
 
 export default Auth;

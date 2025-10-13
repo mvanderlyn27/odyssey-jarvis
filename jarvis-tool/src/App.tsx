@@ -1,6 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import SideMenu from "./components/layout/SideMenu";
 import Header from "./components/layout/Header";
+import LoginPage from "./pages/LoginPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import TikTokPage from "./pages/TikTokPage";
+import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 
 const MainLayout = () => (
   <div className="flex h-screen bg-background">
@@ -14,9 +18,6 @@ const MainLayout = () => (
   </div>
 );
 
-import TikTokPage from "./pages/TikTokPage";
-import TikTokCallbackPage from "./pages/TikTokCallbackPage";
-
 // Placeholder pages
 const DraftsPage = () => <div>TikTok Drafts Page</div>;
 const AdminPage = () => <div>Admin Panel Page</div>;
@@ -25,11 +26,15 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route path="tiktok" element={<TikTokPage />} />
-          <Route path="drafts" element={<DraftsPage />} />
-          <Route path="admin" element={<AdminPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Navigate to="/tiktok" />} />
+            <Route path="tiktok" element={<TikTokPage />} />
+            <Route path="drafts" element={<DraftsPage />} />
+            <Route path="admin" element={<AdminPage />} />
+          </Route>
         </Route>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="auth/callback" element={<TikTokCallbackPage />} />
       </Routes>
     </Router>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,14 +7,23 @@ import { supabase } from "@/lib/supabase/jarvisClient";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const setSession = useAuthStore((state) => state.setSession);
+  const [loading, setLoading] = useState(false);
+  const { session, setSession } = useAuthStore();
+
+  useEffect(() => {
+    if (session) {
+      navigate("/");
+    }
+  }, [session, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -23,6 +33,7 @@ const LoginPage = () => {
     } else if (data.session) {
       setSession(data.session);
     }
+    setLoading(false);
   };
 
   return (
@@ -44,8 +55,8 @@ const LoginPage = () => {
               required
             />
           </div>
-          <Button type="submit" className="w-full">
-            Login
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </Button>
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         </form>

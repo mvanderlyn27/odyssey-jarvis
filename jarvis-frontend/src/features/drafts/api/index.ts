@@ -19,9 +19,7 @@ export const uploadMedia = async (file: File, draftId: string) => {
     filePath = `videos/${file.name}`;
   }
 
-  const { data, error } = await supabase.storage
-    .from("sb_publishable__ib_NziVEPH0amhf76s29Q_ZACadSO3")
-    .upload(filePath, file);
+  const { data, error } = await supabase.storage.from("tiktok_assets").upload(filePath, file);
 
   if (error) {
     throw new Error(`Storage Error: ${error.message}`);

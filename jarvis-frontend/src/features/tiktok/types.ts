@@ -13,4 +13,13 @@ export interface TikTokVideo {
   like_count: number;
   comment_count: number;
   share_count: number;
+  create_time: number;
+}
+
+export interface TikTokVideoListResponse {
+  data: {
+    videos: { id: string }[];
+    cursor: string | null;
+    has_more: boolean;
+  };
 }

@@ -13,28 +13,34 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Clone the request to read the body, as it can only be read once.
+    const reqClone = req.clone();
+    const rawBody = await reqClone.text();
+    console.log("tiktok-video-list received raw body:", rawBody);
+
     const { access_token, cursor, max_count } = await req.json();
     if (!access_token) {
+      console.error("'access_token' not found in parsed body.");
       throw new Error("Access token is required.");
     }
 
-    const params = new URLSearchParams({
-      fields: "id,title,video_description,duration,cover_image_url,embed_link",
-    });
+    const fields =
+      "id,title,video_description,duration,cover_image_url,embed_link,view_count,like_count,comment_count,share_count,create_time";
+    const url = `https://open.tiktokapis.com/v2/video/list/?fields=${fields}`;
 
-    if (cursor) {
-      params.append("cursor", String(cursor));
-    }
-    if (max_count) {
-      params.append("max_count", String(max_count));
-    }
+    const body = {
+      max_count: max_count || 20,
+      ...(cursor && { cursor }),
+    };
 
     // Fetch video list from TikTok API
-    const videoResponse = await fetch(`https://open.tiktokapis.com/v2/video/list/?${params.toString()}`, {
-      method: "GET",
+    const videoResponse = await fetch(url, {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${access_token}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(body),
     });
 
     if (!videoResponse.ok) {
@@ -49,6 +55,7 @@ serve(async (req: Request) => {
       status: 200,
     });
   } catch (error: any) {
+    console.error("Error in tiktok-video-list function:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

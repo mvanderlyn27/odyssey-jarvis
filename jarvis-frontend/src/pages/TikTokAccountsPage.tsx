@@ -12,7 +12,7 @@ const TikTokAccountsPage = () => {
   const setTikTokCodeVerifier = useAuthStore((state) => state.setTikTokCodeVerifier);
   const { data: accounts, isLoading: isLoadingAccounts } = useTikTokAccounts();
   const { data: accountsWithStats, isLoading: isLoadingStats } = useTikTokBulkStats(accounts || []);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("creation_date");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("likes");
 
   const sortedAccounts = useMemo(() => {
     const dataToSort = accountsWithStats || accounts || [];

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase as jarvisClient } from "../../../lib/supabase/jarvisClient";
 import { TikTokVideo, TikTokVideoListResponse } from "../types";
 
-const fetchTikTokVideos = async (accessToken: string, openId: string): Promise<TikTokVideo[]> => {
+const fetchTikTokVideos = async (accessToken: string): Promise<TikTokVideo[]> => {
   let allVideos: { id: string }[] = [];
   let cursor: string | null = null;
   let hasMore = true;
@@ -49,7 +49,7 @@ const fetchTikTokVideos = async (accessToken: string, openId: string): Promise<T
 export const useTikTokVideos = (accessToken: string, openId: string) => {
   return useQuery({
     queryKey: ["tiktokVideos", openId],
-    queryFn: () => fetchTikTokVideos(accessToken, openId),
+    queryFn: () => fetchTikTokVideos(accessToken),
     enabled: !!accessToken && !!openId,
   });
 };

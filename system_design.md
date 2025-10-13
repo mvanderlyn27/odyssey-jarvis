@@ -123,11 +123,11 @@ This phase ensures the internal tool is recognized and authorized by TikTok for 
 
 This section provides a detailed breakdown of the implementation, including the data flow, component responsibilities, and necessary file changes.
 
-### 8.1. Database Schema for TikTok Accounts
+### 8.1. Database Schema
 
-First, we need a table in our Supabase database to store the linked TikTok accounts.
+First, we need tables in our Supabase database to store linked TikTok accounts and content drafts.
 
-**`tiktok_accounts` Table Schema:**
+#### 8.1.1. `tiktok_accounts` Table Schema
 ```sql
 CREATE TABLE tiktok_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -146,6 +146,39 @@ CREATE TABLE tiktok_accounts (
 );
 ```
 - **Action:** This SQL statement needs to be added as a new Supabase migration.
+
+#### 8.1.2. `drafts` and `published_posts` Table Schema
+
+These tables will track content drafts and their publication status.
+
+**`drafts` Table Schema:**
+```sql
+-- Create a new enum type for draft status
+create type draft_status as enum ('draft', 'published', 'failed');
+
+-- Create the drafts table
+create table drafts (
+  id bigserial primary key,
+  user_id uuid references auth.users not null,
+  media_files jsonb not null, -- Stores an array of proxied URLs for photos/videos
+  status draft_status not null default 'draft',
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+```
+
+**`published_posts` Table Schema:**
+```sql
+create table published_posts (
+  id bigserial primary key,
+  draft_id bigint references drafts not null,
+  tiktok_account_id uuid references tiktok_accounts not null,
+  tiktok_publish_id text,
+  published_at timestamptz default now() not null,
+  unique(draft_id, tiktok_account_id)
+);
+```
+- **Action:** This SQL needs to be added as a new Supabase migration, along with appropriate RLS policies.
 
 ### 8.2. TikTok Account Linking Flow (Detailed)
 
@@ -195,27 +228,38 @@ This flow describes how a Jarvis user links their TikTok account.
         *   **Action:** This page will be simplified.
         *   **New Content:** It will render the `TikTokAccountManager` component (for the "Link New Account" button) and the `TikTokAccountList` component.
 
-### 8.3. Draft Creation and Uploading (Photo Slides)
+### 8.3. Draft Creation and Publishing Flow
 
-This flow remains largely the same as the initial design, but we can clarify the frontend components.
+This flow outlines how a user creates a draft, uploads media, and initiates the publishing process to TikTok.
 
-1.  **Image Hosting:** The `tiktok-proxy` service is complete and will be used to serve images from Supabase Storage via a verified domain.
+1.  **Media Hosting:**
+    *   The `tiktok-proxy` service is complete and will serve media (photos and videos) from a private Supabase Storage bucket via a verified domain.
+    *   **Media Requirements:** All images and videos should be in a 1080x1920 aspect ratio.
 
-2.  **Draft Creation UI:**
+2.  **Draft Creation and Media Upload (Frontend -> Backend):**
     *   **File:** `jarvis-frontend/src/components/tiktok/DraftCreator.tsx`
     *   **Logic:**
-        *   A drag-and-drop interface for uploading images.
-        *   It will upload the selected images to a Supabase Storage bucket.
-        *   Upon successful upload, it will receive the public URLs for these images.
-        *   It will construct the proxied URLs (e.g., `https://our-verified-domain.com/photo/image_name.jpg`).
+        *   A user interacts with a drag-and-drop UI to select images or a video.
+        *   The frontend uploads the selected media files directly to a private Supabase Storage bucket (e.g., into a `slides/{post_id}/` or `videos/` folder).
+        *   Once all media is uploaded, the frontend constructs the corresponding proxied URLs (e.g., `https://our-verified-domain.com/slides/{post_id}/image1.jpg`).
+        *   The component then calls a Tanstack Query mutation to create a new record in the `drafts` table.
+        *   **Payload to Backend:** The mutation will send the `user_id` and the `media_files` (the array of proxied URLs) to Supabase.
 
-3.  **Initiate Upload to TikTok:**
-    *   **New File:** `jarvis-frontend/src/services/tiktokAPI.ts`
-        *   **Purpose:** To encapsulate all API calls to TikTok.
-        *   **Function:** Will contain a function like `initiatePhotoPost(accessToken, photoUrls)` that calls the TikTok Content Posting API (`/v2/post/publish/content/init/`).
+3.  **Displaying and Managing Drafts (Frontend):**
+    *   **New Hook:** A `useDrafts` hook will be created to fetch all drafts for the current user from the `drafts` table.
+    *   **New Component:** A `DraftsList.tsx` component will use this hook to display all drafts, showing their media thumbnails and status (`draft`, `published`, `failed`).
+    *   From this list, a user can select a draft to publish.
+
+4.  **Initiate Publishing to TikTok (Frontend -> TikTok API):**
+    *   **File:** `jarvis-frontend/src/services/tiktokAPI.ts`
+    *   **Function:** Will contain a function like `initiatePost(accessToken, mediaUrls)` that calls the TikTok Content Posting API (`/v2/post/publish/content/init/`).
     *   **Logic:**
-        *   The `DraftCreator.tsx` component will call this service function, passing the access token of the selected TikTok account and the array of proxied photo URLs.
-        *   It will handle the response from the API, which includes the `publish_id`.
+        *   When a user clicks "Publish" on a draft, the UI will:
+        *   Retrieve the `media_files` (proxied URLs) from the selected draft object.
+        *   Call the `initiatePost` function from `tiktokAPI.ts`, passing the access token of the selected TikTok account and the media URLs.
+        *   On a successful response from TikTok, it receives a `publish_id`.
+        *   The frontend then triggers another mutation to create a record in our `published_posts` table, linking the `draft_id` with the `tiktok_account_id` and storing the `tiktok_publish_id`.
+        *   Finally, it updates the status of the corresponding record in the `drafts` table to `published`.
         *   The UI will then display a message to the user instructing them to complete the post in the TikTok app.
 
 ## 9. UI/UX with Shadcn

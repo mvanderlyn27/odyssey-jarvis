@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install any needed packages
-RUN npm install
+RUN npm ci --only=production
 
 # Bundle app source
 COPY . .
@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 3001
 
 # Define the command to run your app
-CMD [ "npm", "start" ]
+CMD [ "node", "index.js" ]

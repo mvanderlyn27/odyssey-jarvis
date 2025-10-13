@@ -3,10 +3,11 @@ import SideMenu from "./components/layout/SideMenu";
 import Header from "./components/layout/Header";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import TikTokPage from "./pages/TikTokPage";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import TikTokVideosPage from "./pages/TikTokVideosPage";
 import DraftDetailPage from "./pages/DraftDetailPage";
+import TikTokAccountsPage from "./pages/TikTokAccountsPage";
+import TikTokAnalyticsPage from "./pages/TikTokAnalyticsPage";
 
 const MainLayout = () => (
   <div className="flex h-screen bg-background">
@@ -31,8 +32,9 @@ function App() {
       <Routes>
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/tiktok" />} />
-            <Route path="tiktok" element={<TikTokPage />} />
+            <Route index element={<Navigate to="/tiktok/accounts" />} />
+            <Route path="tiktok/accounts" element={<TikTokAccountsPage />} />
+            <Route path="tiktok/analytics" element={<TikTokAnalyticsPage />} />
             <Route path="tiktok/:openId" element={<TikTokVideosPage />} />
             <Route path="drafts" element={<DraftsPage />}>
               <Route path=":id" element={<DraftDetailPage />} />

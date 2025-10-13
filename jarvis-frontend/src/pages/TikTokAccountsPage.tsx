@@ -2,7 +2,7 @@ import TikTokAccountManager, { initiateTikTokAuth } from "../components/tiktok/T
 import TikTokAccountList from "../components/tiktok/TikTokAccountList";
 import { useAuthStore } from "../store/useAuthStore";
 
-const TikTokPage = () => {
+const TikTokAccountsPage = () => {
   const setTikTokCodeVerifier = useAuthStore((state) => state.setTikTokCodeVerifier);
 
   const handleReauthenticate = () => {
@@ -11,7 +11,7 @@ const TikTokPage = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">TikTok Management</h1>
+      <h1 className="text-2xl font-bold mb-4">TikTok Account Management</h1>
       <div>
         <TikTokAccountManager />
         <TikTokAccountList onReauthenticate={handleReauthenticate} />
@@ -20,4 +20,4 @@ const TikTokPage = () => {
   );
 };
 
-export default TikTokPage;
+export default TikTokAccountsPage;

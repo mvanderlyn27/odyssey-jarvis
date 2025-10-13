@@ -23,7 +23,10 @@ const SideMenu = () => {
         <h2 className="text-2xl font-bold mb-4">Jarvis</h2>
         <nav className="flex flex-col space-y-2">
           <Button asChild variant="ghost">
-            <NavLink to="/tiktok">TikTok Analytics</NavLink>
+            <NavLink to="/tiktok/accounts">TikTok Accounts</NavLink>
+          </Button>
+          <Button asChild variant="ghost">
+            <NavLink to="/tiktok/analytics">TikTok Analytics</NavLink>
           </Button>
           <Button asChild variant="ghost">
             <NavLink to="/drafts">TikTok Drafts</NavLink>

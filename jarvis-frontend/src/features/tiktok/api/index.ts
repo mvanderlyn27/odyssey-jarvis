@@ -48,3 +48,23 @@ export const refreshTikTokAccountStats = async (account: TikTokAccount) => {
     throw new Error(`Failed to refresh stats for ${account.tiktok_username}: ${error.message}`);
   }
 };
+
+export const removeTikTokAccount = async (accountId: string) => {
+  const { error } = await supabase.from("tiktok_accounts").delete().eq("id", accountId);
+
+  if (error) {
+    throw new Error(`Failed to remove TikTok account: ${error.message}`);
+  }
+};
+
+export const fetchTikTokVideosAndAggregate = async (accessTokens: string[]) => {
+  const { data, error } = await supabase.functions.invoke("tiktok-fetch-videos-and-aggregate", {
+    body: { accessTokens },
+  });
+
+  if (error) {
+    throw new Error(`Failed to fetch videos and aggregate stats: ${error.message}`);
+  }
+
+  return data;
+};

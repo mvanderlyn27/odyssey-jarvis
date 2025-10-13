@@ -8,6 +8,9 @@ export const queries = createQueryKeyStore({
     all: (accountId: string) => ["tiktokPosts", accountId],
     detail: (postId: string) => ["tiktokPost", postId],
   },
+  tiktokAggregatedStats: {
+    all: (accountIds: string[]) => ["tiktokAggregatedStats", accountIds],
+  },
   drafts: {
     all: (userId: string) => ["drafts", userId],
     detail: (draftId: string) => ["draft", draftId],

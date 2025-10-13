@@ -10,15 +10,22 @@ import { useTikTokStats } from "@/features/tiktok/hooks/useTikTokStats";
 interface TikTokAccountCardProps {
   account: TikTokAccount;
   onReauthenticate: () => void;
+  onRemove: () => void;
 }
 
-const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate }) => {
+const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate, onRemove }) => {
   const { data: stats, isLoading } = useTikTokStats(account);
 
+  const handleRemoveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onRemove();
+  };
+
   return (
-    <Link to={`/tiktok/${account.tiktok_open_id}`}>
-      <Card className="w-full max-w-sm cursor-pointer hover:shadow-lg transition-shadow">
-        <CardHeader>
+    <Card className="w-full max-w-sm">
+      <CardHeader>
+        <Link to={`/tiktok/${account.tiktok_open_id}`} className="w-full">
           <div className="flex items-center space-x-4">
             <Avatar>
               <AvatarImage src={account.tiktok_avatar_url ?? undefined} alt={`@${account.tiktok_username}`} />
@@ -36,8 +43,10 @@ const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauth
               </a>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </Link>
+      </CardHeader>
+      <CardContent>
+        <Link to={`/tiktok/${account.tiktok_open_id}`} className="w-full">
           <div className="text-sm text-muted-foreground">
             {account.token_status === "expired" ? (
               <div className="flex items-center justify-between">
@@ -72,9 +81,14 @@ const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauth
               <p>Could not load stats.</p>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+        </Link>
+        <div className="mt-4 flex justify-end">
+          <Button variant="destructive" size="sm" onClick={handleRemoveClick}>
+            Remove
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

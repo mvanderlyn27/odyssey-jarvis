@@ -1,6 +1,8 @@
 import { useTikTokAccounts } from "../../features/tiktok/hooks/useTikTokAccounts";
+import { removeTikTokAccount } from "../../features/tiktok/api";
 import TikTokAccountCard from "./TikTokAccountCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface TikTokAccountListProps {
   onReauthenticate: () => void;
@@ -8,6 +10,18 @@ interface TikTokAccountListProps {
 
 const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ onReauthenticate }) => {
   const { data: accounts, isLoading, isError, error } = useTikTokAccounts();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: removeTikTokAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tiktokAccounts"] });
+    },
+  });
+
+  const handleRemoveAccount = (accountId: string) => {
+    mutation.mutate(accountId);
+  };
 
   if (isLoading) {
     return (
@@ -36,7 +50,12 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ onReauthenticate 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {accounts.map((account) => (
-        <TikTokAccountCard key={account.id} account={account} onReauthenticate={onReauthenticate} />
+        <TikTokAccountCard
+          key={account.id}
+          account={account}
+          onReauthenticate={onReauthenticate}
+          onRemove={() => handleRemoveAccount(account.id)}
+        />
       ))}
     </div>
   );

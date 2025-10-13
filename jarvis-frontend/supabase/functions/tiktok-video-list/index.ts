@@ -33,24 +33,62 @@ serve(async (req: Request) => {
       ...(cursor && { cursor }),
     };
 
-    // Fetch video list from TikTok API
-    const videoResponse = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
+    // --- Start Pagination Logic ---
+    let allVideos: any[] = [];
+    let hasMore = true;
+    let nextCursor: string | undefined = cursor;
+
+    do {
+      const body = {
+        max_count: max_count || 20,
+        ...(nextCursor && { cursor: nextCursor }),
+      };
+
+      const videoResponse = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!videoResponse.ok) {
+        const errorData = await videoResponse.json();
+        throw new Error(`TikTok Video API error: ${errorData.error.message}`);
+      }
+
+      const pageData = await videoResponse.json();
+
+      if (pageData.error && pageData.error.code !== "ok") {
+        throw new Error(`TikTok API returned an error: ${pageData.error.message}`);
+      }
+
+      if (pageData.data.videos) {
+        allVideos = [...allVideos, ...pageData.data.videos];
+      }
+
+      hasMore = pageData.data.has_more;
+      nextCursor = pageData.data.cursor;
+    } while (hasMore);
+    // --- End Pagination Logic ---
+
+    // The original function returned the raw API response, which included a `data` object.
+    // We now return an object that mimics that structure but contains ALL videos.
+    const responsePayload = {
+      data: {
+        videos: allVideos,
+        has_more: false, // We've fetched everything
+        cursor: nextCursor,
       },
-      body: JSON.stringify(body),
-    });
+      error: {
+        code: "ok",
+        message: "",
+        log_id: "",
+      },
+    };
 
-    if (!videoResponse.ok) {
-      const errorData = await videoResponse.json();
-      throw new Error(`TikTok Video API error: ${errorData.error.message}`);
-    }
-
-    const videoData = await videoResponse.json();
-
-    return new Response(JSON.stringify(videoData), {
+    return new Response(JSON.stringify(responsePayload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

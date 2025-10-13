@@ -4,6 +4,17 @@ FROM node:20-slim
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
+# Define build arguments
+ARG SUPABASE_URL
+ARG SUPABASE_SERVICE_ROLE_KEY
+ARG SUPABASE_BUCKET_NAME
+
+# Set environment variables from build arguments
+ENV SUPABASE_URL=${SUPABASE_URL}
+ENV SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+ENV SUPABASE_BUCKET_NAME=${SUPABASE_BUCKET_NAME}
+ENV PORT=3001
+
 # Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 

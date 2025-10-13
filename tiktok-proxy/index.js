@@ -1,14 +1,23 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-// This will be your Supabase Storage URL
-const SUPABASE_URL = process.env.SUPABASE_URL;
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Supabase URL and service role key are required.');
+}
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 const SUPABASE_BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME;
-const SUPABASE_BUCKET_URL = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET_NAME}`;
+if (!SUPABASE_BUCKET_NAME) {
+  throw new Error('Supabase bucket name is required.');
+}
 
 app.get('/photo/:image_name', async (req, res) => {
   const { image_name } = req.params;
@@ -18,13 +27,21 @@ app.get('/photo/:image_name', async (req, res) => {
   }
 
   try {
-    const imageUrl = `${SUPABASE_BUCKET_URL}/${image_name}`;
-    
-    // In a real implementation, you would use the Supabase client with authentication
-    // For this example, we'll assume the bucket is public and use axios.
+    // Generate a signed URL for the private object.
+    // The URL will be valid for 60 seconds.
+    const { data, error: signError } = await supabase
+      .storage
+      .from(SUPABASE_BUCKET_NAME)
+      .createSignedUrl(image_name, 60);
+
+    if (signError) {
+      throw signError;
+    }
+
+    // Fetch the image from the signed URL
     const response = await axios({
       method: 'get',
-      url: imageUrl,
+      url: data.signedUrl,
       responseType: 'stream',
     });
 

@@ -831,3 +831,4 @@ tiktok-proxy/node_modules/ws/lib/subprotocol.js
 tiktok-proxy/node_modules/ws/lib/validation.js
 tiktok-proxy/node_modules/ws/lib/websocket-server.js
 tiktok-proxy/node_modules/ws/lib/websocket.js
+tiktok-proxy/.env

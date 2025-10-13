@@ -3,14 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../ui/button";
 import { TikTokAccount } from "@/features/tiktok/types";
+import { useTikTokStats } from "@/features/tiktok/hooks/useTikTokStats";
 
 interface TikTokAccountCardProps {
   account: TikTokAccount;
   onReauthenticate: () => void;
-  onRefresh: () => void;
 }
 
-const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate, onRefresh }) => {
+const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate }) => {
+  const stats = useTikTokStats(account);
+
   return (
     <Card className="w-full max-w-sm cursor-pointer hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -41,24 +43,19 @@ const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauth
                 Re-authenticate
               </Button>
             </div>
-          ) : account.is_stale ? (
-            <div className="flex items-center justify-between">
-              <p className="text-yellow-600">Stats are out of date.</p>
-              <Button variant="outline" size="sm" onClick={onRefresh}>
-                Refresh
-              </Button>
-            </div>
-          ) : (
+          ) : stats ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               <p>Followers:</p>
-              <p className="text-right">{account.follower_count?.toLocaleString() ?? "N/A"}</p>
+              <p className="text-right">{stats.follower_count?.toLocaleString() ?? "N/A"}</p>
               <p>Following:</p>
-              <p className="text-right">{account.following_count?.toLocaleString() ?? "N/A"}</p>
+              <p className="text-right">{stats.following_count?.toLocaleString() ?? "N/A"}</p>
               <p>Likes:</p>
-              <p className="text-right">{account.likes_count?.toLocaleString() ?? "N/A"}</p>
+              <p className="text-right">{stats.likes_count?.toLocaleString() ?? "N/A"}</p>
               <p>Videos:</p>
-              <p className="text-right">{account.video_count?.toLocaleString() ?? "N/A"}</p>
+              <p className="text-right">{stats.video_count?.toLocaleString() ?? "N/A"}</p>
             </div>
+          ) : (
+            <p>Loading stats...</p>
           )}
         </div>
       </CardContent>

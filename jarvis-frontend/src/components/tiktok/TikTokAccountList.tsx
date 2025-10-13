@@ -1,6 +1,5 @@
-import { useTikTokAccounts, useRefreshTikTokStats } from "../../features/tiktok/hooks/useTikTokAccounts";
+import { useTikTokAccounts } from "../../features/tiktok/hooks/useTikTokAccounts";
 import TikTokAccountCard from "./TikTokAccountCard";
-import { TikTokAccount } from "@/features/tiktok/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface TikTokAccountListProps {
@@ -9,11 +8,6 @@ interface TikTokAccountListProps {
 
 const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ onReauthenticate }) => {
   const { data: accounts, isLoading, isError, error } = useTikTokAccounts();
-  const { mutate: refreshStats } = useRefreshTikTokStats();
-
-  const handleRefresh = (account: TikTokAccount) => {
-    refreshStats(account);
-  };
 
   if (isLoading) {
     return (
@@ -42,12 +36,7 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ onReauthenticate 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {accounts.map((account) => (
-        <TikTokAccountCard
-          key={account.id}
-          account={account}
-          onReauthenticate={onReauthenticate}
-          onRefresh={() => handleRefresh(account)}
-        />
+        <TikTokAccountCard key={account.id} account={account} onReauthenticate={onReauthenticate} />
       ))}
     </div>
   );

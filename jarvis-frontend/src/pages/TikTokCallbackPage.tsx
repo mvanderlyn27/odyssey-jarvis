@@ -33,7 +33,12 @@ const TikTokCallbackPage = () => {
             body: { code, code_verifier: tiktokCodeVerifier },
           });
 
-          if (error) throw new Error(`Function error: ${error.message}`);
+          if (error) {
+            // The error object from a function invocation is a FunctionsError.
+            // We need to parse the response to get the actual error message.
+            const responseBody = await error.context.json();
+            throw new Error(`Function error: ${responseBody.error || error.message}`);
+          }
           if (data.error) throw new Error(`API error: ${data.error_description || data.error}`);
 
           setStatus("success");

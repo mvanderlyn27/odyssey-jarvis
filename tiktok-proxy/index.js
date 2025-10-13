@@ -50,11 +50,13 @@ const fetchFromSupabase = async (filePath, res) => {
     // Stream the media back to the client
     response.data.pipe(res);
   } catch (error) {
-    console.error(`Error fetching media from Supabase for path: ${filePath}`, error.message);
+    console.error(`[PROXY ERROR] Failed to fetch media from Supabase for path: ${filePath}. Full error:`, error);
     if (error.response) {
+      // This case handles errors from the axios request to the signed URL
       return res.status(error.response.status).send(error.response.statusText);
     }
-    res.status(500).send('Error fetching media.');
+    // This case handles errors from Supabase (e.g., creating signed URL)
+    res.status(500).send(`Error fetching media. Check proxy logs for details. Error: ${error.message}`);
   }
 };
 

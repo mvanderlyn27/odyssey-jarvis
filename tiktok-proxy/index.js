@@ -19,11 +19,9 @@ if (!SUPABASE_BUCKET_NAME) {
   throw new Error('Supabase bucket name is required.');
 }
 
-app.get('/photo/:image_name', async (req, res) => {
-  const { image_name } = req.params;
-
-  if (!image_name) {
-    return res.status(400).send('Image name is required.');
+const fetchFromSupabase = async (filePath, res) => {
+  if (!filePath) {
+    return res.status(400).send('File path is required.');
   }
 
   try {
@@ -32,32 +30,44 @@ app.get('/photo/:image_name', async (req, res) => {
     const { data, error: signError } = await supabase
       .storage
       .from(SUPABASE_BUCKET_NAME)
-      .createSignedUrl(image_name, 60);
+      .createSignedUrl(filePath, 60);
 
     if (signError) {
       throw signError;
     }
 
-    // Fetch the image from the signed URL
+    // Fetch the media from the signed URL
     const response = await axios({
       method: 'get',
       url: data.signedUrl,
       responseType: 'stream',
     });
 
-    // Set the appropriate content type for the image
+    // Set the appropriate content type for the media
     res.setHeader('Content-Type', response.headers['content-type']);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
 
-    // Stream the image back to the client
+    // Stream the media back to the client
     response.data.pipe(res);
   } catch (error) {
-    console.error('Error fetching image from Supabase:', error.message);
+    console.error(`Error fetching media from Supabase for path: ${filePath}`, error.message);
     if (error.response) {
       return res.status(error.response.status).send(error.response.statusText);
     }
-    res.status(500).send('Error fetching image.');
+    res.status(500).send('Error fetching media.');
   }
+};
+
+app.get('/slides/:post_id/:image_name', async (req, res) => {
+  const { post_id, image_name } = req.params;
+  const filePath = `slides/${post_id}/${image_name}`;
+  await fetchFromSupabase(filePath, res);
+});
+
+app.get('/videos/:video_name', async (req, res) => {
+  const { video_name } = req.params;
+  const filePath = `videos/${video_name}`;
+  await fetchFromSupabase(filePath, res);
 });
 
 app.listen(port, () => {

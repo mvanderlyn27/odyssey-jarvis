@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase as jarvisClient } from "../lib/supabase/jarvisClient";
 import { useAuthStore } from "../store/useAuthStore";
 
 const TikTokCallbackPage = () => {
   const [searchParams] = useSearchParams();
-  const { session, tiktokCodeVerifier, setTikTokCodeVerifier } = useAuthStore();
+  const navigate = useNavigate();
+  const { tiktokCodeVerifier, setTikTokCodeVerifier } = useAuthStore();
   const [message, setMessage] = useState("Handling TikTok callback...");
 
   useEffect(() => {
@@ -29,24 +30,11 @@ const TikTokCallbackPage = () => {
             throw new Error(`TikTok API error: ${data.error}`);
           }
 
-          const user = session?.user;
-          if (!user) {
-            throw new Error("User not authenticated.");
-          }
-
-          const { error: dbError } = await jarvisClient.from("tiktok_accounts").insert([
-            {
-              user_id: user.id,
-              auth_token: data.access_token,
-              name: data.open_id, // Or any other user info you want to store
-            },
-          ]);
-
-          if (dbError) {
-            throw new Error(`Database error: ${dbError.message}`);
-          }
-
-          setMessage("TikTok account linked successfully!");
+          setMessage("TikTok account linked successfully! Redirecting...");
+          // Redirect to the TikTok management page after a short delay
+          setTimeout(() => {
+            navigate("/tiktok");
+          }, 2000);
         } catch (error: any) {
           setMessage(`Error: ${error.message}`);
         }
@@ -56,7 +44,7 @@ const TikTokCallbackPage = () => {
     } else {
       setMessage("Authorization failed. No code or verifier found.");
     }
-  }, [searchParams, session]);
+  }, [searchParams, tiktokCodeVerifier, setTikTokCodeVerifier, navigate]);
 
   return (
     <div>

@@ -71,5 +71,5 @@ jobs:
             --platform managed \
             --project "${{ env.GCP_PROJECT_ID }}" \
             --allow-unauthenticated \
-            --set-env-vars="NODE_ENV=production,SUPABASE_URL=${{ secrets.PROD_SUPABASE_URL }},SUPABASE_BUCKET_NAME=${{ secrets.PROD_SUPABASE_BUCKET_NAME }}" \
+            --set-env-vars="NODE_ENV=production,SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_BUCKET_NAME=${{ secrets.SUPABASE_BUCKET_NAME }}" \
             --quiet

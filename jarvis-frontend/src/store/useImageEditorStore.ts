@@ -1,13 +1,13 @@
 import { create } from "zustand";
-import { Crop } from "react-image-crop";
+import { CroppedArea } from "@/features/drafts/components/ImageEditor";
 
 type ImageEditorState = {
   files: File[];
-  crops: Crop[];
+  crops: (CroppedArea | undefined)[];
   croppedImages: (Blob | null)[];
   currentImageIndex: number;
   setFiles: (files: File[]) => void;
-  setCrop: (index: number, crop: Crop) => void;
+  setCrop: (index: number, crop: CroppedArea) => void;
   setCroppedImage: (index: number, blob: Blob) => void;
   setCurrentImageIndex: (index: number) => void;
   reset: () => void;
@@ -25,13 +25,7 @@ export const useImageEditorStore = create<ImageEditorState>((set) => ({
   setFiles: (files) =>
     set({
       files,
-      crops: new Array(files.length).fill({
-        unit: "%",
-        width: 100,
-        height: 100,
-        x: 0,
-        y: 0,
-      }),
+      crops: new Array(files.length).fill(undefined),
       croppedImages: new Array(files.length).fill(null),
       currentImageIndex: 0,
     }),

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Tables } from "@/lib/supabase/database";
-import { Crop } from "react-image-crop";
+import { CroppedArea } from "@/features/drafts/components/ImageEditor";
 
 export type AssetStatus = "existing" | "new" | "modified" | "deleted";
 
@@ -10,7 +10,7 @@ export type DraftAssetWithStatus = DraftAsset & {
   file?: File; // The file to be uploaded (potentially cropped)
   originalFile?: File; // The original file for new assets, used for re-editing
   url: string; // For local previews of the `file`
-  crop?: Crop; // The crop parameters
+  crop?: CroppedArea; // The crop parameters
 };
 
 export type Draft = Tables<"drafts"> & {
@@ -26,10 +26,12 @@ type DraftState = {
       file: File;
       id: string;
       originalFile?: File;
-      crop?: Crop;
+      crop?: CroppedArea;
     }
   ) => void;
-  updateAsset: (asset: Partial<DraftAsset> & { id: string; file?: File; crop?: Crop; originalFile?: File }) => void;
+  updateAsset: (
+    asset: Partial<DraftAsset> & { id: string; file?: File; crop?: CroppedArea; originalFile?: File }
+  ) => void;
   removeAsset: (assetId: string) => void;
   reorderAssets: (assets: DraftAssetWithStatus[]) => void;
   reset: () => void;

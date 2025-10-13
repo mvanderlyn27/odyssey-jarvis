@@ -9,11 +9,10 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 const DndContextTyped = DndContext as any;
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
-import ImageEditor from "@/features/drafts/components/ImageEditor";
+import ImageEditor, { CroppedArea } from "@/features/drafts/components/ImageEditor";
 import SortableAsset from "@/features/drafts/components/SortableAsset";
 import { useImageEditorStore } from "@/store/useImageEditorStore";
 import { syncDraftAssets } from "@/features/drafts/api";
-import { Crop } from "react-image-crop";
 
 const DraftDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,7 +100,7 @@ const DraftDetailPage = () => {
     }
   };
 
-  const handleSaveAll = (results: { croppedImage: Blob; crop: Crop; originalFile: File }[]) => {
+  const handleSaveAll = (results: { croppedImage: Blob; crop: CroppedArea; originalFile: File }[]) => {
     if (!draft) return;
 
     for (const result of results) {
@@ -124,7 +123,7 @@ const DraftDetailPage = () => {
     resetEditor();
   };
 
-  const handleSaveAndClose = async (croppedImage: Blob, crop: Crop) => {
+  const handleSaveAndClose = async (croppedImage: Blob, crop: CroppedArea) => {
     if (editingAsset) {
       const randomName = `${Math.random().toString(36).substring(2, 15)}.jpg`;
       const file = new File([croppedImage], randomName, { type: "image/jpeg" });

@@ -1,7 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queries } from "@/lib/queries";
-import { supabase } from "@/lib/supabase/jarvisClient";
 import { useTikTokAccounts } from "@/features/tiktok/hooks/useTikTokAccounts";
 import { fetchDraft } from "@/features/drafts/hooks/useDrafts";
 import { deleteDraft } from "@/features/drafts/api";

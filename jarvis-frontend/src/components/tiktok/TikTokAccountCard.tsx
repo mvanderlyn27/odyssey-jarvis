@@ -49,10 +49,16 @@ const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauth
               </Button>
             </div>
           ) : (
-            <>
-              <p>Followers: {account.follower_count?.toLocaleString() ?? "N/A"}</p>
-              <p>Likes: {account.likes_count?.toLocaleString() ?? "N/A"}</p>
-            </>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <p>Followers:</p>
+              <p className="text-right">{account.follower_count?.toLocaleString() ?? "N/A"}</p>
+              <p>Following:</p>
+              <p className="text-right">{account.following_count?.toLocaleString() ?? "N/A"}</p>
+              <p>Likes:</p>
+              <p className="text-right">{account.likes_count?.toLocaleString() ?? "N/A"}</p>
+              <p>Videos:</p>
+              <p className="text-right">{account.video_count?.toLocaleString() ?? "N/A"}</p>
+            </div>
           )}
         </div>
       </CardContent>

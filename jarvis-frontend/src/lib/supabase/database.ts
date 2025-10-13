@@ -118,6 +118,7 @@ export type Database = {
           created_at: string | null
           expires_in: number
           follower_count: number | null
+          following_count: number | null
           id: string
           likes_count: number | null
           refresh_expires_in: number
@@ -132,12 +133,14 @@ export type Database = {
           token_type: string | null
           updated_at: string | null
           user_id: string
+          video_count: number | null
         }
         Insert: {
           access_token: string
           created_at?: string | null
           expires_in: number
           follower_count?: number | null
+          following_count?: number | null
           id?: string
           likes_count?: number | null
           refresh_expires_in: number
@@ -152,12 +155,14 @@ export type Database = {
           token_type?: string | null
           updated_at?: string | null
           user_id: string
+          video_count?: number | null
         }
         Update: {
           access_token?: string
           created_at?: string | null
           expires_in?: number
           follower_count?: number | null
+          following_count?: number | null
           id?: string
           likes_count?: number | null
           refresh_expires_in?: number
@@ -172,6 +177,7 @@ export type Database = {
           token_type?: string | null
           updated_at?: string | null
           user_id?: string
+          video_count?: number | null
         }
         Relationships: []
       }

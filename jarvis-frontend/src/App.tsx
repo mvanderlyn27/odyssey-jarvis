@@ -32,8 +32,9 @@ function App() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/tiktok" />} />
             <Route path="tiktok" element={<TikTokPage />} />
-            <Route path="drafts" element={<DraftsPage />} />
-            <Route path="drafts/:id" element={<DraftDetailPage />} />
+            <Route path="drafts" element={<DraftsPage />}>
+              <Route path=":id" element={<DraftDetailPage />} />
+            </Route>
             <Route path="admin" element={<AdminPage />} />
           </Route>
         </Route>

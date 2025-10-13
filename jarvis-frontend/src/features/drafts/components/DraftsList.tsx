@@ -2,10 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDrafts } from "../hooks/useDrafts";
 import { Link } from "react-router-dom";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
+import { useMemo } from "react";
 
 const DraftsList = () => {
   const { data: drafts, isLoading, isError } = useDrafts();
-  const assets = drafts?.map((draft: any) => draft.draft_assets?.[0]).filter(Boolean);
+  const assets = useMemo(() => drafts?.map((draft: any) => draft.draft_assets?.[0]).filter(Boolean), [drafts]);
   const { signedUrls } = useSignedUrls(assets);
 
   const renderThumbnail = (draft: any) => {

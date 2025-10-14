@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +60,11 @@ const LoginPage = () => {
           </Button>
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         </form>
+        <div className="text-center">
+          <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+            Forgot Password?
+          </Link>
+        </div>
       </div>
     </div>
   );

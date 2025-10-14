@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-
 import SideMenu from "./components/layout/SideMenu";
 import Header from "./components/layout/Header";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import TikTokVideosPage from "./pages/TikTokVideosPage";
@@ -53,6 +55,8 @@ function App() {
           </Route>
         </Route>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="auth/callback" element={<TikTokCallbackPage />} />
       </Routes>
       <Toaster />

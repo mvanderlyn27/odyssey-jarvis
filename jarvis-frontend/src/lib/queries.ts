@@ -1,5 +1,5 @@
 import { createQueryKeyStore } from "@lukemorales/query-key-factory";
-import { getDraft } from "@/features/drafts/api";
+import { getPost } from "@/features/posts/api";
 
 export const queries = createQueryKeyStore({
   tiktokAccounts: {
@@ -15,11 +15,14 @@ export const queries = createQueryKeyStore({
   tiktokVideos: {
     all: (accountIds: string[]) => ["tiktokVideos", accountIds],
   },
-  drafts: {
-    all: (userId: string) => ["drafts", userId],
-    detail: (draftId: string) => ({
-      queryKey: ["draft", draftId],
-      queryFn: () => getDraft(draftId),
+  posts: {
+    all: (userId: string) => ["posts", userId],
+    detail: (postId: string) => ({
+      queryKey: ["post", postId],
+      queryFn: () => getPost(postId),
     }),
+    drafts: (userId: string) => ["posts", "drafts", userId],
+    processing: (userId: string) => ["posts", "processing", userId],
+    published: (userId: string) => ["posts", "published", userId],
   },
 });

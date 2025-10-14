@@ -14,103 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      draft_assets: {
+      post_assets: {
         Row: {
           asset_type: string
           asset_url: string
           created_at: string | null
-          draft_id: number
           id: string
           order: number
+          post_id: string | null
         }
         Insert: {
           asset_type: string
           asset_url: string
           created_at?: string | null
-          draft_id: number
           id?: string
           order: number
+          post_id?: string | null
         }
         Update: {
           asset_type?: string
           asset_url?: string
           created_at?: string | null
-          draft_id?: number
           id?: string
           order?: number
+          post_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "draft_assets_draft_id_fkey"
-            columns: ["draft_id"]
+            foreignKeyName: "post_assets_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: "drafts"
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
       }
-      drafts: {
+      posts: {
         Row: {
           created_at: string
           description: string | null
-          id: number
-          status: Database["public"]["Enums"]["draft_status"]
-          title: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: number
-          status?: Database["public"]["Enums"]["draft_status"]
-          title?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: number
-          status?: Database["public"]["Enums"]["draft_status"]
-          title?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      published_posts: {
-        Row: {
-          draft_id: number
-          id: number
-          published_at: string
-          tiktok_account_id: string
+          id: string
+          post_url: string | null
+          reason: string | null
+          status: Database["public"]["Enums"]["post_status"] | null
+          tiktok_account_id: string | null
           tiktok_publish_id: string | null
+          title: string | null
+          user_id: string
         }
         Insert: {
-          draft_id: number
-          id?: number
-          published_at?: string
-          tiktok_account_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          post_url?: string | null
+          reason?: string | null
+          status?: Database["public"]["Enums"]["post_status"] | null
+          tiktok_account_id?: string | null
           tiktok_publish_id?: string | null
+          title?: string | null
+          user_id: string
         }
         Update: {
-          draft_id?: number
-          id?: number
-          published_at?: string
-          tiktok_account_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          post_url?: string | null
+          reason?: string | null
+          status?: Database["public"]["Enums"]["post_status"] | null
+          tiktok_account_id?: string | null
           tiktok_publish_id?: string | null
+          title?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "published_posts_draft_id_fkey"
-            columns: ["draft_id"]
-            isOneToOne: false
-            referencedRelation: "drafts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "published_posts_tiktok_account_id_fkey"
+            foreignKeyName: "posts_tiktok_account_id_fkey"
             columns: ["tiktok_account_id"]
             isOneToOne: false
             referencedRelation: "tiktok_accounts"
@@ -180,7 +158,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      draft_status: "draft" | "published" | "failed"
+      asset_type: "videos" | "slides"
+      draft_status: "DRAFT" | "PUBLISHED" | "FAILED"
+      post_status: "DRAFT" | "PROCESSING" | "PUBLISHED" | "FAILED" | "INBOX"
       tiktok_account_status: "active" | "expired"
     }
     CompositeTypes: {
@@ -309,7 +289,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      draft_status: ["draft", "published", "failed"],
+      asset_type: ["videos", "slides"],
+      draft_status: ["DRAFT", "PUBLISHED", "FAILED"],
+      post_status: ["DRAFT", "PROCESSING", "PUBLISHED", "FAILED", "INBOX"],
       tiktok_account_status: ["active", "expired"],
     },
   },

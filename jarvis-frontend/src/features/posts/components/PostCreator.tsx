@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
-import { createDraft } from "../api";
+import { createPost } from "../api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queries } from "@/lib/queries";
 import { useNavigate } from "react-router-dom";
 
-const DraftCreator = () => {
+const PostCreator = () => {
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
   const queryClient = useQueryClient();
@@ -15,30 +15,30 @@ const DraftCreator = () => {
   const mutation = useMutation({
     mutationFn: () => {
       if (!userId) throw new Error("User not found");
-      return createDraft(userId);
+      return createPost(userId);
     },
-    onSuccess: (newDraft) => {
-      queryClient.invalidateQueries({ queryKey: queries.drafts.all(userId!).queryKey });
-      navigate(`/drafts/${newDraft.id}`);
+    onSuccess: (newPost) => {
+      queryClient.invalidateQueries({ queryKey: queries.posts.drafts(userId!).queryKey });
+      navigate(`/posts/${newPost.id}`);
     },
   });
 
-  const handleCreateDraft = () => {
+  const handleCreatePost = () => {
     mutation.mutate();
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create a New Draft</CardTitle>
+        <CardTitle>Create a New Post</CardTitle>
       </CardHeader>
       <CardContent>
-        <Button onClick={handleCreateDraft} disabled={mutation.isPending}>
-          {mutation.isPending ? "Creating..." : "Create New Draft"}
+        <Button onClick={handleCreatePost} disabled={mutation.isPending}>
+          {mutation.isPending ? "Creating..." : "Create New Post"}
         </Button>
       </CardContent>
     </Card>
   );
 };
 
-export default DraftCreator;
+export default PostCreator;

@@ -57,7 +57,10 @@ const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
           <NavLink to="/tiktok/analytics">{isCollapsed ? "📊" : "TikTok Analytics"}</NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/drafts">{isCollapsed ? "📝" : "TikTok Drafts"}</NavLink>
+          <NavLink to="/posts">{isCollapsed ? "📝" : "Posts"}</NavLink>
+        </Button>
+        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
+          <NavLink to="/inbox">{isCollapsed ? "📥" : "Inbox"}</NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
           <NavLink to="/admin">{isCollapsed ? "⚙️" : "Admin Panel"}</NavLink>

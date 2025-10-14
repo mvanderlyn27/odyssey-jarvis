@@ -1,3 +1,0 @@
-ALTER TABLE drafts
-ADD COLUMN title TEXT,
-ADD COLUMN description TEXT;

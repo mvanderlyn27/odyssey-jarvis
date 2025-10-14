@@ -1,9 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DraftAsset } from "@/store/useDraftStore";
+import { DraftAssetWithStatus } from "@/store/useEditPostStore";
 
-const SortableAsset = ({ asset, url, onClick }: { asset: DraftAsset; url: string; onClick: () => void }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: asset.id });
+const SortableAsset = ({ asset, url, onClick }: { asset: DraftAssetWithStatus; url: string; onClick: () => void }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: asset.id! });
 
   const style = {
     transform: CSS.Transform.toString(transform),

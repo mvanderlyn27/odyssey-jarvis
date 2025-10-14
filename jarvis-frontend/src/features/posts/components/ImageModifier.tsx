@@ -155,6 +155,7 @@ const ImageModifier = ({}: ImageModifierProps) => {
   );
 
   const getCroppedImg = async (imageSrc: string, pixelCrop: CroppedArea, settings: EditSettings): Promise<Blob> => {
+    console.log("getCroppedImg called with:", { imageSrc, pixelCrop, settings });
     const image = new Image();
     image.src = imageSrc;
     image.crossOrigin = "anonymous";
@@ -259,40 +260,58 @@ const ImageModifier = ({}: ImageModifierProps) => {
   };
 
   const handleFinish = async () => {
-    const newEditorAssets = await Promise.all(
-      editorAssets.map(async (asset, index) => {
-        if (!asset.originalFile) return asset; // Unchanged asset
+    console.log("handleFinish called. Editor assets:", editorAssets);
+    console.log("All edit settings:", allEditSettings);
 
-        const settings = allEditSettings[index];
-        const cropToApply = settings.crop || asset.editSettings?.crop;
+    const urlToFile = async (url: string, filename: string, mimeType?: string): Promise<File> => {
+      const res = await fetch(url);
+      const buf = await res.arrayBuffer();
+      return new File([buf], filename, { type: mimeType });
+    };
 
-        if (!cropToApply) {
-          console.warn("No crop settings found for asset, skipping modification", asset.id);
-          return asset;
+    for (const [index, asset] of editorAssets.entries()) {
+      const settings = allEditSettings[index];
+      const cropToApply = settings.crop || asset.editSettings?.crop;
+
+      if (!cropToApply) {
+        console.log(`Skipping asset ${index} because there is no crop to apply.`);
+        continue;
+      }
+
+      let imageFile = asset.originalFile;
+      if (!imageFile) {
+        console.log(`Asset ${index} has no originalFile, fetching from URL.`);
+        const url = signedUrls[asset.asset_url] || asset.asset_url;
+        if (url) {
+          try {
+            imageFile = await urlToFile(url, "downloaded_image.jpg", "image/jpeg");
+          } catch (error) {
+            console.error("Failed to fetch image from URL:", error);
+            continue;
+          }
+        } else {
+          console.log(`Skipping asset ${index} because it has no URL.`);
+          continue;
         }
+      }
 
-        const imageUrl = URL.createObjectURL(asset.originalFile);
+      console.log(`Processing asset ${index} with settings:`, settings);
+      const imageUrl = URL.createObjectURL(imageFile);
+      try {
         const croppedImageBlob = await getCroppedImg(imageUrl, cropToApply, settings);
         const croppedImageFile = new File([croppedImageBlob], "modified_image.jpg", { type: "image/jpeg" });
 
-        return {
-          ...asset,
-          file: croppedImageFile,
-          asset_url: URL.createObjectURL(croppedImageFile),
-          editSettings: {
-            crop: cropToApply,
-            zoom: settings.zoom,
-            rotation: settings.rotation,
-          },
-        };
-      })
-    );
-
-    if (editorMode === "edit") {
-      setPostAssets(newEditorAssets);
-    } else {
-      addPostAssets(newEditorAssets);
+        console.log(`Updating asset ${asset.id} with new file and settings.`);
+        updateEditorAsset(asset.id, croppedImageFile, {
+          crop: cropToApply,
+          zoom: settings.zoom,
+          rotation: settings.rotation,
+        });
+      } finally {
+        URL.revokeObjectURL(imageUrl);
+      }
     }
+
     closeEditor();
   };
 

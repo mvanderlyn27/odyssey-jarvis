@@ -60,6 +60,7 @@ type EditPostState = {
     file: File,
     editSettings: { crop?: CroppedArea; zoom?: number; rotation?: number }
   ) => void;
+  addAssets: (files: File[]) => void;
   addAssetFromEditor: (asset: DraftAssetWithStatus) => void;
   addPostAssets: (assets: DraftAssetWithStatus[]) => void;
   removeEditorAsset: (assetId: string) => void;
@@ -174,25 +175,13 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
         isDirty: true,
       };
     }),
-  setPostAssets: (updatedAssets) =>
+  setPostAssets: (newAssets) =>
     set((state) => {
       if (!state.post) return {};
-
-      const assetMap = new Map(updatedAssets.map((asset) => [asset.id, asset]));
-
-      const newPostAssets = state.post.post_assets.map((originalAsset) => {
-        // If the asset was updated, use the new object from updatedAssets.
-        if (assetMap.has(originalAsset.id)) {
-          return assetMap.get(originalAsset.id)!;
-        }
-        // If the asset was not updated, create a new object clone to ensure reference equality is broken.
-        return { ...originalAsset };
-      });
-
       return {
         post: {
           ...state.post,
-          post_assets: newPostAssets,
+          post_assets: newAssets,
         },
         isDirty: true,
       };
@@ -205,14 +194,18 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
   setCurrentImageIndex: (index) => set({ currentImageIndex: index }),
   updateEditorAsset: (assetId, file, editSettings) =>
     set((state) => {
+      console.log("Updating editor asset in store:", { assetId, file, editSettings });
       const updateAsset = (asset: DraftAssetWithStatus) => {
         if (asset.id === assetId) {
+          const newStatus = asset.status === "new" ? "new" : "modified";
+          console.log(`Updating asset ${assetId}. Old status: ${asset.status}, New status: ${newStatus}`);
           return {
             ...asset,
             file,
+            originalFile: asset.originalFile || file,
             editSettings,
             asset_url: URL.createObjectURL(file),
-            status: asset.status === "new" ? "new" : "modified",
+            status: newStatus,
           } as DraftAssetWithStatus;
         }
         return asset;
@@ -227,6 +220,30 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
         isDirty: true,
       };
     }),
+  addAssets: (files: File[]) => {
+    set((state) => {
+      if (!state.post) return {};
+      const newAssets: DraftAssetWithStatus[] = files.map((file, index) => ({
+        id: uuidv4(),
+        post_id: state.post!.id,
+        asset_url: URL.createObjectURL(file),
+        asset_type: file.type.startsWith("video") ? "videos" : "slides",
+        order: (state.post?.post_assets?.length || 0) + index + 1,
+        created_at: new Date().toISOString(),
+        status: "new",
+        file,
+        originalFile: file,
+      }));
+
+      return {
+        post: {
+          ...state.post,
+          post_assets: [...(state.post.post_assets || []), ...newAssets],
+        },
+        isDirty: true,
+      };
+    });
+  },
   addAssetFromEditor: (asset) =>
     set((state) => {
       if (!state.post) return {};

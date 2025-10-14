@@ -7,14 +7,13 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import SortableAsset from "@/features/posts/components/SortableAsset";
 import { useEditPostStore, DraftAssetWithStatus } from "@/store/useEditPostStore";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
-import { v4 as uuidv4 } from "uuid";
 
 interface PostAssetsProps {
   onEditAsset: (asset: DraftAssetWithStatus) => void;
 }
 
 const PostAssets = ({ onEditAsset }: PostAssetsProps) => {
-  const { post, reorderAssets, openEditor } = useEditPostStore();
+  const { post, reorderAssets, addAssets } = useEditPostStore();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const assets = useMemo(() => post?.post_assets?.filter((asset) => asset) || [], [post]);
@@ -45,18 +44,7 @@ const PostAssets = ({ onEditAsset }: PostAssetsProps) => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
-      const newAssets: DraftAssetWithStatus[] = files.map((file) => ({
-        id: uuidv4(),
-        asset_url: URL.createObjectURL(file),
-        asset_type: file.type.startsWith("video") ? "videos" : "slides",
-        status: "new",
-        file,
-        originalFile: file,
-        created_at: new Date().toISOString(),
-        post_id: post!.id,
-        order: 0,
-      }));
-      openEditor(newAssets, "add");
+      addAssets(files);
     }
   };
 
@@ -84,9 +72,11 @@ const PostAssets = ({ onEditAsset }: PostAssetsProps) => {
           <DndContextTyped sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={assets.map((asset) => asset.id)} strategy={horizontalListSortingStrategy}>
               {assets.map((asset) => {
-                const displayUrl = signedUrls[asset.asset_url] || asset.asset_url;
-                const editorUrl = asset.originalFile
-                  ? URL.createObjectURL(asset.originalFile)
+                const displayUrl = asset.file
+                  ? URL.createObjectURL(asset.file)
+                  : signedUrls[asset.asset_url] || asset.asset_url;
+                const editorUrl = asset.file
+                  ? URL.createObjectURL(asset.file)
                   : signedUrls[asset.asset_url] || asset.asset_url;
 
                 if (!displayUrl) {

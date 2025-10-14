@@ -74,7 +74,7 @@ const PostEditor = () => {
       </div>
       <div className="flex flex-col gap-4">
         <div>
-          <PostAssets onEditAsset={(asset) => openEditor(post.post_assets, "edit")} />
+          <PostAssets onEditAsset={(asset) => openEditor([asset], "edit")} />
         </div>
         <div>
           <PostDetails />

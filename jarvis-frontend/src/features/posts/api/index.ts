@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/jarvisClient";
-import { DraftAsset, DraftAssetWithStatus } from "@/store/useEditPostStore";
+import { Asset, DraftAsset } from "@/store/useEditPostStore";
 
 const getFileType = (fileType: string) => {
   if (fileType.startsWith("image/")) return "slides";
@@ -127,7 +127,7 @@ export const addPostAsset = async (asset: {
   return data;
 };
 
-export const syncPostAssets = async (postId: number, assets: DraftAssetWithStatus[]) => {
+export const syncPostAssets = async (postId: number, assets: Asset[]) => {
   const deletedAssets = assets.filter((asset) => asset.status === "deleted");
   if (deletedAssets.length > 0) {
     const { error } = await supabase
@@ -167,7 +167,7 @@ export const syncPostAssets = async (postId: number, assets: DraftAssetWithStatu
   return [];
 };
 
-export const savePostChanges = async (post: any, initialAssets: DraftAssetWithStatus[]) => {
+export const savePostChanges = async (post: any, initialAssets: Asset[]) => {
   if (!post?.id) throw new Error("No post to save");
 
   const updates: any = {
@@ -185,7 +185,7 @@ export const savePostChanges = async (post: any, initialAssets: DraftAssetWithSt
   const assets = post.post_assets || [];
   const postId = post.id.toString();
 
-  const deletedAssets = assets.filter((a: DraftAssetWithStatus) => a.status === "deleted");
+  const deletedAssets = assets.filter((a: Asset) => a.status === "deleted");
   if (deletedAssets.length > 0) {
     const assetUrlsToDelete = deletedAssets.map((a: { asset_url: any }) => a.asset_url).filter(Boolean);
     if (assetUrlsToDelete.length > 0) {
@@ -201,8 +201,8 @@ export const savePostChanges = async (post: any, initialAssets: DraftAssetWithSt
   }
 
   const modifiedAssetsWithOldUrls = assets
-    .filter((a: DraftAssetWithStatus) => a.status === "modified" && a.file)
-    .map((currentAsset: DraftAssetWithStatus) => {
+    .filter((a: Asset) => a.status === "modified" && a.file)
+    .map((currentAsset: Asset) => {
       const initialAsset = initialAssets.find((initial) => initial.id === currentAsset.id);
       return initialAsset?.asset_url;
     })
@@ -212,10 +212,8 @@ export const savePostChanges = async (post: any, initialAssets: DraftAssetWithSt
     await supabase.storage.from("tiktok_assets").remove(modifiedAssetsWithOldUrls as string[]);
   }
 
-  const assetsToUpload = assets.filter(
-    (a: DraftAssetWithStatus) => (a.status === "new" || a.status === "modified") && a.file
-  );
-  const uploadPromises = assetsToUpload.map(async (asset: DraftAssetWithStatus) => {
+  const assetsToUpload = assets.filter((a: Asset) => (a.status === "new" || a.status === "modified") && a.file);
+  const uploadPromises = assetsToUpload.map(async (asset: Asset) => {
     const { asset_url, asset_type } = await uploadMedia(asset.file!, postId);
     return { ...asset, asset_url, asset_type };
   });
@@ -223,8 +221,8 @@ export const savePostChanges = async (post: any, initialAssets: DraftAssetWithSt
   const uploadedAssetsMap = new Map(uploadedAssets.map((a) => [a.id, a]));
 
   const finalAssets = assets
-    .filter((a: DraftAssetWithStatus) => a.status !== "deleted")
-    .map((asset: DraftAssetWithStatus, index: number) => {
+    .filter((a: Asset) => a.status !== "deleted")
+    .map((asset: Asset, index: number) => {
       const uploadedAsset = uploadedAssetsMap.get(asset.id);
       return {
         id: asset.id,

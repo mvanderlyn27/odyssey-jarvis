@@ -61,8 +61,8 @@ const PostsList = ({ posts, showNewPostButton }: PostsListProps) => {
           <Card className="overflow-hidden">
             <div className="w-full aspect-[9/16] bg-gray-200">{renderThumbnail(post)}</div>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="truncate">{post.title || "Untitled Post"}</span>
+              <div className="flex items-center justify-between">
+                <CardTitle className="truncate">{post.title || "Untitled Post"}</CardTitle>
                 <div className="flex items-center">
                   {post.status === "PUBLISHED" ? (
                     <span className="ml-2 text-xs text-green-500 bg-green-100 px-2 py-1 rounded-full">Published</span>
@@ -75,7 +75,17 @@ const PostsList = ({ posts, showNewPostButton }: PostsListProps) => {
                     <span className="ml-2 text-xs text-yellow-500 bg-yellow-100 px-2 py-1 rounded-full">Unsaved</span>
                   )}
                 </div>
-              </CardTitle>
+              </div>
+              {post.tiktok_accounts && (
+                <div className="flex items-center text-sm text-gray-500 pt-1">
+                  <img
+                    src={post.tiktok_accounts.tiktok_avatar_url}
+                    alt={post.tiktok_accounts.tiktok_display_name}
+                    className="w-6 h-6 rounded-full mr-2"
+                  />
+                  <span className="truncate">{post.tiktok_accounts.tiktok_display_name}</span>
+                </div>
+              )}
             </CardHeader>
           </Card>
         </Link>

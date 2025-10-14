@@ -1,64 +1,58 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useInboxPosts } from "@/features/posts/hooks/useInboxPosts";
-import { Link } from "react-router-dom";
-import { useSignedUrls } from "@/hooks/useSignedUrls";
+import { usePosts } from "@/features/posts/hooks/usePosts";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/useAuthStore";
+import PostsList from "@/features/posts/components/PostsList";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMemo } from "react";
 
 const InboxPage = () => {
-  const { data: posts, isLoading, isError } = useInboxPosts();
-  const assets = useMemo(() => posts?.map((post: any) => post.post_assets?.[0]).filter(Boolean), [posts]);
-  const { signedUrls } = useSignedUrls(assets);
+  const { session } = useAuthStore();
+  const { data: posts, isLoading, error, refetch } = usePosts(session?.user?.id || "");
 
-  const renderThumbnail = (post: any) => {
-    if (!post.post_assets || post.post_assets.length === 0) {
-      return <div className="flex items-center justify-center h-full">No assets</div>;
-    }
-
-    const firstAsset = post.post_assets[0];
-    const url = signedUrls[firstAsset.asset_url];
-
-    if (!url) {
-      return <div className="flex items-center justify-center h-full">Loading...</div>;
-    }
-
-    if (firstAsset.asset_type === "slides") {
-      return <img src={url} alt={`Post asset ${firstAsset.id}`} className="w-full h-full object-cover" />;
-    } else {
-      return <video src={url} className="w-full h-full object-cover" poster={url} />;
-    }
-  };
+  const sortedPosts = useMemo(() => {
+    if (!posts) return { readyToPublish: [], published: [], failed: [] };
+    const readyToPublish = posts
+      .filter((post) => post.status === "INBOX" || post.status === "PROCESSING")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const published = posts
+      .filter((post) => post.status === "PUBLISHED")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const failed = posts
+      .filter((post) => post.status === "FAILED")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return { readyToPublish, published, failed };
+  }, [posts]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Inbox</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading && <p>Loading inbox...</p>}
-        {isError && <p>Error loading inbox.</p>}
-        {!isLoading && !isError && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {posts?.map((post: any) => (
-              <Link to={`/posts/${post.id}`} key={post.id}>
-                <Card className="overflow-hidden">
-                  <div className="w-full aspect-[9/16] bg-gray-200">{renderThumbnail(post)}</div>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="truncate">{post.title || "Untitled Post"}</span>
-                      <div className="flex items-center">
-                        <span className="ml-2 text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">
-                          {post.status}
-                        </span>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                </Card>
-              </Link>
-            )) || <p>No posts found in inbox.</p>}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Inbox</h1>
+        <Button onClick={() => refetch()}>Refresh</Button>
+      </div>
+      {isLoading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error.message}</p>}
+
+      <Accordion type="single" collapsible className="w-full" defaultValue="ready-to-publish">
+        <AccordionItem value="ready-to-publish">
+          <AccordionTrigger>Ready to Publish ({sortedPosts.readyToPublish.length})</AccordionTrigger>
+          <AccordionContent>
+            <PostsList posts={sortedPosts.readyToPublish} />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="published">
+          <AccordionTrigger>Published ({sortedPosts.published.length})</AccordionTrigger>
+          <AccordionContent>
+            <PostsList posts={sortedPosts.published} />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="failed">
+          <AccordionTrigger>Failed ({sortedPosts.failed.length})</AccordionTrigger>
+          <AccordionContent>
+            <PostsList posts={sortedPosts.failed} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
   );
 };
 

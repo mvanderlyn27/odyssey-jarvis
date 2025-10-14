@@ -20,7 +20,11 @@ export const useSignedUrls = (assets: { asset_url: string }[] | undefined) => {
           if (cached && cached.expires > now) {
             urls[asset.asset_url] = cached.url;
           } else {
-            const { data } = await supabase.storage.from("tiktok_assets").createSignedUrl(asset.asset_url, fiveMinutes);
+            const path =
+              typeof asset.asset_url === "string" && asset.asset_url.startsWith("tiktok_assets/")
+                ? asset.asset_url.replace("tiktok_assets/", "")
+                : asset.asset_url;
+            const { data } = await supabase.storage.from("tiktok_assets").createSignedUrl(path, fiveMinutes);
             if (data) {
               urls[asset.asset_url] = data.signedUrl;
               signedUrlCache.set(asset.asset_url, {

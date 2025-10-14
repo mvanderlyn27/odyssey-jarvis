@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { useSavePost } from "@/features/posts/hooks/useSavePost";
 import { useDeletePost } from "@/features/posts/hooks/useDeletePost";
 import { useClonePost } from "@/features/posts/hooks/useClonePost";
-import ImageModifier from "@/features/posts/components/ImageModifier";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeftIcon } from "@radix-ui/react-icons";
 
@@ -18,7 +17,7 @@ const PostEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: postData, isLoading } = useQuery(queries.posts.detail(id!));
-  const { setPost, post, isEditorOpen, openEditor, isDirty } = useEditPostStore();
+  const { setPost, post, isDirty } = useEditPostStore();
   const { mutate: savePost, isPending: isSaving } = useSavePost();
   const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => navigate("/posts"));
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
@@ -74,14 +73,13 @@ const PostEditor = () => {
       </div>
       <div className="flex flex-col gap-4">
         <div>
-          <PostAssets onEditAsset={(asset) => openEditor([asset], "edit")} />
+          <PostAssets />
         </div>
         <div>
           <PostDetails />
           <PostPublisher />
         </div>
       </div>
-      {isEditorOpen && <ImageModifier />}
     </div>
   );
 };

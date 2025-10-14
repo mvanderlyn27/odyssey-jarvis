@@ -7,32 +7,22 @@ export const PostsPage = () => {
   const { session } = useAuthStore();
   const { data: posts, isLoading, error, refetch } = usePosts(session?.user?.id || "");
 
-  const draftPosts = posts?.filter((post) => post.status === "DRAFT") || [];
-  const failedPosts = posts?.filter((post) => post.status === "FAILED") || [];
-  const publishedPosts = posts?.filter((post) => post.status !== "DRAFT" && post.status !== "FAILED") || [];
+  const draftPosts =
+    posts
+      ?.filter((post) => post.status === "DRAFT" || post.status === "PROCESSING")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) || [];
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Posts</h1>
+        <h1 className="text-2xl font-bold">Drafts</h1>
         <Button onClick={() => refetch()}>Refresh</Button>
       </div>
       {isLoading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error.message}</p>}
 
       <div className="space-y-8">
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Drafts</h2>
-          <PostsList posts={draftPosts} showNewPostButton={true} />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Failed</h2>
-          <PostsList posts={failedPosts} />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Published</h2>
-          <PostsList posts={publishedPosts} />
-        </div>
+        <PostsList posts={draftPosts} showNewPostButton={true} />
       </div>
     </div>
   );

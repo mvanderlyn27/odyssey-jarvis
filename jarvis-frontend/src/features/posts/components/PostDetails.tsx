@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useEditPostStore } from "@/store/useEditPostStore";
 
 const PostDetails = () => {
@@ -19,16 +20,16 @@ const PostDetails = () => {
           <Input
             id={`title-${post.id}`}
             value={post.title || ""}
-            onChange={(e) => updateTitle(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateTitle(e.target.value)}
             placeholder="Post Title"
           />
         </div>
         <div>
           <Label htmlFor={`description-${post.id}`}>Description</Label>
-          <Input
+          <Textarea
             id={`description-${post.id}`}
             value={post.description || ""}
-            onChange={(e) => updateDescription(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateDescription(e.target.value)}
             placeholder="Post Description"
           />
         </div>

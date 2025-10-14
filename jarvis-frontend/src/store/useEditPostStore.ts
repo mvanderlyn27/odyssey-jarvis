@@ -6,7 +6,7 @@ export type PostWithAssets = Database["public"]["Tables"]["posts"]["Row"] & {
   post_assets: DraftAsset[];
 };
 export type Post = Database["public"]["Tables"]["posts"]["Row"] & {
-  post_assets: DraftAssetWithStatus[];
+  post_assets: Asset[];
 };
 export type DraftAsset = Database["public"]["Tables"]["post_assets"]["Row"];
 
@@ -17,7 +17,7 @@ export interface CroppedArea {
   height: number;
 }
 
-export type DraftAssetWithStatus = DraftAsset & {
+export type Asset = DraftAsset & {
   status: "new" | "deleted" | "modified" | "unchanged";
   file?: File; // The edited blob, if modifications have been made
   originalFile?: File; // The original file, for new or modified assets
@@ -31,53 +31,31 @@ export type DraftAssetWithStatus = DraftAsset & {
 type EditPostState = {
   post: Post | null;
   isDirty: boolean;
-  initialAssets: DraftAssetWithStatus[];
+  initialAssets: Asset[];
   setPost: (post: PostWithAssets | null) => void;
   setPostAsSaved: () => void;
   updateTitle: (title: string) => void;
   updateDescription: (description: string) => void;
   addAsset: (file: File) => void;
   removeAsset: (assetId: string) => void;
-  updateAssetOrder: (assets: DraftAssetWithStatus[]) => void;
-  reorderAssets: (assets: DraftAssetWithStatus[]) => void;
+  updateAssetOrder: (assets: Asset[]) => void;
+  reorderAssets: (assets: Asset[]) => void;
   updateAssetFile: (
     assetId: string,
     file: File,
     editSettings?: { crop?: CroppedArea; zoom?: number; rotation?: number }
   ) => void;
-  setPostAssets: (assets: DraftAssetWithStatus[]) => void;
-
-  // Image editor state
-  editorMode: "add" | "edit";
-  editorAssets: DraftAssetWithStatus[];
-  currentImageIndex: number;
-  isEditorOpen: boolean;
-  openEditor: (assets: DraftAssetWithStatus[], mode: "add" | "edit") => void;
-  closeEditor: () => void;
-  setCurrentImageIndex: (index: number) => void;
-  updateEditorAsset: (
-    assetId: string,
-    file: File,
-    editSettings: { crop?: CroppedArea; zoom?: number; rotation?: number }
-  ) => void;
+  setPostAssets: (assets: Asset[]) => void;
   addAssets: (files: File[]) => void;
-  addAssetFromEditor: (asset: DraftAssetWithStatus) => void;
-  addPostAssets: (assets: DraftAssetWithStatus[]) => void;
-  removeEditorAsset: (assetId: string) => void;
-  replaceEditorAsset: (assetId: string, file: File) => void;
 };
 
 export const useEditPostStore = create<EditPostState>((set, get) => ({
   post: null,
   isDirty: false,
   initialAssets: [],
-  editorAssets: [],
-  currentImageIndex: 0,
-  isEditorOpen: false,
-  editorMode: "add",
   setPost: (post) => {
     if (post) {
-      const assetsWithStatus: DraftAssetWithStatus[] = post.post_assets.map((asset) => ({
+      const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
         ...asset,
         status: "unchanged",
       }));
@@ -104,7 +82,7 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
   addAsset: (file) =>
     set((state) => {
       if (!state.post) return {};
-      const newAsset: DraftAssetWithStatus = {
+      const newAsset: Asset = {
         id: uuidv4(),
         post_id: state.post.id as any,
         asset_url: URL.createObjectURL(file),
@@ -129,9 +107,7 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
       return {
         post: {
           ...state.post,
-          post_assets: state.post.post_assets.map((asset) =>
-            asset.id === assetId ? { ...asset, status: "deleted" } : asset
-          ),
+          post_assets: state.post.post_assets.filter((asset) => asset.id !== assetId),
         },
         isDirty: true,
       };
@@ -144,7 +120,7 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
           ...state.post,
           post_assets: assets.map((asset, index) => ({
             ...asset,
-            sort_order: index + 1,
+            order: index + 1,
             status: asset.status === "new" ? "new" : "modified",
           })),
         },
@@ -186,44 +162,10 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
         isDirty: true,
       };
     }),
-
-  // Image editor actions
-  openEditor: (assets, mode) =>
-    set({ editorAssets: assets, isEditorOpen: true, currentImageIndex: 0, editorMode: mode }),
-  closeEditor: () => set({ isEditorOpen: false, editorAssets: [] }),
-  setCurrentImageIndex: (index) => set({ currentImageIndex: index }),
-  updateEditorAsset: (assetId, file, editSettings) =>
-    set((state) => {
-      console.log("Updating editor asset in store:", { assetId, file, editSettings });
-      const updateAsset = (asset: DraftAssetWithStatus) => {
-        if (asset.id === assetId) {
-          const newStatus = asset.status === "new" ? "new" : "modified";
-          console.log(`Updating asset ${assetId}. Old status: ${asset.status}, New status: ${newStatus}`);
-          return {
-            ...asset,
-            file,
-            originalFile: asset.originalFile || file,
-            editSettings,
-            asset_url: URL.createObjectURL(file),
-            status: newStatus,
-          } as DraftAssetWithStatus;
-        }
-        return asset;
-      };
-
-      const newEditorAssets = state.editorAssets.map(updateAsset);
-      const newPostAssets = state.post?.post_assets.map(updateAsset);
-
-      return {
-        editorAssets: newEditorAssets,
-        post: state.post ? { ...state.post, post_assets: newPostAssets || [] } : null,
-        isDirty: true,
-      };
-    }),
   addAssets: (files: File[]) => {
     set((state) => {
       if (!state.post) return {};
-      const newAssets: DraftAssetWithStatus[] = files.map((file, index) => ({
+      const newAssets: Asset[] = files.map((file, index) => ({
         id: uuidv4(),
         post_id: state.post!.id,
         asset_url: URL.createObjectURL(file),
@@ -244,45 +186,4 @@ export const useEditPostStore = create<EditPostState>((set, get) => ({
       };
     });
   },
-  addAssetFromEditor: (asset) =>
-    set((state) => {
-      if (!state.post) return {};
-      return {
-        post: {
-          ...state.post,
-          post_assets: [...(state.post.post_assets || []), asset],
-        },
-        isDirty: true,
-      };
-    }),
-  addPostAssets: (assets) =>
-    set((state) => {
-      if (!state.post) return {};
-      return {
-        post: {
-          ...state.post,
-          post_assets: [...state.post.post_assets, ...assets],
-        },
-        isDirty: true,
-      };
-    }),
-  removeEditorAsset: (assetId) =>
-    set((state) => ({
-      editorAssets: state.editorAssets.filter((asset) => asset.id !== assetId),
-      isDirty: true,
-    })),
-  replaceEditorAsset: (assetId, file) =>
-    set((state) => ({
-      editorAssets: state.editorAssets.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              file,
-              originalFile: file,
-              asset_url: URL.createObjectURL(file),
-            }
-          : asset
-      ),
-      isDirty: true,
-    })),
 }));

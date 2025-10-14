@@ -16,15 +16,19 @@ const NewPostPage = () => {
       if (!userId) throw new Error("User not found");
       return createPost(userId);
     },
-    onSuccess: (newPost) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queries.posts.all(userId!).queryKey });
-      navigate(`/posts/${newPost.id}`);
+      navigate(`/inbox`);
     },
   });
 
   useEffect(() => {
-    createPostMutation.mutate();
-  }, []);
+    if (!userId) {
+      navigate("/login");
+    } else {
+      createPostMutation.mutate();
+    }
+  }, [userId, navigate]);
 
   return <div>Creating new post...</div>;
 };

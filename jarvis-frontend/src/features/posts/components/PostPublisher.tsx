@@ -6,12 +6,14 @@ import SingleAccountSelector from "@/components/tiktok/SingleAccountSelector";
 import { usePublishPost } from "../hooks/usePublishPost";
 import { useCallback, useState } from "react";
 import { useEditPostStore } from "@/store/useEditPostStore";
+import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 
 const PostPublisher = () => {
+  const navigate = useNavigate();
   const { data: tikTokAccounts } = useTikTokAccounts();
   const [accountId, setAccountId] = useState<string | null>(null);
-  const publishMutation = usePublishPost();
+  const publishMutation = usePublishPost(() => navigate("/inbox"));
   const { post, isDirty } = useEditPostStore();
 
   const canPublish = useMemo(() => {

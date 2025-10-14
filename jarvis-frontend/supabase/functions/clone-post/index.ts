@@ -50,23 +50,33 @@ serve(async (req) => {
       const newAssets = [];
       for (const asset of originalPost.post_assets) {
         const newAssetId = crypto.randomUUID();
-        const oldPath = asset.asset_url.split("/").slice(-2).join("/");
-        const newPath = `${newPostId}/${newAssetId}`;
+        const bucketName = "tiktok_assets";
+
+        // Extract path from URL
+        const url = new URL(asset.asset_url);
+        const pathParts = url.pathname.split("/");
+        const bucketIndex = pathParts.indexOf(bucketName);
+
+        if (bucketIndex === -1) {
+          console.error("Could not find bucket name in asset URL path:", asset.asset_url);
+          continue;
+        }
+
+        const oldPath = pathParts.slice(bucketIndex + 1).join("/");
+        const newPath = `${asset.asset_type}/${newPostId}/${newAssetId}`;
 
         // Copy file in storage
-        const { error: storageError } = await supabaseAdmin.storage.from("posts").copy(oldPath, newPath);
+        const { error: storageError } = await supabaseAdmin.storage.from(bucketName).copy(oldPath, newPath);
 
         if (storageError) {
           console.error("Storage error:", storageError);
           continue; // Or handle error more gracefully
         }
 
-        const { data: urlData } = supabaseAdmin.storage.from("posts").getPublicUrl(newPath);
-
         newAssets.push({
           id: newAssetId,
           post_id: newPostId,
-          asset_url: urlData.publicUrl,
+          asset_url: newPath,
           asset_type: asset.asset_type,
           order: asset.order,
         });
@@ -89,7 +99,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

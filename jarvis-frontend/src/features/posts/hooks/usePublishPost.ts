@@ -1,15 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { queries } from "@/lib/queries";
 import { initiateTikTokPost } from "@/features/tiktok/api";
 import { useTikTokAccounts } from "@/features/tiktok/hooks/useTikTokAccounts";
+import { supabase } from "@/lib/supabase/jarvisClient";
 
 const TIKTOK_MEDIA_URL = "https://media.odysseyfit.app";
 
-export const usePublishPost = () => {
-  const navigate = useNavigate();
+export const usePublishPost = (onSuccess?: () => void) => {
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
   const queryClient = useQueryClient();
@@ -49,13 +48,18 @@ export const usePublishPost = () => {
       }
 
       await initiateTikTokPost(selectedAccount.access_token, accountId, mediaUrls, title, description, post.id);
+
+      const { error } = await supabase.from("posts").update({ status: "PROCESSING" }).eq("id", post.id);
+      if (error) {
+        throw new Error(`Failed to update post status: ${error.message}`);
+      }
     },
     onSuccess: () => {
       toast.dismiss();
       toast.success("Post sent for processing!");
-      queryClient.invalidateQueries(queries.posts.drafts(userId!));
-      queryClient.invalidateQueries(queries.posts.processing(userId!));
-      navigate("/posts/processing");
+      queryClient.invalidateQueries({ queryKey: queries.posts.drafts(userId!).queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.processing(userId!).queryKey });
+      onSuccess?.();
     },
     onError: (error) => {
       toast.dismiss();

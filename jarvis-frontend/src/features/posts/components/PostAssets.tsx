@@ -5,15 +5,11 @@ import { arrayMove, SortableContext, horizontalListSortingStrategy } from "@dnd-
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import SortableAsset from "@/features/posts/components/SortableAsset";
-import { useEditPostStore, DraftAssetWithStatus } from "@/store/useEditPostStore";
+import { useEditPostStore } from "@/store/useEditPostStore";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 
-interface PostAssetsProps {
-  onEditAsset: (asset: DraftAssetWithStatus) => void;
-}
-
-const PostAssets = ({ onEditAsset }: PostAssetsProps) => {
-  const { post, reorderAssets, addAssets } = useEditPostStore();
+const PostAssets = () => {
+  const { post, reorderAssets, addAssets, removeAsset } = useEditPostStore();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const assets = useMemo(() => post?.post_assets?.filter((asset) => asset) || [], [post]);
@@ -75,9 +71,6 @@ const PostAssets = ({ onEditAsset }: PostAssetsProps) => {
                 const displayUrl = asset.file
                   ? URL.createObjectURL(asset.file)
                   : signedUrls[asset.asset_url] || asset.asset_url;
-                const editorUrl = asset.file
-                  ? URL.createObjectURL(asset.file)
-                  : signedUrls[asset.asset_url] || asset.asset_url;
 
                 if (!displayUrl) {
                   return (
@@ -90,16 +83,7 @@ const PostAssets = ({ onEditAsset }: PostAssetsProps) => {
                 }
 
                 return (
-                  <SortableAsset
-                    key={asset.id}
-                    asset={asset}
-                    url={displayUrl}
-                    onClick={() => {
-                      if (editorUrl) {
-                        onEditAsset(asset);
-                      }
-                    }}
-                  />
+                  <SortableAsset key={asset.id} asset={asset} url={displayUrl} onRemove={() => removeAsset(asset.id)} />
                 );
               })}
             </SortableContext>

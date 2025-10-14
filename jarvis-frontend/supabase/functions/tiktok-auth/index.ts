@@ -78,7 +78,6 @@ serve(async (req: Request) => {
 
     const { error: upsertError } = await supabaseAdmin.from("tiktok_accounts").upsert(
       {
-        user_id: jarvisUser.id,
         tiktok_open_id: userInfo.open_id,
         tiktok_username: userInfo.username,
         tiktok_display_name: userInfo.display_name,

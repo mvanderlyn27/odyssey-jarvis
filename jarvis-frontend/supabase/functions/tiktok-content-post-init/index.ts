@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import { corsHeaders } from "../_shared/cors.ts";
+import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
 
 const TIKTOK_CONTENT_API_URL = "https://open.tiktokapis.com/v2/post/publish/content/init/";
 const TIKTOK_INBOX_API_URL = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/";
@@ -15,9 +16,9 @@ serve(async (req) => {
   }
 
   try {
-    const { accessToken, mediaUrls, accountId, title, description, postId } = await req.json();
+    const { accessToken, refreshToken, mediaUrls, accountId, title, description, postId } = await req.json();
 
-    if (!accessToken || !mediaUrls || !accountId || !postId) {
+    if (!accessToken || !refreshToken || !mediaUrls || !accountId || !postId) {
       return new Response(JSON.stringify({ error: "Missing required parameters." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
@@ -79,14 +80,19 @@ serve(async (req) => {
       });
     }
 
-    const response = await fetch(TIKTOK_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json; charset=UTF-8",
+    const response = await fetchWithRetry(
+      TIKTOK_API_URL,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json; charset=UTF-8",
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+      refreshToken,
+      req.headers.get("Authorization")!
+    );
 
     if (!response.ok) {
       const errorData = await response.json();

@@ -1,6 +1,7 @@
 // <reference types="https://deno.land/x/supa_fly@0.2.1/types.d.ts" />
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,17 +14,22 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { access_token } = await req.json();
+    const { access_token, refresh_token } = await req.json();
     if (!access_token) {
       throw new Error("Access token is required.");
     }
+    if (!refresh_token) {
+      throw new Error("Refresh token is required.");
+    }
 
     // Fetch user info from TikTok API
-    const userResponse = await fetch(
+    const userResponse = await fetchWithRetry(
       `https://open.tiktokapis.com/v2/user/info/?fields=follower_count,following_count,likes_count,video_count`,
       {
         headers: { Authorization: `Bearer ${access_token}` },
-      }
+      },
+      refresh_token,
+      req.headers.get("Authorization")!
     );
 
     if (!userResponse.ok) {

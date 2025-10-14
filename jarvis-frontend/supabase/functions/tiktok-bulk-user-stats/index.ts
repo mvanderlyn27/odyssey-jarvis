@@ -22,9 +22,9 @@ Deno.serve(async (req: Request) => {
 
     const authorization = req.headers.get("Authorization")!;
 
-    const statsPromises = accessTokens.map((accessToken: string) =>
+    const statsPromises = accessTokens.map((tokenData: { access_token: string; refresh_token: string }) =>
       supabase.functions.invoke("tiktok-user-stats", {
-        body: { access_token: accessToken },
+        body: { access_token: tokenData.access_token, refresh_token: tokenData.refresh_token },
         headers: {
           Authorization: authorization,
         },

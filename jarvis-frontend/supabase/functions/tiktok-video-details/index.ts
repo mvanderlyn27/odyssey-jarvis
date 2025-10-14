@@ -1,6 +1,7 @@
 // <reference types="https://deno.land/x/supa_fly@0.2.1/types.d.ts" />
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,16 +14,19 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { access_token, video_ids } = await req.json();
+    const { access_token, refresh_token, video_ids } = await req.json();
     if (!access_token) {
       throw new Error("Access token is required.");
+    }
+    if (!refresh_token) {
+      throw new Error("Refresh token is required.");
     }
     if (!video_ids || !Array.isArray(video_ids) || video_ids.length === 0) {
       throw new Error("Video IDs are required and must be a non-empty array.");
     }
 
     // Fetch video details from TikTok API
-    const videoResponse = await fetch(
+    const videoResponse = await fetchWithRetry(
       `https://open.tiktokapis.com/v2/video/query/?fields=id,title,video_description,duration,cover_image_url,embed_link,view_count,like_count,comment_count,share_count`,
       {
         method: "POST",
@@ -35,7 +39,9 @@ serve(async (req: Request) => {
             video_ids: video_ids,
           },
         }),
-      }
+      },
+      refresh_token,
+      req.headers.get("Authorization")!
     );
 
     if (!videoResponse.ok) {

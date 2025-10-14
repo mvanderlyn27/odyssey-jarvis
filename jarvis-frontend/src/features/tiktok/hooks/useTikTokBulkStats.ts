@@ -8,7 +8,10 @@ const fetchTikTokBulkStats = async (accounts: TikTokAccount[]) => {
     return [];
   }
 
-  const accessTokens = activeAccounts.map((acc) => acc.access_token);
+  const accessTokens = activeAccounts.map((acc) => ({
+    access_token: acc.access_token,
+    refresh_token: acc.refresh_token,
+  }));
 
   const { data, error } = await jarvisClient.functions.invoke("tiktok-bulk-user-stats", {
     body: { accessTokens },

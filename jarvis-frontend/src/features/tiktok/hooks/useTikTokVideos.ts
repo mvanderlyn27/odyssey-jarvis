@@ -9,7 +9,10 @@ export const fetchTikTokVideos = async (account: TikTokAccount) => {
   }
 
   const { data, error } = await jarvisClient.functions.invoke("tiktok-video-list", {
-    body: { access_token: account.access_token },
+    body: {
+      access_token: account.access_token,
+      refresh_token: account.refresh_token,
+    },
   });
 
   if (error) {

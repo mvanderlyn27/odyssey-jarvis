@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import { corsHeaders } from "../_shared/cors.ts";
+import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
 
 const TIKTOK_STATUS_API_URL = "https://open.tiktokapis.com/v2/post/publish/status/fetch/";
 
@@ -44,14 +45,19 @@ serve(async (req) => {
       });
     }
 
-    const response = await fetch(TIKTOK_STATUS_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${post.tiktok_accounts.access_token}`,
-        "Content-Type": "application/json; charset=UTF-8",
+    const response = await fetchWithRetry(
+      TIKTOK_STATUS_API_URL,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${post.tiktok_accounts.access_token}`,
+          "Content-Type": "application/json; charset=UTF-8",
+        },
+        body: JSON.stringify({ publish_id: post.tiktok_publish_id }),
       },
-      body: JSON.stringify({ publish_id: post.tiktok_publish_id }),
-    });
+      post.tiktok_accounts.refresh_token,
+      req.headers.get("Authorization")!
+    );
 
     if (!response.ok) {
       const errorData = await response.json();

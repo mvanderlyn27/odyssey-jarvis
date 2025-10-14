@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS "public"."tiktok_accounts" (
 
 -- Add RLS to tiktok_accounts
 ALTER TABLE "public"."tiktok_accounts" ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Enable access for authenticated users" ON "public"."tiktok_accounts";
-CREATE POLICY "Enable access for authenticated users" ON "public"."tiktok_accounts" FOR ALL USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON "public"."tiktok_accounts";
+CREATE POLICY "Allow full access for authenticated users" ON "public"."tiktok_accounts" FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Create post_status enum if it doesn't exist
 DO $$
@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS "public"."posts" (
 
 -- Add RLS to posts
 ALTER TABLE "public"."posts" ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Enable access for authenticated users" ON "public"."posts";
-CREATE POLICY "Enable access for authenticated users" ON "public"."posts" FOR ALL USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON "public"."posts";
+CREATE POLICY "Allow full access for authenticated users" ON "public"."posts" FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Create asset_type enum if it doesn't exist
 DO $$
@@ -78,8 +78,8 @@ CREATE TABLE IF NOT EXISTS "public"."post_assets" (
 
 -- Add RLS to post_assets
 ALTER TABLE "public"."post_assets" ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Enable access for authenticated users" ON "public"."post_assets";
-CREATE POLICY "Enable access for authenticated users" ON "public"."post_assets" FOR ALL USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON "public"."post_assets";
+CREATE POLICY "Allow full access for authenticated users" ON "public"."post_assets" FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 
 -- Create storage bucket for tiktok_assets if it doesn't exist
@@ -88,6 +88,8 @@ VALUES ('tiktok_assets', 'tiktok_assets', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Add RLS to storage for tiktok_assets bucket
-DROP POLICY IF EXISTS "Enable access for authenticated users" ON storage.objects;
-CREATE POLICY "Enable access for authenticated users" ON storage.objects FOR ALL
-USING (auth.role() = 'authenticated' AND bucket_id = 'tiktok_assets');
+DROP POLICY IF EXISTS "Allow full access to authenticated users" ON storage.objects;
+CREATE POLICY "Allow full access to authenticated users" ON storage.objects FOR ALL
+TO authenticated
+USING (bucket_id = 'tiktok_assets')
+WITH CHECK (bucket_id = 'tiktok_assets');

@@ -1,13 +1,11 @@
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/store/useAuthStore";
 import PostsList from "@/features/posts/components/PostsList";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMemo } from "react";
 
 const InboxPage = () => {
-  const { session } = useAuthStore();
-  const { data: posts, isLoading, error, refetch } = usePosts(session?.user?.id || "");
+  const { data: posts, isLoading, error, refetch } = usePosts();
 
   const sortedPosts = useMemo(() => {
     if (!posts) return { readyToPublish: [], published: [], failed: [] };

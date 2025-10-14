@@ -1,11 +1,9 @@
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/store/useAuthStore";
 import PostsList from "@/features/posts/components/PostsList";
 
 export const PostsPage = () => {
-  const { session } = useAuthStore();
-  const { data: posts, isLoading, error, refetch } = usePosts(session?.user?.id || "");
+  const { data: posts, isLoading, error, refetch } = usePosts();
 
   const draftPosts =
     posts

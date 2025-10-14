@@ -33,8 +33,8 @@ export const uploadMedia = async (file: File, postId: string) => {
   return { asset_type: fileType, asset_url: data.path };
 };
 
-export const createPost = async (userId: string) => {
-  const { data, error } = await supabase.from("posts").insert({ user_id: userId }).select().single();
+export const createPost = async () => {
+  const { data, error } = await supabase.from("posts").insert({}).select().single();
 
   if (error) {
     throw new Error(error.message);
@@ -241,7 +241,7 @@ export const savePostChanges = async (post: any, initialAssets: Asset[]) => {
   return post;
 };
 
-export const clonePost = async (postId: string, userId: string, newFiles?: { file: File }[]) => {
+export const clonePost = async (postId: string, newFiles?: { file: File }[]) => {
   const { data: originalPost, error: fetchError } = await supabase
     .from("posts")
     .select("*, post_assets(*)")
@@ -253,7 +253,6 @@ export const clonePost = async (postId: string, userId: string, newFiles?: { fil
   const { data: newPost, error: createError } = await supabase
     .from("posts")
     .insert({
-      user_id: userId,
       title: `${originalPost.title} (Copy)`,
       description: originalPost.description,
       status: "DRAFT",
@@ -316,13 +315,10 @@ export const clonePost = async (postId: string, userId: string, newFiles?: { fil
   return newPost;
 };
 
-export const fetchPostsByStatus = async (userId: string, statuses: string[]) => {
-  if (!userId) return [];
-
+export const fetchPostsByStatus = async (statuses: string[]) => {
   const { data, error } = await supabase
     .from("posts")
     .select("*, post_assets:post_assets(*), tiktok_accounts:tiktok_accounts(*)")
-    .eq("user_id", userId)
     .in("status", statuses);
 
   if (error) {

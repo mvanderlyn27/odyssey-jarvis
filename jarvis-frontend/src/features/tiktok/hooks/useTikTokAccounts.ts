@@ -9,21 +9,19 @@ export const useTikTokAccounts = () => {
   const userId = session?.user?.id;
 
   return useQuery({
-    ...queries.tiktokAccounts.all(userId!),
-    queryFn: () => fetchTikTokAccounts(userId),
+    ...queries.tiktokAccounts.all(),
+    queryFn: () => fetchTikTokAccounts(),
     enabled: !!userId,
   });
 };
 
 export const useRefreshTikTokStats = () => {
   const queryClient = useQueryClient();
-  const session = useAuthStore((state) => state.session);
-  const userId = session?.user?.id;
 
   return useMutation({
     mutationFn: (account: TikTokAccount) => refreshTikTokAccountStats(account),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queries.tiktokAccounts.all(userId!).queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.tiktokAccounts.all().queryKey });
     },
   });
 };

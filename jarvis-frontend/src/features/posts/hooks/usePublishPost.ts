@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAuthStore } from "@/store/useAuthStore";
 import { queries } from "@/lib/queries";
 import { initiateTikTokPost } from "@/features/tiktok/api";
 import { useTikTokAccounts } from "@/features/tiktok/hooks/useTikTokAccounts";
@@ -9,8 +8,6 @@ import { supabase } from "@/lib/supabase/jarvisClient";
 const TIKTOK_MEDIA_URL = "https://media.odysseyfit.app";
 
 export const usePublishPost = (onSuccess?: () => void) => {
-  const session = useAuthStore((state) => state.session);
-  const userId = session?.user?.id;
   const queryClient = useQueryClient();
   const { data: tikTokAccounts } = useTikTokAccounts();
 
@@ -57,8 +54,8 @@ export const usePublishPost = (onSuccess?: () => void) => {
     onSuccess: () => {
       toast.dismiss();
       toast.success("Post sent for processing!");
-      queryClient.invalidateQueries({ queryKey: queries.posts.drafts(userId!).queryKey });
-      queryClient.invalidateQueries({ queryKey: queries.posts.processing(userId!).queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.drafts().queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.processing().queryKey });
       onSuccess?.();
     },
     onError: (error) => {

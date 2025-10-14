@@ -3,10 +3,8 @@ import { TikTokAccount } from "../types";
 
 const STATS_STALE_THRESHOLD = 1000 * 60 * 60; // 1 hour
 
-export const fetchTikTokAccounts = async (userId: string | undefined): Promise<TikTokAccount[] | null> => {
-  if (!userId) return null;
-
-  const { data: accounts, error } = await supabase.from("tiktok_accounts").select("*").eq("user_id", userId);
+export const fetchTikTokAccounts = async (): Promise<TikTokAccount[] | null> => {
+  const { data: accounts, error } = await supabase.from("tiktok_accounts").select("*");
 
   if (error) throw new Error(error.message);
   if (!accounts) return [];

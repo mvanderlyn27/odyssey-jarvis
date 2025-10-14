@@ -8,8 +8,8 @@ export const useProcessingPosts = () => {
   const userId = session?.user?.id;
 
   return useQuery({
-    ...queries.posts.processing(userId!),
-    queryFn: () => fetchPostsByStatus(userId!, ["PROCESSING", "FAILED"]),
+    ...queries.posts.processing(),
+    queryFn: () => fetchPostsByStatus(["PROCESSING", "FAILED"]),
     enabled: !!userId,
   });
 };

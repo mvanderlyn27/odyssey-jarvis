@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAuthStore } from "@/store/useAuthStore";
 import { queries } from "@/lib/queries";
 import { savePostChanges } from "../api";
 import { Post, useEditPostStore } from "@/store/useEditPostStore";
@@ -43,8 +42,6 @@ const resizeImage = (file: File): Promise<File> => {
 };
 
 export const useSavePost = () => {
-  const session = useAuthStore((state) => state.session);
-  const userId = session?.user?.id;
   const queryClient = useQueryClient();
   const { initialAssets, setPostAsSaved } = useEditPostStore();
 
@@ -114,7 +111,7 @@ export const useSavePost = () => {
       setPostAsSaved();
       toast.success("Changes saved successfully!");
       queryClient.invalidateQueries({ queryKey: queries.posts.detail(post!.id).queryKey });
-      queryClient.invalidateQueries({ queryKey: queries.posts.drafts(userId!).queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.drafts().queryKey });
     },
     onError: (error) => {
       toast.error(`Failed to save changes: ${error.message}`);

@@ -14,10 +14,10 @@ const NewPostPage = () => {
   const createPostMutation = useMutation({
     mutationFn: () => {
       if (!userId) throw new Error("User not found");
-      return createPost(userId);
+      return createPost();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queries.posts.all(userId!).queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.all().queryKey });
       navigate(`/inbox`);
     },
   });

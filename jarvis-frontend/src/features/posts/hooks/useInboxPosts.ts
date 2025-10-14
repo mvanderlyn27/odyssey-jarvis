@@ -7,8 +7,8 @@ export const useInboxPosts = () => {
   const userId = session?.user?.id;
 
   return useQuery({
-    queryKey: ["posts", "inbox", userId],
-    queryFn: () => fetchPostsByStatus(userId!, ["INBOX"]),
+    queryKey: ["posts", "inbox"],
+    queryFn: () => fetchPostsByStatus(["INBOX"]),
     enabled: !!userId,
   });
 };

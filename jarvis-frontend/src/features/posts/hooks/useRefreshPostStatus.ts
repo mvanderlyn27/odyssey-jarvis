@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/jarvisClient";
 import { queries } from "@/lib/queries";
-import { useAuthStore } from "@/store/useAuthStore";
 
 const refreshPostStatus = async (publishedPostId: string) => {
   const { error } = await supabase.functions.invoke("tiktok-publish-status", {
@@ -16,8 +15,6 @@ const refreshPostStatus = async (publishedPostId: string) => {
 
 export const useRefreshPostStatus = () => {
   const queryClient = useQueryClient();
-  const session = useAuthStore((state) => state.session);
-  const userId = session?.user?.id;
 
   return useMutation({
     mutationFn: refreshPostStatus,
@@ -27,7 +24,7 @@ export const useRefreshPostStatus = () => {
     onSuccess: () => {
       toast.dismiss();
       toast.success("Post status refreshed!");
-      queryClient.invalidateQueries({ queryKey: queries.posts.processing(userId!).queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.processing().queryKey });
     },
     onError: (error) => {
       toast.dismiss();

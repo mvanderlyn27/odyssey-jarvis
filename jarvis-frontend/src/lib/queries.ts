@@ -3,7 +3,7 @@ import { getPost } from "@/features/posts/api";
 
 export const queries = createQueryKeyStore({
   tiktokAccounts: {
-    all: (userId: string) => ["tiktokAccounts", userId],
+    all: () => ["tiktokAccounts"],
   },
   tiktokPosts: {
     all: (accountId: string) => ["tiktokPosts", accountId],
@@ -16,13 +16,13 @@ export const queries = createQueryKeyStore({
     all: (accountIds: string[]) => ["tiktokVideos", accountIds],
   },
   posts: {
-    all: (userId: string) => ["posts", userId],
+    all: () => ["posts"],
     detail: (postId: string) => ({
       queryKey: ["post", postId],
       queryFn: () => getPost(postId),
     }),
-    drafts: (userId: string) => ["posts", "drafts", userId],
-    processing: (userId: string) => ["posts", "processing", userId],
-    published: (userId: string) => ["posts", "published", userId],
+    drafts: () => ["posts", "drafts"],
+    processing: () => ["posts", "processing"],
+    published: () => ["posts", "published"],
   },
 });

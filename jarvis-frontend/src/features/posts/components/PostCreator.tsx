@@ -10,9 +10,7 @@ const PostCreator = () => {
   const navigate = useNavigate();
 
   const mutation = useMutation({
-    mutationFn: () => {
-      return createPost();
-    },
+    mutationFn: createPost,
     onSuccess: (newPost) => {
       queryClient.invalidateQueries({ queryKey: queries.posts.drafts().queryKey });
       navigate(`/posts/${newPost.id}`);

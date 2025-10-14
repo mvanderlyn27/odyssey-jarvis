@@ -17,8 +17,10 @@ serve(async (req) => {
 
   try {
     const { accessToken, refreshToken, mediaUrls, accountId, title, description, postId } = await req.json();
+    console.log("Received request with postId:", postId, "and accountId:", accountId);
 
     if (!accessToken || !refreshToken || !mediaUrls || !accountId || !postId) {
+      console.error("Missing required parameters:", { accessToken, refreshToken, mediaUrls, accountId, postId });
       return new Response(JSON.stringify({ error: "Missing required parameters." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
@@ -80,6 +82,9 @@ serve(async (req) => {
       });
     }
 
+    console.log("Sending request to TikTok API:", TIKTOK_API_URL);
+    console.log("Request body:", JSON.stringify(body, null, 2));
+
     const response = await fetchWithRetry(
       TIKTOK_API_URL,
       {
@@ -96,7 +101,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("TikTok API Error:", errorData);
+      console.error("Full TikTok API Error Response:", JSON.stringify(errorData, null, 2));
       throw new Error(`TikTok API request failed: ${errorData.error.message}`);
     }
 
@@ -119,6 +124,7 @@ serve(async (req) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    console.error("An error occurred in the function:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

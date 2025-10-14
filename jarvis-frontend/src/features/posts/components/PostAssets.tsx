@@ -40,6 +40,7 @@ const PostAssets = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
+      files.sort((a, b) => a.name.localeCompare(b.name));
       addAssets(files);
     }
   };

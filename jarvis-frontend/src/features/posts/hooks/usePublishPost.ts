@@ -28,6 +28,7 @@ export const usePublishPost = (onSuccess?: () => void) => {
     }) => {
       const selectedAccount = tikTokAccounts?.find((acc) => acc.id === accountId);
       if (!selectedAccount) throw new Error("Selected TikTok account not found.");
+      if (!selectedAccount.refresh_token) throw new Error("Refresh token not found for the selected account.");
 
       const mediaUrls: { video_url?: string; image_urls?: string[] } = {};
       const savedAssets = post.post_assets.filter(
@@ -44,7 +45,15 @@ export const usePublishPost = (onSuccess?: () => void) => {
         throw new Error("No valid media assets found for this post.");
       }
 
-      await initiateTikTokPost(selectedAccount.access_token, accountId, mediaUrls, title, description, post.id);
+      await initiateTikTokPost(
+        selectedAccount.access_token,
+        selectedAccount.refresh_token,
+        accountId,
+        mediaUrls,
+        title,
+        description,
+        post.id
+      );
 
       const { error } = await supabase.from("posts").update({ status: "PROCESSING" }).eq("id", post.id);
       if (error) {

@@ -18,7 +18,11 @@ export const fetchTikTokAccounts = async (): Promise<TikTokAccount[] | null> => 
         // Non-blocking call to refresh stats in the background
         supabase.functions
           .invoke("tiktok-user-stats", {
-            body: { access_token: account.access_token, open_id: account.tiktok_open_id },
+            body: {
+              access_token: account.access_token,
+              refresh_token: account.refresh_token,
+              open_id: account.tiktok_open_id,
+            },
           })
           .then(({ error: refreshError }) => {
             if (refreshError) {
@@ -39,7 +43,11 @@ export const fetchTikTokAccounts = async (): Promise<TikTokAccount[] | null> => 
 
 export const refreshTikTokAccountStats = async (account: TikTokAccount) => {
   const { error } = await supabase.functions.invoke("tiktok-user-stats", {
-    body: { access_token: account.access_token, open_id: account.tiktok_open_id },
+    body: {
+      access_token: account.access_token,
+      refresh_token: account.refresh_token,
+      open_id: account.tiktok_open_id,
+    },
   });
 
   if (error) {
@@ -69,6 +77,7 @@ export const fetchTikTokVideosAndAggregate = async (accessTokens: string[]) => {
 
 export const initiateTikTokPost = async (
   accessToken: string,
+  refreshToken: string,
   accountId: string,
   mediaUrls: { video_url?: string; image_urls?: string[] },
   title: string,
@@ -76,7 +85,7 @@ export const initiateTikTokPost = async (
   postId: string
 ) => {
   const { data, error } = await supabase.functions.invoke("tiktok-content-post-init", {
-    body: { accessToken, mediaUrls, accountId, title, description, postId },
+    body: { accessToken, refreshToken, mediaUrls, accountId, title, description, postId },
   });
 
   if (error) {

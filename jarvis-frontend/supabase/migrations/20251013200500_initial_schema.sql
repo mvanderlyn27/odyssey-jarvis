@@ -1,7 +1,6 @@
 -- Create tiktok_accounts table if it doesn't exist
 CREATE TABLE IF NOT EXISTS "public"."tiktok_accounts" (
     "id" uuid NOT NULL DEFAULT gen_random_uuid(),
-    "user_id" uuid NOT NULL,
     "created_at" timestamp with time zone NOT NULL DEFAULT now(),
     "access_token" text NOT NULL,
     "refresh_token" text,
@@ -10,8 +9,7 @@ CREATE TABLE IF NOT EXISTS "public"."tiktok_accounts" (
     "display_name" text,
     "profile_image_url" text,
     "status" text DEFAULT 'active'::text,
-    PRIMARY KEY ("id"),
-    CONSTRAINT "tiktok_accounts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE
+    PRIMARY KEY ("id")
 );
 
 -- Add RLS to tiktok_accounts
@@ -36,7 +34,6 @@ END$$;
 -- Create posts table if it doesn't exist
 CREATE TABLE IF NOT EXISTS "public"."posts" (
     "id" uuid NOT NULL DEFAULT gen_random_uuid(),
-    "user_id" uuid NOT NULL,
     "created_at" timestamp with time zone NOT NULL DEFAULT now(),
     "title" text,
     "description" text,
@@ -46,7 +43,6 @@ CREATE TABLE IF NOT EXISTS "public"."posts" (
     "reason" text,
     "status" "public"."post_status" DEFAULT 'DRAFT',
     PRIMARY KEY ("id"),
-    CONSTRAINT "posts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE,
     CONSTRAINT "posts_tiktok_account_id_fkey" FOREIGN KEY ("tiktok_account_id") REFERENCES "public"."tiktok_accounts"("id") ON DELETE SET NULL
 );
 

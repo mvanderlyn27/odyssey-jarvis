@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { createPost } from "@/features/posts/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { queries } from "@/lib/queries";
@@ -16,9 +17,14 @@ const NewPostPage = () => {
       if (!userId) throw new Error("User not found");
       return createPost();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queries.posts.all().queryKey });
-      navigate(`/inbox`);
+      navigate(`/posts/${data.id}`);
+    },
+    onError: (error) => {
+      toast.error("Failed to create post. Please try again." + error);
+      console.error(error);
+      navigate("/posts");
     },
   });
 

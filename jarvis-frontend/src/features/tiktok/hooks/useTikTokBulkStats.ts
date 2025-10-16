@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase as jarvisClient } from "../../../lib/supabase/jarvisClient";
 import { TikTokAccount } from "../types";
+import { queries } from "../../../lib/queries";
 
 const fetchTikTokBulkStats = async (accounts: TikTokAccount[]) => {
   const activeAccounts = accounts.filter((acc) => acc.token_status === "active");
@@ -8,42 +9,48 @@ const fetchTikTokBulkStats = async (accounts: TikTokAccount[]) => {
     return [];
   }
 
-  const accessTokens = activeAccounts.map((acc) => ({
-    access_token: acc.access_token,
-    refresh_token: acc.refresh_token,
-  }));
+  const accountIds = activeAccounts.map((acc) => acc.id);
 
-  const { data, error } = await jarvisClient.functions.invoke("tiktok-bulk-user-stats", {
-    body: { accessTokens },
+  const { data, error } = await jarvisClient.functions.invoke("tiktok-bulk-video-details", {
+    body: { accountIds },
   });
 
   if (error) {
     throw new Error(`Failed to fetch bulk TikTok stats: ${error.message}`);
   }
 
-  // The backend function returns an object with a 'stats' property, which is an array.
-  // We need to map this back to the original accounts.
-  const statsMap = new Map();
-  data.stats.forEach((stat: any, index: number) => {
-    if (stat && !stat.error && stat.user) {
-      // The order of stats in the response matches the order of the access tokens sent.
-      const account = activeAccounts[index];
-      statsMap.set(account.id, stat.user);
-    }
-  });
-
-  return accounts.map((acc) => {
-    return {
-      ...acc,
-      ...statsMap.get(acc.id), // Merge the stats into the account object
-    };
-  });
+  return data;
 };
 
-export const useTikTokBulkStats = (accounts: TikTokAccount[]) => {
-  return useQuery({
-    queryKey: ["tiktokBulkStats", accounts.map((a) => a.id)],
-    queryFn: () => fetchTikTokBulkStats(accounts),
-    enabled: !!accounts && accounts.length > 0,
+export const useTikTokBulkStats = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accounts: TikTokAccount[]) => fetchTikTokBulkStats(accounts),
+    onSuccess: (data) => {
+      const statsMap = new Map();
+      data.forEach((stat: any) => {
+        statsMap.set(stat.tiktok_account_id, stat);
+      });
+
+      const queryKey = queries.tiktokAccounts.all().queryKey;
+      const previousAccounts = queryClient.getQueryData<TikTokAccount[]>(queryKey);
+
+      if (previousAccounts) {
+        const updatedAccounts = previousAccounts.map((acc) => {
+          const stats = statsMap.get(acc.id);
+          if (stats) {
+            return {
+              ...acc,
+              follower_count: stats.follower_count,
+              likes_count: stats.likes_count,
+              video_count: stats.video_count,
+            };
+          }
+          return acc;
+        });
+        queryClient.setQueryData(queryKey, updatedAccounts);
+      }
+    },
   });
 };

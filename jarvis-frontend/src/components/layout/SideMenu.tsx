@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase as jarvisClient } from "../../lib/supabase/jarvisClient";
 import { useAuthStore } from "../../store/useAuthStore";
+import { ModeToggle } from "../mode-toggle";
 
 interface SideMenuProps {
   isCollapsed: boolean;
@@ -57,16 +58,20 @@ const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
           <NavLink to="/tiktok/analytics">{isCollapsed ? "📊" : "TikTok Analytics"}</NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/posts">{isCollapsed ? "📝" : "Posts"}</NavLink>
+          <NavLink to="/drafts">{isCollapsed ? "�" : "Drafts"}</NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/inbox">{isCollapsed ? "📥" : "Inbox"}</NavLink>
+          <NavLink to="/posts">{isCollapsed ? "🗓️" : "Schedule"}</NavLink>
+        </Button>
+        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
+          <NavLink to="/overview">{isCollapsed ? "📈" : "Overview"}</NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
           <NavLink to="/admin">{isCollapsed ? "⚙️" : "Admin Panel"}</NavLink>
         </Button>
       </nav>
-      <div className="mt-auto">
+      <div className="mt-auto space-y-2 border-t pt-4">
+        <ModeToggle />
         <Button variant="outline" onClick={handleLogout} className="w-full">
           {isCollapsed ? "🚪" : "Logout"}
         </Button>

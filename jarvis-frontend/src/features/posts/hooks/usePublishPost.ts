@@ -63,8 +63,8 @@ export const usePublishPost = (onSuccess?: () => void) => {
     onSuccess: () => {
       toast.dismiss();
       toast.success("Post sent for processing!");
-      queryClient.invalidateQueries({ queryKey: queries.posts.drafts().queryKey });
-      queryClient.invalidateQueries({ queryKey: queries.posts.processing().queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.byStatus("DRAFT").queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.posts.byStatus("PROCESSING").queryKey });
       onSuccess?.();
     },
     onError: (error) => {

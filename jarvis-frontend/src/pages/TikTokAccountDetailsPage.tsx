@@ -1,58 +1,69 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTikTokAccounts } from "../features/tiktok/hooks/useTikTokAccounts";
-import { useTikTokVideos } from "../features/tiktok/hooks/useTikTokVideos";
+import { usePosts } from "../features/posts/hooks/usePosts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TikTokVideoCard } from "@/components/tiktok/TikTokVideoCard";
+import { PostCard } from "@/features/analytics/components/PostCard";
+import { useSyncTikTokVideos } from "../features/tiktok/hooks/useSyncTikTokVideos";
+import { useFetchVideoAnalytics } from "../features/analytics/hooks/useFetchVideoAnalytics";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TikTokVideo } from "@/features/tiktok/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type SortOrder = "recency" | "views" | "likes" | "comments" | "shares";
 
-const TikTokVideosPage = () => {
-  const { openId } = useParams<{ openId: string }>();
+const TikTokAccountDetailsPage = () => {
+  const { accountId } = useParams<{ accountId: string }>();
   const navigate = useNavigate();
   const { data: accounts } = useTikTokAccounts();
-  const account = accounts?.find((acc) => acc.tiktok_open_id === openId);
+  const account = accounts?.find((acc) => acc.id === accountId);
 
-  const { data: videos, isLoading, isError, error, refetch } = useTikTokVideos(account!);
+  const { mutate: syncVideos } = useSyncTikTokVideos();
+  console.log("account", accounts, accountId);
+
+  const { data: posts, isLoading, isError, error } = usePosts({ accountId: accountId, status: "PUBLISHED" });
+  const { mutate: fetchAnalytics } = useFetchVideoAnalytics();
   const [sortOrder, setSortOrder] = useState<SortOrder>("recency");
 
-  const sortedVideos = useMemo(() => {
-    if (!videos) return [];
-    const sorted = [...videos];
+  useEffect(() => {
+    if (account?.id && posts && posts.length > 0) {
+      fetchAnalytics({ accountId: account.id, postIds: posts.map((p) => p.post_id) });
+    }
+  }, [posts, account, fetchAnalytics]);
+
+  const sortedPosts = useMemo(() => {
+    if (!posts) return [];
+    const sorted = [...posts];
     switch (sortOrder) {
       case "views":
-        return sorted.sort((a, b) => b.view_count - a.view_count);
+        return sorted.sort((a, b) => (b.post_analytics?.[0]?.views || 0) - (a.post_analytics?.[0]?.views || 0));
       case "likes":
-        return sorted.sort((a, b) => b.like_count - a.like_count);
+        return sorted.sort((a, b) => (b.post_analytics?.[0]?.likes || 0) - (a.post_analytics?.[0]?.likes || 0));
       case "comments":
-        return sorted.sort((a, b) => b.comment_count - a.comment_count);
+        return sorted.sort((a, b) => (b.post_analytics?.[0]?.comments || 0) - (a.post_analytics?.[0]?.comments || 0));
       case "shares":
-        return sorted.sort((a, b) => b.share_count - a.share_count);
+        return sorted.sort((a, b) => (b.post_analytics?.[0]?.shares || 0) - (a.post_analytics?.[0]?.shares || 0));
       case "recency":
       default:
-        return sorted.sort((a, b) => b.create_time - a.create_time);
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
-  }, [videos, sortOrder]);
+  }, [posts, sortOrder]);
 
   const kpis = useMemo(() => {
-    if (!videos) {
+    if (!posts) {
       return { totalViews: 0, totalLikes: 0, totalComments: 0, totalShares: 0 };
     }
-    return videos.reduce(
-      (acc: any, video: any) => {
-        acc.totalViews += video.view_count || 0;
-        acc.totalLikes += video.like_count || 0;
-        acc.totalComments += video.comment_count || 0;
-        acc.totalShares += video.share_count || 0;
+    return posts.reduce(
+      (acc: any, post: any) => {
+        acc.totalViews += post.post_analytics?.[0]?.views || 0;
+        acc.totalLikes += post.post_analytics?.[0]?.likes || 0;
+        acc.totalComments += post.post_analytics?.[0]?.comments || 0;
+        acc.totalShares += post.post_analytics?.[0]?.shares || 0;
         return acc;
       },
       { totalViews: 0, totalLikes: 0, totalComments: 0, totalShares: 0 }
     );
-  }, [videos]);
+  }, [posts]);
 
   if (isLoading) {
     return (
@@ -74,6 +85,9 @@ const TikTokVideosPage = () => {
         <p className="text-red-600">{error?.message}</p>
       </div>
     );
+  }
+  if (!account) {
+    return null;
   }
 
   return (
@@ -123,8 +137,16 @@ const TikTokVideosPage = () => {
 
       {/* Controls */}
       <div className="flex justify-end items-center gap-4">
-        <p>Total Videos: {videos?.length ?? 0}</p>
-        <Button onClick={() => refetch()}>Refresh</Button>
+        <p>Total Videos: {posts?.length ?? 0}</p>
+        <Button onClick={() => syncVideos(account.id)}>Resync Videos</Button>
+        <Button
+          onClick={() => {
+            if (account?.id && posts) {
+              fetchAnalytics({ accountId: account.id, postIds: posts.map((p) => p.post_id) });
+            }
+          }}>
+          Refresh Stats
+        </Button>
         <Select onValueChange={(value) => setSortOrder(value as SortOrder)} defaultValue={sortOrder}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Sort by" />
@@ -140,12 +162,12 @@ const TikTokVideosPage = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {sortedVideos.map((video: TikTokVideo) => (
-          <TikTokVideoCard key={video.id} video={video} />
+        {sortedPosts.map((post: any) => (
+          <PostCard key={post.id} post={post} />
         ))}
       </div>
     </div>
   );
 };
 
-export default TikTokVideosPage;
+export default TikTokAccountDetailsPage;

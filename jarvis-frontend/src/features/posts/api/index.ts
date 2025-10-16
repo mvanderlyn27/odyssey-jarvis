@@ -77,6 +77,20 @@ export const getPost = async (postId: string) => {
   return data;
 };
 
+export const getPostById = async (postId: string) => {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*, post_assets(*), tiktok_accounts(*), post_analytics(*)")
+    .eq("id", postId)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
 export const updatePost = async (postId: number, updates: { title?: string; description?: string }) => {
   const { data, error } = await supabase.from("posts").update(updates).eq("id", postId).select().single();
 
@@ -315,15 +329,47 @@ export const clonePost = async (postId: string, newFiles?: { file: File }[]) => 
   return newPost;
 };
 
-export const fetchPostsByStatus = async (statuses: string[]) => {
-  const { data, error } = await supabase
+export const fetchPostsByStatus = async (statuses: string[], accountIds?: string[]) => {
+  let query = supabase
     .from("posts")
-    .select("*, post_assets:post_assets(*), tiktok_accounts:tiktok_accounts(*)")
+    .select("*, post_assets(*), tiktok_accounts(*), post_analytics(*)")
     .in("status", statuses);
+
+  if (accountIds && accountIds.length > 0) {
+    query = query.in("tiktok_account_id", accountIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Error fetching posts by status:", error);
     throw new Error(error.message);
   }
   return data || [];
+};
+
+export const schedulePost = async ({
+  postId,
+  scheduledAt,
+  accountId,
+}: {
+  postId: string;
+  scheduledAt: string;
+  accountId: string;
+}) => {
+  const { error } = await supabase
+    .from("posts")
+    .update({ status: "SCHEDULED", scheduled_at: scheduledAt, tiktok_account_id: accountId })
+    .eq("id", postId);
+
+  if (error) throw error;
+};
+
+export const unschedulePost = async (postId: string) => {
+  const { error } = await supabase
+    .from("posts")
+    .update({ status: "DRAFT", scheduled_at: null, tiktok_account_id: null })
+    .eq("id", postId);
+
+  if (error) throw error;
 };

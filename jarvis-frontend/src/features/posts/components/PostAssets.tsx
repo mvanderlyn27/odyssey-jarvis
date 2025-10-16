@@ -8,7 +8,7 @@ import SortableAsset from "@/features/posts/components/SortableAsset";
 import { useEditPostStore } from "@/store/useEditPostStore";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 
-const PostAssets = () => {
+const PostAssets = ({ viewOnly = false }: { viewOnly?: boolean }) => {
   const { post, reorderAssets, addAssets, removeAsset } = useEditPostStore();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +28,7 @@ const PostAssets = () => {
   );
 
   const handleDragEnd = (event: any) => {
+    if (viewOnly) return;
     const { active, over } = event;
     if (active.id !== over.id) {
       const oldIndex = assets.findIndex((asset) => asset.id === active.id);
@@ -84,24 +85,32 @@ const PostAssets = () => {
                 }
 
                 return (
-                  <SortableAsset key={asset.id} asset={asset} url={displayUrl} onRemove={() => removeAsset(asset.id)} />
+                  <SortableAsset
+                    key={asset.id}
+                    asset={asset}
+                    url={displayUrl}
+                    onRemove={() => removeAsset(asset.id)}
+                    viewOnly={viewOnly}
+                  />
                 );
               })}
             </SortableContext>
           </DndContextTyped>
-          <label
-            htmlFor="file-upload"
-            className="w-full aspect-[9/16] flex items-center justify-center bg-gray-200 rounded-lg cursor-pointer">
-            <span className="text-4xl">+</span>
-            <input
-              id="file-upload"
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleFileChange}
-              accept="image/webp,image/jpeg,video/mp4"
-            />
-          </label>
+          {!viewOnly && (
+            <label
+              htmlFor="file-upload"
+              className="w-full aspect-[9/16] flex items-center justify-center bg-gray-200 rounded-lg cursor-pointer">
+              <span className="text-4xl">+</span>
+              <input
+                id="file-upload"
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+                accept="image/webp,image/jpeg,video/mp4"
+              />
+            </label>
+          )}
         </div>
       </div>
       <Button

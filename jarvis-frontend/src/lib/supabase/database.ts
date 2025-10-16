@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      post_analytics: {
+        Row: {
+          comments: number | null
+          created_at: string
+          id: string
+          likes: number | null
+          post_id: string | null
+          shares: number | null
+          views: number | null
+        }
+        Insert: {
+          comments?: number | null
+          created_at?: string
+          id?: string
+          likes?: number | null
+          post_id?: string | null
+          shares?: number | null
+          views?: number | null
+        }
+        Update: {
+          comments?: number | null
+          created_at?: string
+          id?: string
+          likes?: number | null
+          post_id?: string | null
+          shares?: number | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_analytics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_assets: {
         Row: {
           asset_type: string
@@ -52,39 +90,45 @@ export type Database = {
       posts: {
         Row: {
           created_at: string
+          created_in_jarvis: boolean | null
           description: string | null
           id: string
+          post_id: string | null
           post_url: string | null
           reason: string | null
+          scheduled_at: string | null
           status: Database["public"]["Enums"]["post_status"] | null
           tiktok_account_id: string | null
           tiktok_publish_id: string | null
           title: string | null
-          user_id: string
         }
         Insert: {
           created_at?: string
+          created_in_jarvis?: boolean | null
           description?: string | null
           id?: string
+          post_id?: string | null
           post_url?: string | null
           reason?: string | null
+          scheduled_at?: string | null
           status?: Database["public"]["Enums"]["post_status"] | null
           tiktok_account_id?: string | null
           tiktok_publish_id?: string | null
           title?: string | null
-          user_id: string
         }
         Update: {
           created_at?: string
+          created_in_jarvis?: boolean | null
           description?: string | null
           id?: string
+          post_id?: string | null
           post_url?: string | null
           reason?: string | null
+          scheduled_at?: string | null
           status?: Database["public"]["Enums"]["post_status"] | null
           tiktok_account_id?: string | null
           tiktok_publish_id?: string | null
           title?: string | null
-          user_id?: string
         }
         Relationships: [
           {
@@ -101,7 +145,10 @@ export type Database = {
           access_token: string
           created_at: string | null
           expires_in: number
+          follower_count: number | null
+          following_count: number | null
           id: string
+          likes_count: number | null
           refresh_expires_in: number
           refresh_token: string
           scope: string | null
@@ -112,13 +159,16 @@ export type Database = {
           token_status: Database["public"]["Enums"]["tiktok_account_status"]
           token_type: string | null
           updated_at: string | null
-          user_id: string
+          video_count: number | null
         }
         Insert: {
           access_token: string
           created_at?: string | null
           expires_in: number
+          follower_count?: number | null
+          following_count?: number | null
           id?: string
+          likes_count?: number | null
           refresh_expires_in: number
           refresh_token: string
           scope?: string | null
@@ -129,13 +179,16 @@ export type Database = {
           token_status?: Database["public"]["Enums"]["tiktok_account_status"]
           token_type?: string | null
           updated_at?: string | null
-          user_id: string
+          video_count?: number | null
         }
         Update: {
           access_token?: string
           created_at?: string | null
           expires_in?: number
+          follower_count?: number | null
+          following_count?: number | null
           id?: string
+          likes_count?: number | null
           refresh_expires_in?: number
           refresh_token?: string
           scope?: string | null
@@ -146,7 +199,7 @@ export type Database = {
           token_status?: Database["public"]["Enums"]["tiktok_account_status"]
           token_type?: string | null
           updated_at?: string | null
-          user_id?: string
+          video_count?: number | null
         }
         Relationships: []
       }
@@ -155,12 +208,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_daily_kpis: {
+        Args:
+          | { p_account_ids: string[] }
+          | {
+              p_account_ids: string[]
+              p_end_date: string
+              p_start_date: string
+            }
+        Returns: {
+          date: string
+          total_comments: number
+          total_likes: number
+          total_shares: number
+          total_views: number
+        }[]
+      }
     }
     Enums: {
       asset_type: "videos" | "slides"
       draft_status: "DRAFT" | "PUBLISHED" | "FAILED"
-      post_status: "DRAFT" | "PROCESSING" | "PUBLISHED" | "FAILED" | "INBOX"
+      post_status:
+        | "DRAFT"
+        | "PROCESSING"
+        | "PUBLISHED"
+        | "FAILED"
+        | "INBOX"
+        | "SCHEDULED"
       tiktok_account_status: "active" | "expired"
     }
     CompositeTypes: {
@@ -291,7 +365,14 @@ export const Constants = {
     Enums: {
       asset_type: ["videos", "slides"],
       draft_status: ["DRAFT", "PUBLISHED", "FAILED"],
-      post_status: ["DRAFT", "PROCESSING", "PUBLISHED", "FAILED", "INBOX"],
+      post_status: [
+        "DRAFT",
+        "PROCESSING",
+        "PUBLISHED",
+        "FAILED",
+        "INBOX",
+        "SCHEDULED",
+      ],
       tiktok_account_status: ["active", "expired"],
     },
   },

@@ -2,27 +2,31 @@ import { createQueryKeyStore } from "@lukemorales/query-key-factory";
 import { getPost } from "@/features/posts/api";
 
 export const queries = createQueryKeyStore({
+  posts: {
+    all: () => ["posts"],
+    detail: (id: string) => ["posts", id],
+    byStatus: (status: string, accountIds?: string[]) => ["posts", { status, accountIds }],
+  },
+  analytics: {
+    dailyKpis: (accountIds: string[], startDate?: string, endDate?: string) => [
+      "analytics",
+      "dailyKpis",
+      accountIds,
+      startDate,
+      endDate,
+    ],
+  },
   tiktokAccounts: {
     all: () => ["tiktokAccounts"],
   },
   tiktokPosts: {
     all: (accountId: string) => ["tiktokPosts", accountId],
-    detail: (postId: string) => ["tiktokPost", postId],
+    detail: (postId: string) => ["tiktokPosts", "detail", postId],
   },
   tiktokAggregatedStats: {
     all: (accountIds: string[]) => ["tiktokAggregatedStats", accountIds],
   },
   tiktokVideos: {
-    all: (accountIds: string[]) => ["tiktokVideos", accountIds],
-  },
-  posts: {
-    all: () => ["posts"],
-    detail: (postId: string) => ({
-      queryKey: ["post", postId],
-      queryFn: () => getPost(postId),
-    }),
-    drafts: () => ["posts", "drafts"],
-    processing: () => ["posts", "processing"],
-    published: () => ["posts", "published"],
+    list: (accountId: string) => ["tiktokVideos", accountId],
   },
 });

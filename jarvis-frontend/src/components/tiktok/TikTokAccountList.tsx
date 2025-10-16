@@ -1,5 +1,5 @@
 import { removeTikTokAccount } from "../../features/tiktok/api";
-import TikTokAccountCard from "./TikTokAccountCard";
+import { TikTokAccountCard } from "./TikTokAccountCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TikTokAccount } from "@/features/tiktok/types";
@@ -10,6 +10,7 @@ interface TikTokAccountListProps {
   isError?: boolean;
   error?: Error | null;
   onReauthenticate: () => void;
+  onSyncVideos: (accountId: string) => void;
 }
 
 const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
@@ -18,6 +19,7 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
   isError,
   error,
   onReauthenticate,
+  onSyncVideos,
 }) => {
   const queryClient = useQueryClient();
 
@@ -62,8 +64,9 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
         <TikTokAccountCard
           key={account.id}
           account={account}
-          onReauthenticate={onReauthenticate}
           onRemove={() => handleRemoveAccount(account.id)}
+          onReauthenticate={() => onReauthenticate()}
+          onSyncVideos={() => onSyncVideos(account.id)}
         />
       ))}
     </div>

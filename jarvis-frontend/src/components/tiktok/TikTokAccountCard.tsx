@@ -1,78 +1,76 @@
-import React from "react";
-import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "../ui/button";
 import { TikTokAccount } from "@/features/tiktok/types";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Trash2, Video } from "lucide-react";
+import { useSyncTikTokAccountStats } from "@/features/tiktok/hooks/useSyncTikTokAccountStats";
+import { Link } from "react-router-dom";
 
 interface TikTokAccountCardProps {
   account: TikTokAccount;
-  onReauthenticate: () => void;
   onRemove: () => void;
+  onReauthenticate: () => void;
+  onSyncVideos: () => void;
 }
 
-const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onReauthenticate, onRemove }) => {
-  const handleRemoveClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    onRemove();
-  };
+export const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onRemove, onSyncVideos }) => {
+  const { mutate: syncStats, isPending } = useSyncTikTokAccountStats();
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <Link to={`/tiktok/${account.tiktok_open_id}`} className="w-full">
-          <div className="flex items-center space-x-4">
-            <Avatar>
-              <AvatarImage src={account.tiktok_avatar_url ?? undefined} alt={`@${account.tiktok_username}`} />
-              <AvatarFallback>{account.tiktok_username?.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle>{account.tiktok_display_name}</CardTitle>
-              <a
-                href={`https://www.tiktok.com/@${account.tiktok_username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:underline"
-                onClick={(e) => e.stopPropagation()}>
-                @{account.tiktok_username}
-              </a>
-            </div>
+    <Link to={`/tiktok/${account.id}`}>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{account.tiktok_display_name}</CardTitle>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSyncVideos();
+              }}
+              disabled={isPending}>
+              <Video className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                syncStats(account.id);
+              }}
+              disabled={isPending}>
+              <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemove();
+              }}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <img src={account.tiktok_avatar_url || ""} alt="Avatar" className="w-8 h-8 rounded-full" />
           </div>
-        </Link>
-      </CardHeader>
-      <CardContent>
-        <Link to={`/tiktok/${account.tiktok_open_id}`} className="w-full">
-          <div className="text-sm text-muted-foreground">
-            {account.token_status === "expired" ? (
-              <div className="flex items-center justify-between">
-                <p className="text-red-600">Token expired.</p>
-                <Button variant="outline" size="sm" onClick={onReauthenticate}>
-                  Re-authenticate
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <p>Followers:</p>
-                <p className="text-right">{account.follower_count?.toLocaleString() ?? "N/A"}</p>
-                <p>Following:</p>
-                <p className="text-right">{account.following_count?.toLocaleString() ?? "N/A"}</p>
-                <p>Likes:</p>
-                <p className="text-right">{account.likes_count?.toLocaleString() ?? "N/A"}</p>
-                <p>Videos:</p>
-                <p className="text-right">{account.video_count?.toLocaleString() ?? "N/A"}</p>
-              </div>
-            )}
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">@{account.tiktok_username}</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-sm">
+            <p>Followers:</p>
+            <p className="text-right">{(account.follower_count || 0).toLocaleString()}</p>
+            <p>Following:</p>
+            <p className="text-right">{(account.following_count || 0).toLocaleString()}</p>
+            <p>Likes:</p>
+            <p className="text-right">{(account.likes_count || 0).toLocaleString()}</p>
+            <p>Videos:</p>
+            <p className="text-right">{(account.video_count || 0).toLocaleString()}</p>
           </div>
-        </Link>
-        <div className="mt-4 flex justify-end">
-          <Button variant="destructive" size="sm" onClick={handleRemoveClick}>
-            Remove
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <p className="text-xs text-muted-foreground mt-2">Token Status: {account.token_status}</p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
-
-export default TikTokAccountCard;

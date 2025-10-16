@@ -1,21 +1,29 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import TikTokAccountManager, { initiateTikTokAuth } from "../components/tiktok/TikTokAccountManager";
 import TikTokAccountList from "../components/tiktok/TikTokAccountList";
 import { useAuthStore } from "../store/useAuthStore";
 import { useTikTokAccounts } from "../features/tiktok/hooks/useTikTokAccounts";
 import { useTikTokBulkStats } from "../features/tiktok/hooks/useTikTokBulkStats";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSyncTikTokVideos } from "../features/tiktok/hooks/useSyncTikTokVideos";
 
 type SortOrder = "creation_date" | "follower_count" | "posts" | "likes";
 
 const TikTokAccountsPage = () => {
   const setTikTokCodeVerifier = useAuthStore((state) => state.setTikTokCodeVerifier);
   const { data: accounts, isLoading: isLoadingAccounts } = useTikTokAccounts();
-  const { data: accountsWithStats, isLoading: isLoadingStats } = useTikTokBulkStats(accounts || []);
+  const { mutate: fetchBulkStats, isPending: isLoadingStats } = useTikTokBulkStats();
   const [sortOrder, setSortOrder] = useState<SortOrder>("likes");
+  const { mutate: syncVideos } = useSyncTikTokVideos();
+
+  useEffect(() => {
+    if (accounts && accounts.length > 0) {
+      fetchBulkStats(accounts);
+    }
+  }, [accounts, fetchBulkStats]);
 
   const sortedAccounts = useMemo(() => {
-    const dataToSort = accountsWithStats || accounts || [];
+    const dataToSort = accounts || [];
     const sorted = [...dataToSort];
     switch (sortOrder) {
       case "follower_count":
@@ -26,9 +34,9 @@ const TikTokAccountsPage = () => {
         return sorted.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
       case "creation_date":
       default:
-        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return sorted.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
     }
-  }, [accounts, accountsWithStats, sortOrder]);
+  }, [accounts, sortOrder]);
 
   const handleReauthenticate = () => {
     initiateTikTokAuth(setTikTokCodeVerifier);
@@ -55,6 +63,7 @@ const TikTokAccountsPage = () => {
         accounts={sortedAccounts}
         isLoading={isLoadingAccounts || isLoadingStats}
         onReauthenticate={handleReauthenticate}
+        onSyncVideos={syncVideos}
       />
     </div>
   );

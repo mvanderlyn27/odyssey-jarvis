@@ -94,7 +94,20 @@ serve(async (req: Request) => {
 
     if (upsertError) throw upsertError;
 
-    return new Response(JSON.stringify({ message: "TikTok account linked successfully." }), {
+    // After successfully linking the account, trigger the video sync
+    const { data: newAccount } = await supabaseAdmin
+      .from("tiktok_accounts")
+      .select("id")
+      .eq("tiktok_open_id", userInfo.open_id)
+      .single();
+
+    if (newAccount) {
+      await supabaseAdmin.functions.invoke("sync-tiktok-videos", {
+        body: { account_id: newAccount.id },
+      });
+    }
+
+    return new Response(JSON.stringify({ message: "TikTok account linked and videos synced." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

@@ -1,4 +1,4 @@
--- Unscheduling the old cron jobs
+-- Unscheduling the old cron jobs to be safe, as we are changing the schedule and command.
 SELECT cron.unschedule('publish-scheduled-posts');
 SELECT cron.unschedule('fetch-post-analytics');
 
@@ -7,17 +7,14 @@ SELECT cron.schedule(
     'publish-scheduled-posts',
     '*/10 * * * *',
     $$
-    SELECT net.http_post(
-        url:='https://tbgkbgpduudusaqumlkd.supabase.co/functions/v1/publish-scheduled-posts',
-        headers:=(
-            SELECT json_build_object(
-                'Content-Type', 'application/json',
-                'Authorization', 'Bearer ' || decrypted_secret
-            )
-            FROM vault.decrypted_secrets
-            WHERE name = 'supabase_service_role_key'
-        )
-    )
+    select
+      net.http_post(
+          url:= (select decrypted_secret from vault.decrypted_secrets where name = 'supabase_url') || '/functions/v1/publish-scheduled-posts',
+          headers:=jsonb_build_object(
+            'Content-Type', 'application/json',
+            'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'supabase_service_role_key')
+          ),
+      ) as request_id;
     $$
 );
 
@@ -26,16 +23,14 @@ SELECT cron.schedule(
     'fetch-post-analytics',
     '*/10 * * * *',
     $$
-    SELECT net.http_post(
-        url:='https://tbgkbgpduudusaqumlkd.supabase.co/functions/v1/tiktok-bulk-video-details',
-        headers:=(
-            SELECT json_build_object(
-                'Content-Type', 'application/json',
-                'Authorization', 'Bearer ' || decrypted_secret
-            )
-            FROM vault.decrypted_secrets
-            WHERE name = 'supabase_service_role_key'
-        )
-    )
+    select
+      net.http_post(
+          url:= (select decrypted_secret from vault.decrypted_secrets where name = 'supabase_url') || '/functions/v1/tiktok-bulk-video-details',
+          headers:=jsonb_build_object(
+            'Content-Type', 'application/json',
+            'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'supabase_service_role_key')
+          ),
+          body:='{}'::jsonb
+      ) as request_id;
     $$
 );

@@ -1,17 +1,5 @@
 import { supabase } from "@/lib/supabase/jarvisClient";
 
-export const fetchVideoAnalytics = async (postIds: string[]) => {
-  const { data, error } = await supabase.functions.invoke("tiktok-bulk-video-details", {
-    body: { post_ids: postIds },
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
-};
-
 export const getPostAnalyticsHistory = async (postId: string) => {
   const { data, error } = await supabase
     .from("post_analytics")

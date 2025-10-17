@@ -2,25 +2,33 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queries } from "@/lib/queries";
 import { schedulePost } from "../api";
 import { toast } from "sonner";
-import { PostWithAssets } from "@/features/scheduling/components/PostCard";
-
-type SchedulePostVariables = {
-  postId: string;
-  scheduledAt: string;
-  accountId: string;
-};
+import { Post } from "../types";
+import { useSchedulePageStore } from "@/store/useSchedulePageStore";
 
 export const useSchedulePost = () => {
   const queryClient = useQueryClient();
+  const movePostToSchedule = useSchedulePageStore((state) => state.movePostToSchedule);
 
   return useMutation({
     mutationFn: schedulePost,
+    onMutate: async (newPost: { postId: string; scheduledAt: string; accountId: string }) => {
+      await queryClient.cancelQueries({ queryKey: queries.posts.all().queryKey });
+
+      const previousPosts = queryClient.getQueryData(queries.posts.all().queryKey);
+
+      movePostToSchedule(newPost.postId, newPost.scheduledAt, newPost.accountId);
+
+      return { previousPosts };
+    },
     onSuccess: () => {
       toast.success("Post scheduled successfully!");
-      queryClient.invalidateQueries({ queryKey: queries.posts.all().queryKey });
     },
-    onError: (err: Error) => {
+    onError: (err: Error, newPost, context) => {
+      queryClient.setQueryData(queries.posts.all().queryKey, context?.previousPosts);
       toast.error("Error scheduling post: " + err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey });
     },
   });
 };

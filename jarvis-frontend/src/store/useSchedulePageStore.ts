@@ -24,7 +24,7 @@ export const useSchedulePageStore = create<SchedulePageState>((set) => ({
           draftPosts: state.draftPosts.filter((p) => p.id !== postId),
           scheduledPosts: [
             ...state.scheduledPosts,
-            { ...postToMove, scheduled_at: scheduleDate, tiktok_account_id: accountId },
+            { ...postToMove, scheduled_at: scheduleDate, tiktok_account_id: accountId, status: "SCHEDULED" },
           ],
         };
       } else {
@@ -47,7 +47,7 @@ export const useSchedulePageStore = create<SchedulePageState>((set) => ({
 
       return {
         scheduledPosts: state.scheduledPosts.filter((p) => p.id !== postId),
-        draftPosts: [...state.draftPosts, { ...postToMove, scheduled_at: null }],
+        draftPosts: [...state.draftPosts, { ...postToMove, scheduled_at: null, status: "DRAFT" }],
       };
     }),
 }));

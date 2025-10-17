@@ -18,17 +18,16 @@ const PostSchedulePage = () => {
   const { data: posts, isLoading } = usePosts({ status: "DRAFT,SCHEDULED" });
   const { draftPosts, scheduledPosts, setDraftPosts, setScheduledPosts, movePostToSchedule, movePostToDrafts } =
     useSchedulePageStore();
-  const [isStoreInitialized, setIsStoreInitialized] = useState(false);
 
   useEffect(() => {
-    if (posts && !isStoreInitialized) {
+    console.log("updating posts");
+    if (posts) {
       const drafts = posts.filter((p) => p.status === "DRAFT");
       const scheduled = posts.filter((p) => p.status === "SCHEDULED");
       setDraftPosts(drafts);
       setScheduledPosts(scheduled);
-      setIsStoreInitialized(true);
     }
-  }, [posts, isStoreInitialized, setDraftPosts, setScheduledPosts]);
+  }, [posts, setDraftPosts, setScheduledPosts]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const post = event.active.data.current?.post as PostWithAssets;

@@ -17,7 +17,7 @@ const DraftsList = ({ posts, isLoading }: DraftsListProps) => {
       <h2 className="font-semibold mb-2">Drafts</h2>
       <div
         ref={setNodeRef}
-        className={`flex space-x-4 overflow-x-auto pb-4 min-h-[8rem] rounded-md p-2 transition-colors ${
+        className={`flex space-x-4 overflow-x-auto pb-4 rounded-md p-2 transition-colors ${
           isOver ? "bg-gray-200 dark:bg-gray-700" : "bg-muted"
         }`}>
         {posts?.map((post) => (

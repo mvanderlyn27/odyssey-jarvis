@@ -1,19 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TikTokAccount } from "@/features/tiktok/types";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Trash2, Video } from "lucide-react";
-import { useSyncTikTokAccountStats } from "@/features/tiktok/hooks/useSyncTikTokAccountStats";
+import { Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TikTokAccountCardProps {
   account: TikTokAccount;
   onRemove: () => void;
-  onReauthenticate: () => void;
-  onSyncVideos: () => void;
+  isLoading: boolean;
 }
 
-export const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onRemove, onSyncVideos }) => {
-  const { mutate: syncStats, isPending } = useSyncTikTokAccountStats();
+export const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onRemove, isLoading }) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-6 w-32" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-sm">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <Skeleton className="h-3 w-20 mt-2" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Link to={`/tiktok/${account.id}`}>
@@ -21,28 +43,6 @@ export const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, o
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">{account.tiktok_display_name}</CardTitle>
           <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onSyncVideos();
-              }}
-              disabled={isPending}>
-              <Video className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                syncStats(account.id);
-              }}
-              disabled={isPending}>
-              <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
-            </Button>
             <Button
               variant="ghost"
               size="icon"

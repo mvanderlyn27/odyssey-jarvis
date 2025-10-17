@@ -8,7 +8,7 @@ import { useSyncTikTokVideos } from "../features/tiktok/hooks/useSyncTikTokVideo
 import { useFetchVideoAnalytics } from "../features/analytics/hooks/useFetchVideoAnalytics";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AccountAnalyticsKPIs } from "../features/tiktok/components/AccountAnalyticsKPIs";
 
 type SortOrder = "recency" | "views" | "likes" | "comments" | "shares";
 
@@ -49,22 +49,6 @@ const TikTokAccountDetailsPage = () => {
     }
   }, [posts, sortOrder]);
 
-  const kpis = useMemo(() => {
-    if (!posts) {
-      return { totalViews: 0, totalLikes: 0, totalComments: 0, totalShares: 0 };
-    }
-    return posts.reduce(
-      (acc: any, post: any) => {
-        acc.totalViews += post.post_analytics?.[0]?.views || 0;
-        acc.totalLikes += post.post_analytics?.[0]?.likes || 0;
-        acc.totalComments += post.post_analytics?.[0]?.comments || 0;
-        acc.totalShares += post.post_analytics?.[0]?.shares || 0;
-        return acc;
-      },
-      { totalViews: 0, totalLikes: 0, totalComments: 0, totalShares: 0 }
-    );
-  }, [posts]);
-
   if (isLoading) {
     return (
       <div className="p-4">
@@ -100,40 +84,7 @@ const TikTokAccountDetailsPage = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Views</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{kpis.totalViews.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Likes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{kpis.totalLikes.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Comments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{kpis.totalComments.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Shares</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{kpis.totalShares.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <AccountAnalyticsKPIs accountId={accountId} />
 
       {/* Controls */}
       <div className="flex justify-end items-center gap-4">

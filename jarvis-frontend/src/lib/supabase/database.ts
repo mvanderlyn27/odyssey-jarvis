@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_analytics: {
+        Row: {
+          created_at: string
+          follower_count: number
+          following_count: number
+          id: number
+          likes_count: number
+          tiktok_account_id: string
+          video_count: number
+        }
+        Insert: {
+          created_at?: string
+          follower_count: number
+          following_count: number
+          id?: number
+          likes_count: number
+          tiktok_account_id: string
+          video_count: number
+        }
+        Update: {
+          created_at?: string
+          follower_count?: number
+          following_count?: number
+          id?: number
+          likes_count?: number
+          tiktok_account_id?: string
+          video_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_analytics_tiktok_account_id_fkey"
+            columns: ["tiktok_account_id"]
+            isOneToOne: false
+            referencedRelation: "tiktok_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_analytics: {
         Row: {
           comments: number | null
@@ -99,7 +137,9 @@ export type Database = {
           scheduled_at: string | null
           status: Database["public"]["Enums"]["post_status"] | null
           tiktok_account_id: string | null
+          tiktok_embed_url: string | null
           tiktok_publish_id: string | null
+          tiktok_share_url: string | null
           title: string | null
         }
         Insert: {
@@ -113,7 +153,9 @@ export type Database = {
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["post_status"] | null
           tiktok_account_id?: string | null
+          tiktok_embed_url?: string | null
           tiktok_publish_id?: string | null
+          tiktok_share_url?: string | null
           title?: string | null
         }
         Update: {
@@ -127,7 +169,9 @@ export type Database = {
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["post_status"] | null
           tiktok_account_id?: string | null
+          tiktok_embed_url?: string | null
           tiktok_publish_id?: string | null
+          tiktok_share_url?: string | null
           title?: string | null
         }
         Relationships: [
@@ -145,10 +189,7 @@ export type Database = {
           access_token: string
           created_at: string | null
           expires_in: number
-          follower_count: number | null
-          following_count: number | null
           id: string
-          likes_count: number | null
           refresh_expires_in: number
           refresh_token: string
           scope: string | null
@@ -159,16 +200,12 @@ export type Database = {
           token_status: Database["public"]["Enums"]["tiktok_account_status"]
           token_type: string | null
           updated_at: string | null
-          video_count: number | null
         }
         Insert: {
           access_token: string
           created_at?: string | null
           expires_in: number
-          follower_count?: number | null
-          following_count?: number | null
           id?: string
-          likes_count?: number | null
           refresh_expires_in: number
           refresh_token: string
           scope?: string | null
@@ -179,16 +216,12 @@ export type Database = {
           token_status?: Database["public"]["Enums"]["tiktok_account_status"]
           token_type?: string | null
           updated_at?: string | null
-          video_count?: number | null
         }
         Update: {
           access_token?: string
           created_at?: string | null
           expires_in?: number
-          follower_count?: number | null
-          following_count?: number | null
           id?: string
-          likes_count?: number | null
           refresh_expires_in?: number
           refresh_token?: string
           scope?: string | null
@@ -199,7 +232,6 @@ export type Database = {
           token_status?: Database["public"]["Enums"]["tiktok_account_status"]
           token_type?: string | null
           updated_at?: string | null
-          video_count?: number | null
         }
         Relationships: []
       }
@@ -223,6 +255,25 @@ export type Database = {
           total_shares: number
           total_views: number
         }[]
+      }
+      get_latest_account_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_id: string
+          created_at: string
+          follower_count: number
+          following_count: number
+          likes_count: number
+          video_count: number
+        }[]
+      }
+      invoke_fetch_post_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      invoke_publish_scheduled_posts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

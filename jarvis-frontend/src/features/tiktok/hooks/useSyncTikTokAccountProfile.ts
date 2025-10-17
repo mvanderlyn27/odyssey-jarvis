@@ -3,13 +3,13 @@ import { supabase } from "../../../lib/supabase/jarvisClient";
 import { queries } from "../../../lib/queries";
 import { toast } from "sonner";
 
-export const useSyncTikTokAccountStats = () => {
+export const useSyncTikTokAccountProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (accountId: string) => {
-      toast.loading("Refreshing account stats...");
-      const { data, error } = await supabase.functions.invoke("sync-tiktok-account-stats", {
+      toast.loading("Refreshing account profile...");
+      const { data, error } = await supabase.functions.invoke("sync-tiktok-account-profile", {
         body: { accountId },
       });
 
@@ -19,12 +19,12 @@ export const useSyncTikTokAccountStats = () => {
 
       return data;
     },
-    onSuccess: (data, variables) => {
-      toast.success("Account stats refreshed successfully!");
-      queryClient.invalidateQueries({ queryKey: queries.tiktokAccountAnalytics.detail(variables).queryKey });
+    onSuccess: () => {
+      toast.success("Account profile refreshed successfully!");
+      queryClient.invalidateQueries({ queryKey: queries.tiktokAccounts.details().queryKey });
     },
     onError: (error) => {
-      toast.error(`Failed to refresh account stats: ${error.message}`);
+      toast.error(`Failed to refresh account profile: ${error.message}`);
     },
   });
 };

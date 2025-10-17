@@ -4,6 +4,16 @@ import { usePostAnalyticsHistory } from "../hooks/usePostAnalyticsHistory";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 
+type PostAnalytics = {
+  id: string;
+  post_id: string;
+  created_at: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+};
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -30,10 +40,35 @@ const AnalyticsGraph = ({ postId }: { postId: string }) => {
     return <div>No analytics history found.</div>;
   }
 
-  const chartData = history.map((entry) => ({
-    date: new Date(entry.created_at).toLocaleString(),
-    value: entry[metric],
-  }));
+  const groupedData = (history as PostAnalytics[]).reduce((acc, entry) => {
+    const entryDate = new Date(entry.created_at);
+    const minutes = entryDate.getMinutes();
+    const roundedMinutes = Math.floor(minutes / 10) * 10;
+    entryDate.setMinutes(roundedMinutes, 0, 0);
+
+    const key = entryDate.toISOString();
+
+    if (!acc[key] || new Date(acc[key].created_at) < new Date(entry.created_at)) {
+      acc[key] = { ...entry, created_at: entryDate.toISOString() };
+    }
+
+    return acc;
+  }, {} as { [key: string]: PostAnalytics });
+
+  const chartData = Object.values(groupedData).map((entry) => {
+    const date = new Date(entry.created_at);
+    const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date
+      .getDate()
+      .toString()
+      .padStart(2, "0")} ${date.getHours().toString().padStart(2, "0")}:${date
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+    return {
+      date: formattedDate,
+      value: entry[metric],
+    };
+  });
 
   const colors: { [key: string]: { light: string; dark: string } } = {
     views: { light: "#4CAF50", dark: "#81C784" },
@@ -68,7 +103,7 @@ const AnalyticsGraph = ({ postId }: { postId: string }) => {
               <stop offset="95%" stopColor={currentColor} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="date" />
+          <XAxis dataKey="date" tickMargin={5} />
           <YAxis />
           <Tooltip content={<CustomTooltip />} />
           <Area

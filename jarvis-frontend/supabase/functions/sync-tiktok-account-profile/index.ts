@@ -25,7 +25,7 @@ serve(async (req) => {
       throw new Error(`Failed to fetch account: ${accountError.message}`);
     }
 
-    const fields = ["follower_count", "following_count", "likes_count", "video_count"];
+    const fields = ["display_name", "avatar_url"];
     const url = `https://open.tiktokapis.com/v2/user/info/?fields=${fields.join(",")}`;
 
     const response = await fetch(url, {
@@ -38,28 +38,48 @@ serve(async (req) => {
     }
 
     const { data: userDetails } = await response.json();
+    const avatarUrl = userDetails.user.avatar_url;
 
-    const { data: analytics, error: analyticsError } = await supabase
-      .from("account_analytics")
-      .insert({
-        tiktok_account_id: accountId,
-        follower_count: userDetails.user.follower_count,
-        following_count: userDetails.user.following_count,
-        likes_count: userDetails.user.likes_count,
-        video_count: userDetails.user.video_count,
+    // Download the avatar image
+    const avatarResponse = await fetch(avatarUrl);
+    if (!avatarResponse.ok) {
+      throw new Error("Failed to download avatar image");
+    }
+    const avatarBlob = await avatarResponse.blob();
+
+    // Upload the avatar to Supabase storage
+    const avatarPath = `${accountId}/avatar.jpg`;
+    const { error: uploadError } = await supabase.storage
+      .from("account_avatars")
+      .upload(avatarPath, avatarBlob, { upsert: true });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload avatar: ${uploadError.message}`);
+    }
+
+    // Get the public URL of the uploaded avatar
+    const { data: publicUrlData } = supabase.storage.from("account_avatars").getPublicUrl(avatarPath);
+
+    const { data: updatedAccount, error: updateError } = await supabase
+      .from("tiktok_accounts")
+      .update({
+        tiktok_display_name: userDetails.user.display_name,
+        tiktok_username: userDetails.username,
+        tiktok_avatar_url: publicUrlData.publicUrl,
       })
+      .eq("id", accountId)
       .select()
       .single();
 
-    if (analyticsError) {
-      throw new Error(`Failed to insert account analytics: ${analyticsError.message}`);
+    if (updateError) {
+      throw new Error(`Failed to update account profile: ${updateError.message}`);
     }
 
-    return new Response(JSON.stringify(analytics), {
+    return new Response(JSON.stringify(updatedAccount), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });

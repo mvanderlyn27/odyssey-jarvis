@@ -1,26 +1,18 @@
 import { removeTikTokAccount } from "../../features/tiktok/api";
-import { TikTokAccountCard } from "./TikTokAccountCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TikTokAccount } from "@/features/tiktok/types";
+import { useState } from "react";
+import { TikTokAccountCard } from "@/features/tiktok/components/TikTokAccountCard";
 
 interface TikTokAccountListProps {
   accounts: TikTokAccount[];
   isLoading: boolean;
   isError?: boolean;
   error?: Error | null;
-  onReauthenticate: () => void;
-  onSyncVideos: (accountId: string) => void;
 }
 
-const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
-  accounts,
-  isLoading,
-  isError,
-  error,
-  onReauthenticate,
-  onSyncVideos,
-}) => {
+const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ accounts, isLoading, isError, error }) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -65,8 +57,7 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
           key={account.id}
           account={account}
           onRemove={() => handleRemoveAccount(account.id)}
-          onReauthenticate={() => onReauthenticate()}
-          onSyncVideos={() => onSyncVideos(account.id)}
+          isLoading={isLoading}
         />
       ))}
     </div>

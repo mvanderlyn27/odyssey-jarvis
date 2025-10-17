@@ -42,6 +42,16 @@ export const fetchTikTokVideosAndAggregate = async (accessTokens: string[]) => {
   return data;
 };
 
+export const fetchAllTikTokAccountAnalytics = async () => {
+  const { data, error } = await supabase.rpc("get_latest_account_analytics");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
 export const syncTikTokVideos = async (accountId: string) => {
   const { error } = await supabase.functions.invoke("sync-tiktok-videos", {
     body: { account_id: accountId },

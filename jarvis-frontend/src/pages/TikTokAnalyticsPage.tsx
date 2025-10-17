@@ -11,8 +11,8 @@ import { usePosts } from "@/features/posts/hooks/usePosts";
 import { PostCard } from "@/features/analytics/components/PostCard";
 
 const TikTokAnalyticsPage = () => {
-  const selectedAccountIds = useAnalyticsStore((state) => state.selectedAccountIds);
-  const setSelectedAccountIds = useAnalyticsStore((state) => state.setSelectedAccountIds);
+  const selectedAccounts = useAnalyticsStore((state) => state.selectedAccounts);
+  const setSelectedAccounts = useAnalyticsStore((state) => state.setSelectedAccounts);
   const { data: accounts } = useTikTokAccounts();
   const [sortOrder, setSortOrder] = useState("most_views");
 
@@ -22,7 +22,7 @@ const TikTokAnalyticsPage = () => {
     refetch,
   } = usePosts({
     status: "PUBLISHED",
-    accountId: selectedAccountIds,
+    accountId: selectedAccounts.map((a) => a.id),
   });
 
   const aggregatedStats = useMemo(() => {
@@ -60,15 +60,15 @@ const TikTokAnalyticsPage = () => {
   }, [posts, sortOrder]);
 
   useEffect(() => {
-    if (accounts && selectedAccountIds.length === 0) {
-      setSelectedAccountIds(accounts.map((acc) => acc.id));
+    if (accounts && selectedAccounts.length === 0) {
+      setSelectedAccounts(accounts);
     }
-  }, [accounts, setSelectedAccountIds, selectedAccountIds.length]);
+  }, [accounts, setSelectedAccounts, selectedAccounts.length]);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">TikTok Analytics</h1>
-      <AccountSelector selectedAccounts={selectedAccountIds} onSelectionChange={setSelectedAccountIds} />
+      <AccountSelector selectedAccounts={selectedAccounts} onSelectionChange={setSelectedAccounts} />
 
       {isLoading && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

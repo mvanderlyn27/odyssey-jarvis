@@ -1,11 +1,12 @@
 import { create } from "zustand";
+import { TikTokAccount } from "@/features/tiktok/types";
 
 interface AnalyticsState {
-  selectedAccountIds: string[];
-  setSelectedAccountIds: (accountIds: string[]) => void;
+  selectedAccounts: TikTokAccount[];
+  setSelectedAccounts: (accounts: TikTokAccount[]) => void;
 }
 
 export const useAnalyticsStore = create<AnalyticsState>((set) => ({
-  selectedAccountIds: [],
-  setSelectedAccountIds: (accountIds) => set({ selectedAccountIds: accountIds }),
+  selectedAccounts: [],
+  setSelectedAccounts: (accounts) => set({ selectedAccounts: accounts }),
 }));

@@ -94,26 +94,32 @@ export type Database = {
         Row: {
           asset_type: string
           asset_url: string
+          blurhash: string | null
           created_at: string | null
           id: string
           order: number
           post_id: string | null
+          thumbnail_path: string | null
         }
         Insert: {
           asset_type: string
           asset_url: string
+          blurhash?: string | null
           created_at?: string | null
           id?: string
           order: number
           post_id?: string | null
+          thumbnail_path?: string | null
         }
         Update: {
           asset_type?: string
           asset_url?: string
+          blurhash?: string | null
           created_at?: string | null
           id?: string
           order?: number
           post_id?: string | null
+          thumbnail_path?: string | null
         }
         Relationships: [
           {

@@ -1,31 +1,30 @@
 import { useEffect } from "react";
-import PostDetails from "../features/posts/components/PostDetails";
-import PostAssets from "../features/posts/components/PostAssets";
-import PostPublisher from "../features/posts/components/PostPublisher";
+import { usePost } from "@/features/posts/hooks/usePost";
 import { useEditPostStore } from "@/store/useEditPostStore";
-import { PostWithAssets } from "@/store/useEditPostStore";
+import DraftPostEditor from "@/features/posts/components/DraftPostEditor";
+import { useParams } from "react-router-dom";
 
-const DraftPostPage = ({ post }: { post: PostWithAssets }) => {
+const DraftPostPage = () => {
+  const { id: postId } = useParams<{ id: string }>();
+  const { data: post, isLoading } = usePost(postId!);
   const { setPost } = useEditPostStore();
 
   useEffect(() => {
-    setPost(post);
+    if (postId && post) {
+      setPost(post as any);
+    } else if (!postId) {
+      setPost({
+        title: "",
+        description: "",
+        post_assets: [],
+      } as any);
+    }
     return () => setPost(null);
-  }, [post, setPost]);
+  }, [postId, post, setPost]);
 
-  return (
-    <div className="container mx-auto p-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
-          <PostDetails />
-          <PostAssets />
-        </div>
-        <div>
-          <PostPublisher />
-        </div>
-      </div>
-    </div>
-  );
+  if (isLoading && postId) return <div>Loading...</div>;
+
+  return <DraftPostEditor />;
 };
 
 export default DraftPostPage;

@@ -1,9 +1,9 @@
 import { Asset } from "@/store/useEditPostStore";
 import { cn } from "@/lib/utils";
-import { useSignedUrls } from "@/hooks/useSignedUrls";
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
 
 interface ImageListProps {
   assets: Asset[];
@@ -13,11 +13,6 @@ interface ImageListProps {
 }
 
 export const ImageList = ({ assets, selectedAsset, onSelectAsset, onAddNewAsset }: ImageListProps) => {
-  const assetsForSignedUrls = useMemo(
-    () => assets.filter((asset) => asset.asset_url && !asset.asset_url.startsWith("blob:")),
-    [assets]
-  );
-  const { signedUrls } = useSignedUrls(assetsForSignedUrls);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddNewClick = () => {
@@ -36,23 +31,22 @@ export const ImageList = ({ assets, selectedAsset, onSelectAsset, onAddNewAsset 
       <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
       <div className="flex-grow overflow-y-auto">
         <div className="flex flex-col gap-2">
-          {assets.map((asset) => {
-            const imageUrl = asset.file
-              ? URL.createObjectURL(asset.file)
-              : signedUrls[asset.asset_url] || asset.asset_url;
-            return (
-              <img
-                key={asset.id}
-                src={imageUrl}
-                alt="asset"
-                className={cn(
-                  "w-full h-auto rounded-md cursor-pointer",
-                  selectedAsset?.id === asset.id && "ring-2 ring-blue-500"
-                )}
-                onClick={() => onSelectAsset(asset)}
+          {assets.map((asset) => (
+            <div
+              key={asset.id}
+              className={cn(
+                "w-full h-auto rounded-md cursor-pointer",
+                selectedAsset?.id === asset.id && "ring-2 ring-blue-500"
+              )}
+              onClick={() => onSelectAsset(asset)}>
+              <SignedUrlImage
+                thumbnailPath={asset.thumbnail_path}
+                fullSizePath={asset.asset_url}
+                blurhash={asset.blurhash}
+                size="medium"
               />
-            );
-          })}
+            </div>
+          ))}
           <Button onClick={handleAddNewClick} className="justify-center items-center ">
             <Plus className="w-4 h-4" />
           </Button>

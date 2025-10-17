@@ -4,17 +4,20 @@ import { fetchPostsByStatus } from "@/features/posts/api";
 
 export const usePosts = ({ status, accountId }: { status?: string; accountId?: string | string[] } = {}) => {
   const accountIds = accountId ? (Array.isArray(accountId) ? accountId : [accountId]) : undefined;
+  const staleTime = 1000 * 60 * 10; // 10 minutes
 
   if (status) {
     const statuses = status.split(",");
     return useQuery({
       ...queries.posts.byStatus(status, accountIds),
       queryFn: () => fetchPostsByStatus(statuses, accountIds),
+      staleTime,
     });
   }
 
   return useQuery({
     ...queries.posts.all(),
     queryFn: () => fetchPostsByStatus(["DRAFT", "FAILED", "PROCESSING", "PUBLISHED", "INBOX"], accountIds),
+    staleTime,
   });
 };

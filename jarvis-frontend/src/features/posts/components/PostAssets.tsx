@@ -6,18 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import SortableAsset from "@/features/posts/components/SortableAsset";
 import { useEditPostStore } from "@/store/useEditPostStore";
-import { useSignedUrls } from "@/hooks/useSignedUrls";
 
 const PostAssets = ({ viewOnly = false }: { viewOnly?: boolean }) => {
   const { post, reorderAssets, addAssets, removeAsset } = useEditPostStore();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const assets = useMemo(() => post?.post_assets?.filter((asset) => asset) || [], [post]);
-  const assetsForSignedUrls = useMemo(
-    () => assets.filter((asset) => asset.asset_url && !asset.asset_url.startsWith("blob:")),
-    [assets]
-  );
-  const { signedUrls } = useSignedUrls(assetsForSignedUrls);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -69,31 +63,16 @@ const PostAssets = ({ viewOnly = false }: { viewOnly?: boolean }) => {
         <div className="grid grid-flow-col auto-cols-[300px] gap-4 p-4">
           <DndContextTyped sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={assets.map((asset) => asset.id)} strategy={horizontalListSortingStrategy}>
-              {assets.map((asset) => {
-                const displayUrl = asset.file
-                  ? URL.createObjectURL(asset.file)
-                  : signedUrls[asset.asset_url] || asset.asset_url;
-
-                if (!displayUrl) {
-                  return (
-                    <div
-                      key={asset.id}
-                      className="w-full aspect-[9/16] flex items-center justify-center bg-gray-200 rounded-lg">
-                      Processing...
-                    </div>
-                  );
-                }
-
-                return (
-                  <SortableAsset
-                    key={asset.id}
-                    asset={asset}
-                    url={displayUrl}
-                    onRemove={() => removeAsset(asset.id)}
-                    viewOnly={viewOnly}
-                  />
-                );
-              })}
+              {assets.map((asset) => (
+                <SortableAsset
+                  key={asset.id}
+                  asset={asset}
+                  url={asset.asset_url || ""}
+                  onRemove={() => removeAsset(asset.id)}
+                  viewOnly={viewOnly}
+                  preferFullSize={true}
+                />
+              ))}
             </SortableContext>
           </DndContextTyped>
           {!viewOnly && (

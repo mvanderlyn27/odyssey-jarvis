@@ -1,0 +1,155 @@
+import { useMemo, useState } from "react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import AccountSelector from "@/components/tiktok/AccountSelector";
+import { usePosts } from "@/features/posts/hooks/usePosts";
+import PostOverviewList from "@/features/posts/components/PostOverviewList";
+import { TikTokAccount } from "@/features/tiktok/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePickerWithRange } from "@/components/ui/date-picker";
+import { DateRange } from "react-day-picker";
+import { RefreshButton } from "@/components/RefreshButton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import OverviewCalendar from "@/features/overview/components/OverviewCalendar";
+import { Separator } from "@/components/ui/separator";
+
+const PostOverviewPage = () => {
+  const [selectedAccounts, setSelectedAccounts] = useState<TikTokAccount[]>([]);
+  const [sortOption, setSortOption] = useState("scheduled_at-desc");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const { data: allPosts, isLoading: isLoadingPosts, refetch, isFetching } = usePosts();
+
+  const handleSelectionChange = (accounts: TikTokAccount[]) => {
+    setSelectedAccounts(accounts);
+  };
+
+  const filteredPosts = useMemo(() => {
+    if (selectedAccounts.length === 0) return [];
+
+    let posts = allPosts?.filter((p) => selectedAccounts.some((a) => a.id === p.tiktok_account_id));
+
+    if (dateRange?.from && dateRange?.to) {
+      posts = posts?.filter((p) => {
+        if (!p.scheduled_at) return false;
+        const scheduledAt = new Date(p.scheduled_at);
+        return scheduledAt >= dateRange.from! && scheduledAt <= dateRange.to!;
+      });
+    }
+
+    return posts;
+  }, [allPosts, selectedAccounts, dateRange]);
+
+  const sortedPosts = useMemo(() => {
+    if (!filteredPosts) return [];
+    const [sortBy, sortOrder] = sortOption.split("-");
+
+    return [...filteredPosts].sort((a, b) => {
+      let valA, valB;
+
+      if (sortBy === "views" || sortBy === "likes") {
+        valA = a.post_analytics?.[0]?.[sortBy] || 0;
+        valB = b.post_analytics?.[0]?.[sortBy] || 0;
+      } else {
+        valA = a[sortBy];
+        valB = b[sortBy];
+      }
+
+      if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+      if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredPosts, sortOption]);
+
+  const posts = sortedPosts?.filter((p) => p.status === "PUBLISHED");
+  const failedPosts = sortedPosts?.filter((p) => p.status === "FAILED");
+
+  const kpis = useMemo(() => {
+    if (!filteredPosts) return { views: 0, likes: 0, comments: 0, shares: 0 };
+    return filteredPosts.reduce(
+      (acc, post) => {
+        const latestAnalytics = post.post_analytics?.[0];
+        if (latestAnalytics) {
+          acc.views += latestAnalytics.views || 0;
+          acc.likes += latestAnalytics.likes || 0;
+          acc.comments += latestAnalytics.comments || 0;
+          acc.shares += latestAnalytics.shares || 0;
+        }
+        return acc;
+      },
+      { views: 0, likes: 0, comments: 0, shares: 0 }
+    );
+  }, [filteredPosts]);
+
+  return (
+    <div className="space-y-8">
+      <OverviewCalendar posts={posts} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Post List</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {selectedAccounts.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Views</h3>
+                <p>{kpis.views.toLocaleString()}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Likes</h3>
+                <p>{kpis.likes.toLocaleString()}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Comments</h3>
+                <p>{kpis.comments.toLocaleString()}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Shares</h3>
+                <p>{kpis.shares.toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-between items-end">
+            <AccountSelector selectedAccounts={selectedAccounts} onSelectionChange={handleSelectionChange} />
+            <div className="flex flex-col md:flex-row gap-2">
+              <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+              <Select value={sortOption} onValueChange={setSortOption}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled_at-desc">Newest</SelectItem>
+                  <SelectItem value="scheduled_at-asc">Oldest</SelectItem>
+                  <SelectItem value="views-desc">Views (High to Low)</SelectItem>
+                  <SelectItem value="views-asc">Views (Low to High)</SelectItem>
+                  <SelectItem value="likes-desc">Likes (High to Low)</SelectItem>
+                  <SelectItem value="likes-asc">Likes (Low to High)</SelectItem>
+                </SelectContent>
+              </Select>
+              <RefreshButton isRefreshing={isFetching} onClick={() => refetch()} />
+            </div>
+          </div>
+          <Separator />
+          <div>
+            <Accordion type="single" collapsible className="w-full" defaultValue="published-posts">
+              <AccordionItem value="published-posts">
+                <AccordionTrigger>Published Posts ({posts?.length || 0})</AccordionTrigger>
+                <AccordionContent>
+                  {isLoadingPosts ? <div>Loading posts...</div> : <PostOverviewList posts={posts || []} />}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+            <Accordion type="single" collapsible className="w-full mt-4">
+              <AccordionItem value="failed-posts">
+                <AccordionTrigger>Failed Posts ({failedPosts?.length || 0})</AccordionTrigger>
+                <AccordionContent>
+                  {isLoadingPosts ? <div>Loading failed posts...</div> : <PostOverviewList posts={failedPosts || []} />}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default PostOverviewPage;

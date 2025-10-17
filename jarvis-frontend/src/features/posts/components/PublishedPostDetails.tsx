@@ -4,6 +4,8 @@ import { useFetchVideoAnalytics } from "@/features/analytics/hooks/useFetchVideo
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import PageHeader from "@/components/layout/PageHeader";
+import { RefreshButton } from "@/components/RefreshButton";
 import { useDeletePost } from "../hooks/useDeletePost";
 import { useClonePost } from "../hooks/useClonePost";
 import PostAssets from "./PostAssets";
@@ -19,7 +21,10 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => navigate("/posts"));
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
   const { setPost, post: storePost } = useEditPostStore();
-  const analytics = post?.post_analytics?.[0] || {};
+  const analytics =
+    post?.post_analytics
+      ?.slice()
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] || {};
 
   useEffect(() => {
     if (post) {
@@ -70,25 +75,15 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            Back
-          </Button>
-          <h1 className="text-2xl font-bold">{post.title}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleRefresh} disabled={isRefreshing}>
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </Button>
-          <Button onClick={handleClonePost} variant="outline" disabled={isCloning}>
-            {isCloning ? "Cloning..." : "Clone Post"}
-          </Button>
-          <Button onClick={handleDelete} variant="destructive" disabled={isDeleting}>
-            {isDeleting ? "Deleting..." : "Delete"}
-          </Button>
-        </div>
-      </div>
+      <PageHeader title={post.title}>
+        <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
+        <Button onClick={handleClonePost} variant="outline" disabled={isCloning}>
+          {isCloning ? "Cloning..." : "Clone Post"}
+        </Button>
+        <Button onClick={handleDelete} variant="destructive" disabled={isDeleting}>
+          {isDeleting ? "Deleting..." : "Delete"}
+        </Button>
+      </PageHeader>
       <div className="w-full">
         <PostAssets viewOnly />
       </div>
@@ -98,6 +93,7 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
             <CardTitle>{post.title}</CardTitle>
           </CardHeader>
           <CardContent>
+            <p>Published: {post.published_at}</p>
             <p>{post.description}</p>
           </CardContent>
         </Card>

@@ -9,8 +9,7 @@ select
           headers:=jsonb_build_object(
             'Content-Type', 'application/json',
             'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'supabase_service_role_key')
-          ),
-          body:='{}'::jsonb
+          )
       ) as request_id;
     $$
   );

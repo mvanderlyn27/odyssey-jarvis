@@ -52,22 +52,24 @@ const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
       </div>
       <nav className="flex flex-col space-y-2 mt-4">
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/tiktok/accounts">{isCollapsed ? "📞" : "TikTok Accounts"}</NavLink>
+          <NavLink to="/home" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
+            {isCollapsed ? "🏠" : "Home"}
+          </NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/tiktok/analytics">{isCollapsed ? "📊" : "TikTok Analytics"}</NavLink>
+          <NavLink to="/drafts" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
+            {isCollapsed ? "✍️" : "Drafts"}
+          </NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/drafts">{isCollapsed ? "�" : "Drafts"}</NavLink>
+          <NavLink to="/schedule" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
+            {isCollapsed ? "🗓️" : "Scheduler"}
+          </NavLink>
         </Button>
         <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/posts">{isCollapsed ? "🗓️" : "Schedule"}</NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/overview">{isCollapsed ? "📈" : "Overview"}</NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/admin">{isCollapsed ? "⚙️" : "Admin Panel"}</NavLink>
+          <NavLink to="/overview" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
+            {isCollapsed ? "📊" : "Post Overview"}
+          </NavLink>
         </Button>
       </nav>
       <div className="mt-auto space-y-2 border-t pt-4">

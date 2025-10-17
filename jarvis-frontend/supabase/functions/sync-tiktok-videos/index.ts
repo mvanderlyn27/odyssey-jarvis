@@ -199,22 +199,31 @@ serve(async (req: Request) => {
                 const filename = `${post.id}-${Date.now()}.jpg`;
                 const path = `slides/${post.id}/${filename}`;
 
+                // First, insert the asset record
+                const { data: asset, error: insertError } = await supabaseAdmin
+                  .from("post_assets")
+                  .insert({
+                    post_id: post.id,
+                    asset_url: path,
+                    asset_type: "slides",
+                    order: 0,
+                  })
+                  .select()
+                  .single();
+
+                if (insertError) {
+                  console.error(`Error inserting asset for post ${post.id}:`, insertError);
+                  return; // Skip upload if insert fails
+                }
+
+                // Now, upload the image which will trigger the processing function
                 console.log(`Uploading image to storage at path: ${path}`);
                 const { error: uploadError } = await supabaseAdmin.storage.from("tiktok_assets").upload(path, blob);
 
                 if (uploadError) {
                   console.error(`Error uploading image for post ${post.id}:`, uploadError);
                 } else {
-                  console.log(`Successfully uploaded image for post ${post.id}.`);
-                  const { error: insertError } = await supabaseAdmin.from("post_assets").insert({
-                    post_id: post.id,
-                    asset_url: path,
-                    asset_type: "slides",
-                    order: 0,
-                  });
-                  if (insertError) {
-                    console.error(`Error inserting asset for post ${post.id}:`, insertError);
-                  }
+                  console.log(`Successfully uploaded image for post ${post.id}. The trigger will now process it.`);
                 }
               }
             }

@@ -18,7 +18,7 @@ const PostDetailPage = () => {
   const isDraftOrScheduled = post.status === "DRAFT" || post.status === "SCHEDULED";
 
   if (isDraftOrScheduled) {
-    return <DraftPostPage post={post} />;
+    return <DraftPostPage />;
   }
 
   return <PublishedPostPage postId={id} />;

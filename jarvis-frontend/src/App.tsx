@@ -7,17 +7,17 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import TikTokAccountDetailsPage from "./pages/TikTokAccountDetailsPage";
-import NewPostPage from "./pages/NewPostPage";
 import PostSchedulePage from "./pages/PostSchedulePage";
 import DraftsPage from "./pages/DraftsPage";
 import PostDetailPage from "./pages/PostDetailPage";
 import TikTokAccountsPage from "./pages/TikTokAccountsPage";
-import TikTokAnalyticsPage from "./pages/TikTokAnalyticsPage";
 import { Toaster } from "sonner";
-import OverviewPage from "./pages/OverviewPage";
 import { ThemeProvider } from "./components/theme-provider";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 import { useState } from "react";
+import DraftPostPage from "./pages/DraftPostPage";
+import PostOverviewPage from "./pages/PostOverviewPage";
 
 const MainLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -36,7 +36,6 @@ const MainLayout = () => {
 };
 
 // Placeholder pages
-const AdminPage = () => <div>Admin Panel Page</div>;
 
 function App() {
   return (
@@ -45,16 +44,21 @@ function App() {
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<MainLayout />}>
-              <Route index element={<Navigate to="/tiktok/accounts" />} />
-              <Route path="tiktok/accounts" element={<TikTokAccountsPage />} />
-              <Route path="tiktok/analytics" element={<TikTokAnalyticsPage />} />
-              <Route path="tiktok/:accountId" element={<TikTokAccountDetailsPage />} />
+              <Route index element={<Navigate to="/home" />} />
+              <Route path="home" element={<TikTokAccountsPage />} />
+              <Route
+                path="tiktok/:accountId"
+                element={
+                  <ErrorBoundary>
+                    <TikTokAccountDetailsPage />
+                  </ErrorBoundary>
+                }
+              />
               <Route path="drafts" element={<DraftsPage />} />
-              <Route path="posts" element={<PostSchedulePage />} />
-              <Route path="posts/new" element={<NewPostPage />} />
+              <Route path="schedule" element={<PostSchedulePage />} />
+              <Route path="posts/draft" element={<DraftPostPage />} />
               <Route path="posts/:id" element={<PostDetailPage />} />
-              <Route path="overview" element={<OverviewPage />} />
-              <Route path="admin" element={<AdminPage />} />
+              <Route path="overview" element={<PostOverviewPage />} />
             </Route>
           </Route>
           <Route path="/login" element={<LoginPage />} />

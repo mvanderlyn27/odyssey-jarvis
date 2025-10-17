@@ -1,10 +1,10 @@
 import { Tables } from "@/lib/supabase/database";
 import React from "react";
 import { Link } from "react-router-dom";
-import { useSignedUrls } from "@/hooks/useSignedUrls";
+import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
 
 export type PostWithAssets = Tables<"posts"> & {
-  post_assets: Tables<"post_assets">[];
+  post_assets: (Tables<"post_assets"> & { thumbnail_path: string | null; blurhash: string | null })[];
 };
 
 const PostCardComponent = React.forwardRef<
@@ -17,25 +17,19 @@ const PostCardComponent = React.forwardRef<
     isOverlay?: boolean;
   }
 >(({ post, style, listeners, attributes, isOverlay = false }, ref) => {
-  const { signedUrls } = useSignedUrls(post.post_assets);
   const firstAsset = post.post_assets?.[0];
-  const thumbnailUrl = signedUrls[firstAsset?.asset_url] || "";
 
   return (
     <div ref={ref} style={style} className="relative w-48 h-24 bg-muted rounded-md border flex items-center space-x-2">
       <Link to={`/posts/${post.id}`} className="flex-grow h-full p-2 flex items-center space-x-2">
         <div className="w-12 h-full bg-gray-200 rounded-md flex-shrink-0">
-          {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt={post.title || "Post thumbnail"}
-              className="w-full h-full object-cover rounded-md"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <p className="text-xs text-gray-500 text-center">No Image</p>
-            </div>
-          )}
+          <SignedUrlImage
+            thumbnailPath={firstAsset?.thumbnail_path}
+            fullSizePath={firstAsset?.asset_url}
+            blurhash={firstAsset?.blurhash}
+            size="small"
+            className="rounded-md"
+          />
         </div>
         <div className="flex-grow overflow-hidden">
           <h3 className="font-semibold text-sm truncate text-center">{post.title || "Untitled"}</h3>

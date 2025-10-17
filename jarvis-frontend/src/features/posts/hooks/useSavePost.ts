@@ -43,15 +43,34 @@ const resizeImage = (file: File): Promise<File> => {
 
 export const useSavePost = () => {
   const queryClient = useQueryClient();
-  const { initialAssets, setPostAsSaved } = useEditPostStore();
+  const { initialAssets, setPostAsSaved, setPost } = useEditPostStore();
 
   return useMutation({
     mutationFn: async (post: Post) => {
       if (!post) throw new Error("No post to save.");
 
+      let currentPost = { ...post };
+
+      // If the post is new (no id), create it first
+      if (!currentPost.id) {
+        const { post_assets, ...postData } = currentPost;
+        const { data, error } = await supabase
+          .from("posts")
+          .insert({
+            ...postData,
+            title: currentPost.title,
+            description: currentPost.description,
+          })
+          .select()
+          .single();
+        if (error) throw new Error(`Failed to create post: ${error.message}`);
+        currentPost = { ...data, post_assets };
+        setPost(currentPost as any); // Update the store with the new post, including the ID
+      }
+
       // 1. Upload new assets and update their URLs
       const updatedAssets = await Promise.all(
-        post.post_assets.map(async (asset) => {
+        currentPost.post_assets.map(async (asset) => {
           if (asset.status === "new" && asset.file) {
             let fileToUpload = asset.file;
             if (fileToUpload.type.startsWith("image")) {
@@ -62,21 +81,20 @@ export const useSavePost = () => {
                 throw new Error(`Failed to process image ${asset.file?.name}.`);
               }
             }
-            const filePath = `${asset.asset_type}/${post.id}/${asset.id}`;
+            const filePath = `${asset.asset_type}/${currentPost.id}/${asset.id}`;
             const { error } = await supabase.storage.from("tiktok_assets").upload(filePath, fileToUpload);
             if (error) {
               throw new Error(`Failed to upload asset: ${error.message}`);
             }
-            const {
-              data: { publicUrl },
-            } = supabase.storage.from("tiktok_assets").getPublicUrl(filePath);
-            return { ...asset, asset_url: publicUrl, file: fileToUpload };
+            // We save the path, not the public URL, as the URL can change.
+            const { file, ...assetWithoutFile } = asset;
+            return { ...assetWithoutFile, asset_url: filePath, post_id: currentPost.id };
           }
           return asset;
         })
       );
 
-      const updatedPost = { ...post, post_assets: updatedAssets };
+      const updatedPost = { ...currentPost, post_assets: updatedAssets };
 
       // 2. Identify assets to be deleted
       const assetsToDelete = initialAssets.filter(
@@ -85,7 +103,7 @@ export const useSavePost = () => {
 
       // 3. Delete assets from storage and database
       if (assetsToDelete.length > 0) {
-        const pathsToDelete = assetsToDelete.map((asset) => `${asset.asset_type}/${post.id}/${asset.id}`);
+        const pathsToDelete = assetsToDelete.map((asset) => `${asset.asset_type}/${currentPost.id}/${asset.id}`);
         if (pathsToDelete.length > 0) {
           const { error: storageError } = await supabase.storage.from("tiktok_assets").remove(pathsToDelete);
           if (storageError) {
@@ -110,8 +128,8 @@ export const useSavePost = () => {
     onSuccess: (post) => {
       setPostAsSaved();
       toast.success("Changes saved successfully!");
-      queryClient.invalidateQueries({ queryKey: queries.posts.detail(post!.id).queryKey });
-      queryClient.invalidateQueries({ queryKey: queries.posts.drafts().queryKey });
+      // Invalidate all queries related to posts to ensure data is fresh everywhere
+      queryClient.invalidateQueries({ queryKey: queries.posts._def });
     },
     onError: (error) => {
       toast.error(`Failed to save changes: ${error.message}`);

@@ -1,18 +1,28 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tables } from "@/lib/supabase/database";
-import { cn } from "@/lib/utils";
+import { Post } from "@/features/posts/types";
+import { useDailyAccountAnalytics } from "@/features/analytics/hooks/useDailyAccountAnalytics";
+import { useAnalyticsStore } from "@/store/useAnalyticsStore";
 
 interface OverviewCalendarProps {
-  posts: Tables<"posts">[] | undefined;
+  posts: Post[] | undefined;
 }
 
 const OverviewCalendar = ({ posts }: OverviewCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const selectedAccounts = useAnalyticsStore((state) => state.selectedAccounts);
+  const accountIds = selectedAccounts.map((account) => account.id);
 
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+  const { data: analytics } = useDailyAccountAnalytics(
+    accountIds,
+    startOfMonth.toISOString(),
+    endOfMonth.toISOString()
+  );
+
   const startDay = startOfMonth.getDay();
   const daysInMonth = endOfMonth.getDate();
 
@@ -26,10 +36,17 @@ const OverviewCalendar = ({ posts }: OverviewCalendarProps) => {
       posts?.filter(
         (post) => post.scheduled_at && new Date(post.scheduled_at).toDateString() === date.toDateString()
       ) || [];
+    const analyticsForDay = analytics?.find(
+      (analytic) => new Date(analytic.created_at).toDateString() === date.toDateString()
+    );
+
     const kpis = {
-      views: Math.floor(Math.random() * 1000),
-      likes: Math.floor(Math.random() * 100),
+      views: analyticsForDay?.total_post_views_delta || 0,
+      likes: analyticsForDay?.total_post_likes_delta || 0,
     };
+
+    const isFutureDate = date > new Date();
+
     days.push(
       <div key={i} className="h-32 border rounded-md p-2 flex flex-col">
         <p className="text-sm font-medium">{i}</p>
@@ -40,10 +57,12 @@ const OverviewCalendar = ({ posts }: OverviewCalendarProps) => {
             </div>
           ))}
         </div>
-        <div className="text-xs text-muted-foreground mt-2">
-          <p>Views: {kpis.views}</p>
-          <p>Likes: {kpis.likes}</p>
-        </div>
+        {!isFutureDate && (
+          <div className="text-xs text-muted-foreground mt-2">
+            <p>Views: {kpis.views}</p>
+            <p>Likes: {kpis.likes}</p>
+          </div>
+        )}
       </div>
     );
   }

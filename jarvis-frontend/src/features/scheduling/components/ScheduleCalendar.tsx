@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTikTokAccounts } from "@/features/tiktok/hooks/useTikTokAccounts";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PostWithAssets } from "./PostCard";
-import DraggablePostCard from "./DraggablePostCard";
+import DraggableSchedulerPostCard from "./DraggableSchedulerPostCard";
 
 interface ScheduleCalendarProps {
   posts: PostWithAssets[];
@@ -103,13 +103,13 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
                   <DroppableSlot id={morningSlotId} disabled={isPast}>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Morning</p>
                     {morningPosts.map((post) => (
-                      <DraggablePostCard key={post.id} post={post} />
+                      <DraggableSchedulerPostCard key={post.id} post={post} />
                     ))}
                   </DroppableSlot>
                   <DroppableSlot id={eveningSlotId} disabled={isPast}>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Evening</p>
                     {eveningPosts.map((post) => (
-                      <DraggablePostCard key={post.id} post={post} />
+                      <DraggableSchedulerPostCard key={post.id} post={post} />
                     ))}
                   </DroppableSlot>
                 </div>

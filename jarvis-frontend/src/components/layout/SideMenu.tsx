@@ -51,26 +51,34 @@ const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
         </Button>
       </div>
       <nav className="flex flex-col space-y-2 mt-4">
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/home" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
-            {isCollapsed ? "🏠" : "Home"}
-          </NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/drafts" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
-            {isCollapsed ? "✍️" : "Drafts"}
-          </NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/schedule" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
-            {isCollapsed ? "🗓️" : "Scheduler"}
-          </NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/overview" className={({ isActive }) => (isActive ? "bg-secondary" : "")}>
-            {isCollapsed ? "📊" : "Post Overview"}
-          </NavLink>
-        </Button>
+        <NavLink to="/home">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "🏠" : "Home"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/drafts">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "✍️" : "Drafts"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/schedule">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "🗓️" : "Scheduler"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/overview">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "📊" : "Post Overview"}
+            </Button>
+          )}
+        </NavLink>
       </nav>
       <div className="mt-auto space-y-2 border-t pt-4">
         <ModeToggle />

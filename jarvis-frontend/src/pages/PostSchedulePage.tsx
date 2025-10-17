@@ -1,6 +1,6 @@
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { useEffect, useState } from "react";
-import DraftsList from "@/features/scheduling/components/DraftsList";
+import SchedulerPostList from "@/features/scheduling/components/SchedulerPostList";
 import ScheduleCalendar from "@/features/scheduling/components/ScheduleCalendar";
 import { useScheduleStore } from "@/store/useScheduleStore";
 import { useSchedulePost } from "@/features/posts/hooks/useSchedulePost";
@@ -87,7 +87,7 @@ const PostSchedulePage = () => {
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Post Scheduler</h1>
-        <DraftsList posts={draftPosts} isLoading={isLoading} />
+        <SchedulerPostList posts={draftPosts} isLoading={isLoading} />
         <div className="overflow-x-auto">
           <ScheduleCalendar posts={scheduledPosts} isLoading={isLoading} />
         </div>

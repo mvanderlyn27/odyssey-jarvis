@@ -11,6 +11,7 @@ interface SignedUrlImageProps {
   size?: "small" | "medium" | "large";
   className?: string;
   preferFullSize?: boolean;
+  priority?: boolean;
 }
 
 export const SignedUrlImage = ({
@@ -21,6 +22,7 @@ export const SignedUrlImage = ({
   size = "medium",
   className,
   preferFullSize = false,
+  priority = false,
 }: SignedUrlImageProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export const SignedUrlImage = ({
           onLoad={handleImageLoad}
           className={cn("object-cover w-full h-full", { "opacity-0": !imageLoaded })}
           alt="Signed content"
+          loading={priority ? "eager" : "lazy"}
         />
       )}
       {!imageLoaded && blurhash && (

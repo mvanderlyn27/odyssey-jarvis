@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 import AccountSelector from "@/components/tiktok/AccountSelector";
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import PostOverviewList from "@/features/posts/components/PostOverviewList";
@@ -109,45 +110,41 @@ const PostOverviewPage = () => {
           )}
           <div className="flex justify-between items-end">
             <AccountSelector selectedAccounts={selectedAccounts} onSelectionChange={handleSelectionChange} />
-            <div className="flex flex-col md:flex-row gap-2">
-              <DatePickerWithRange date={dateRange} setDate={setDateRange} />
-              <Select value={sortOption} onValueChange={setSortOption}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="scheduled_at-desc">Newest</SelectItem>
-                  <SelectItem value="scheduled_at-asc">Oldest</SelectItem>
-                  <SelectItem value="views-desc">Views (High to Low)</SelectItem>
-                  <SelectItem value="views-asc">Views (Low to High)</SelectItem>
-                  <SelectItem value="likes-desc">Likes (High to Low)</SelectItem>
-                  <SelectItem value="likes-asc">Likes (Low to High)</SelectItem>
-                </SelectContent>
-              </Select>
-              <RefreshButton isRefreshing={isFetching} onClick={() => refetch()} />
-            </div>
-          </div>
-          <Separator />
-          <div>
-            <Accordion type="single" collapsible className="w-full" defaultValue="published-posts">
-              <AccordionItem value="published-posts">
-                <AccordionTrigger>Published Posts ({posts?.length || 0})</AccordionTrigger>
-                <AccordionContent>
-                  {isLoadingPosts ? <div>Loading posts...</div> : <PostOverviewList posts={posts || []} />}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-            <Accordion type="single" collapsible className="w-full mt-4">
-              <AccordionItem value="failed-posts">
-                <AccordionTrigger>Failed Posts ({failedPosts?.length || 0})</AccordionTrigger>
-                <AccordionContent>
-                  {isLoadingPosts ? <div>Loading failed posts...</div> : <PostOverviewList posts={failedPosts || []} />}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
           </div>
         </CardContent>
       </Card>
+      <Tabs defaultValue="published">
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="published">Published ({posts?.length || 0})</TabsTrigger>
+            <TabsTrigger value="failed">Failed ({failedPosts?.length || 0})</TabsTrigger>
+          </TabsList>
+          <div className="flex flex-col md:flex-row gap-2">
+            <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+            <Select value={sortOption} onValueChange={setSortOption}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="scheduled_at-desc">Newest</SelectItem>
+                <SelectItem value="scheduled_at-asc">Oldest</SelectItem>
+                <SelectItem value="views-desc">Views (High to Low)</SelectItem>
+                <SelectItem value="views-asc">Views (Low to High)</SelectItem>
+                <SelectItem value="likes-desc">Likes (High to Low)</SelectItem>
+                <SelectItem value="likes-asc">Likes (Low to High)</SelectItem>
+              </SelectContent>
+            </Select>
+            <RefreshButton isRefreshing={isFetching} onClick={() => refetch()} />
+          </div>
+        </div>
+        <Separator className="my-4" />
+        <TabsContent value="published">
+          {isLoadingPosts ? <div>Loading posts...</div> : <PostOverviewList posts={posts || []} />}
+        </TabsContent>
+        <TabsContent value="failed">
+          {isLoadingPosts ? <div>Loading failed posts...</div> : <PostOverviewList posts={failedPosts || []} />}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

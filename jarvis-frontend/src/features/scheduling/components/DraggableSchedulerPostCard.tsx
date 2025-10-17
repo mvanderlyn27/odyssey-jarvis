@@ -3,7 +3,7 @@ import PostCard, { PostWithAssets } from "./PostCard";
 import { CSS } from "@dnd-kit/utilities";
 import React from "react";
 
-const DraggablePostCard = ({ post }: { post: PostWithAssets }) => {
+const DraggableSchedulerPostCard = ({ post }: { post: PostWithAssets }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: post.id,
     data: { post },
@@ -18,4 +18,4 @@ const DraggablePostCard = ({ post }: { post: PostWithAssets }) => {
   return <PostCard ref={setNodeRef} post={post} style={style} listeners={listeners} attributes={attributes} />;
 };
 
-export default DraggablePostCard;
+export default DraggableSchedulerPostCard;

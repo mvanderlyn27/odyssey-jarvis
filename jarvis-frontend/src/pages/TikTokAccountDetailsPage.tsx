@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTikTokAccounts } from "../features/tiktok/hooks/useTikTokAccounts";
@@ -20,7 +20,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AccountAnalyticsKPIs } from "../features/tiktok/components/AccountAnalyticsKPIs";
 import AccountAnalyticsGraph from "../features/analytics/components/AccountAnalyticsGraph";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings } from "lucide-react";
@@ -130,7 +129,7 @@ const TikTokAccountDetailsPage = () => {
   }
 
   return (
-    <div className="p-4 space-y-8">
+    <div className="p-6 space-y-8">
       <PageHeader title={account.tiktok_display_name || ""}></PageHeader>
 
       <div className="max-w-[80vw] mx-auto space-y-8">

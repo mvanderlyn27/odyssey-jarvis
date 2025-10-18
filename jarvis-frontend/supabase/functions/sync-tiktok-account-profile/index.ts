@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 import { corsHeaders } from "../_shared/cors.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -10,6 +11,13 @@ serve(async (req) => {
   }
 
   try {
+    const { error: authError } = await authenticateRequest(req);
+    if (authError) {
+      return new Response(JSON.stringify({ error: authError.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const { accountId } = await req.json();
     if (!accountId) {
       throw new Error("Missing accountId");

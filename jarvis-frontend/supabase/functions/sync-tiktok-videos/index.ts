@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const TIKTOK_API_BASE = "https://open.tiktokapis.com/v2";
 
@@ -30,6 +31,13 @@ serve(async (req: Request) => {
   }
 
   try {
+    const { error: authError } = await authenticateRequest(req);
+    if (authError) {
+      return new Response(JSON.stringify({ error: authError.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const body = await req.json();
     const { account_id } = body;
     console.log("Request body:", body);

@@ -1,7 +1,7 @@
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import { PostWithAssets } from "@/features/posts/types";
 import DraggableSchedulerPostCard from "./DraggableSchedulerPostCard";
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 

@@ -1,5 +1,4 @@
 import { usePosts } from "@/features/posts/hooks/usePosts";
-import { Button } from "@/components/ui/button";
 import PostList from "@/features/posts/components/PostList";
 import { useEditPostStore } from "@/store/useEditPostStore";
 import NewPostCard from "@/features/posts/components/NewPostCard";
@@ -36,7 +35,7 @@ export const DraftsPage = () => {
   const filteredPosts = (posts || []).filter((p) => p.id !== postInEdit?.id);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
+    <div className="p-6">
       <PageHeader>
         <RefreshButton onClick={() => refetch()} isRefreshing={isLoading} />
       </PageHeader>

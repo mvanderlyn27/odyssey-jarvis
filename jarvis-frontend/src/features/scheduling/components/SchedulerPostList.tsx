@@ -35,17 +35,17 @@ interface SchedulerPostListProps {
   onSort: (posts: PostWithAssets[]) => void;
 }
 
-const SchedulerPostList = ({ posts, isLoading, onSort }: SchedulerPostListProps) => {
+const SchedulerPostList = ({ posts, isLoading }: SchedulerPostListProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: "drafts-list" });
 
   if (isLoading) return <div>Loading drafts...</div>;
 
   return (
-    <div className="p-4 border rounded-lg  bg-card">
+    <div className="p-6 border rounded-lg bg-card">
       <h2 className="font-semibold mb-2">Drafts</h2>
       <div
         ref={setNodeRef}
-        className={`overflow-x-auto pb-4 rounded-md p-2 transition-colors ${
+        className={`overflow-x-auto p-4 rounded-md  transition-colors ${
           isOver ? "bg-slate-200 dark:bg-gray-700" : "bg-slate-100 dark:bg-gray-900"
         }`}
         style={{

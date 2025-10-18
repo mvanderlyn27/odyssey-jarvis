@@ -44,7 +44,7 @@ const TikTokAccountsPage = () => {
   }, [accounts, analytics, sortOrder]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-6">
       <h1 className="text-2xl font-bold">TikTok Account Management</h1>
       <div className="flex justify-between items-center">
         <TikTokAccountManager />

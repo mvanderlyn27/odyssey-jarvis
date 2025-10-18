@@ -69,7 +69,7 @@ const EditPost = ({ postId }: { postId: string }) => {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
+    <div className="p-6">
       <PageHeader onBackClick={handleBack} status={post.status || undefined}>
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
         <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>
@@ -128,7 +128,7 @@ const NewPost = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
+    <div className="p-6">
       <PageHeader title={post.title || "New Draft"} onBackClick={handleBack}>
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
         <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>

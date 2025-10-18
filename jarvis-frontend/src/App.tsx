@@ -29,7 +29,7 @@ const MainLayout = () => {
       <SideMenu isCollapsed={isSidebarCollapsed} onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
       <div className="flex-1 flex flex-col">
         <Header />
-        <main className="flex-1 p-6 overflow-y-auto" ref={scrollContainerRef}>
+        <main className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
           <ScrollContext.Provider value={scrollContainerRef}>
             <Outlet />
           </ScrollContext.Provider>

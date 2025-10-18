@@ -66,7 +66,7 @@ const TikTokAnalyticsPage = () => {
   }, [accounts, setSelectedAccounts, selectedAccounts.length]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <h1 className="text-2xl font-bold">TikTok Analytics</h1>
       <AccountSelector selectedAccounts={selectedAccounts} onSelectionChange={setSelectedAccounts} />
 

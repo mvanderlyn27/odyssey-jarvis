@@ -92,14 +92,14 @@ const PostSchedulePage = () => {
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="space-y-6">
-        <div className="sticky top-0 z-50 bg-white dark:bg-gray-950 py-4">
-          <SchedulerPostList posts={draftPosts} isLoading={isLoading} onSort={setDraftPosts} />
-        </div>
-        <div className="overflow-x-auto">
-          <ScheduleCalendar posts={scheduledPosts} isLoading={isLoading} />
-        </div>
+      {/* <div className="bg-card rounded-lg"> */}
+      <div className="sticky top-0 z-50 p-4  bg-card">
+        <SchedulerPostList posts={draftPosts} isLoading={isLoading} onSort={setDraftPosts} />
       </div>
+      <div className="overflow-x-auto p-4">
+        <ScheduleCalendar posts={scheduledPosts} isLoading={isLoading} />
+      </div>
+      {/* </div> */}
       <DragOverlay>{activePost ? <DraggableSchedulerPostCard post={activePost} /> : null}</DragOverlay>
     </DndContext>
   );

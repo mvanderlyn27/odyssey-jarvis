@@ -2,17 +2,30 @@
 
 This directory contains the Edge Functions for the Jarvis project.
 
-## JWT Verification Status
+## Authentication Strategy
 
-For security, JWT verification is enabled by default on all Edge Functions. However, some functions that are invoked from trusted server-side environments (like `pg_cron` or webhooks from trusted sources) may have JWT verification disabled.
+All Edge Functions in this project are secured using a dual-authentication strategy that supports both client-side and server-to-server communication. This is implemented in the `_shared/auth.ts` module.
 
-| Function Name                  | JWT Verification | Notes                                                                              |
-| ------------------------------ | ---------------- | ---------------------------------------------------------------------------------- |
-| `tiktok-webhook`               | **Disabled**     | Invoked by TikTok's webhook service. Verification is handled within the function.  |
-| `sync-tiktok-account-stats`    | **Disabled**     | Invoked by `sync-all-tiktok-account-stats`. Authenticated via `apiKey` header.     |
-| ... (other functions)          | Enabled          |                                                                                    |
+When a request is received, the function will first check for a valid Supabase JWT. If a valid JWT is present, the request is approved. This is the standard method for authenticating requests from a client application.
 
-To deploy a function with JWT verification disabled, use the `--no-verify-jwt` flag with the Supabase CLI:
+If a JWT is not present or is invalid, the function will then check for a secret key in the `X-Internal-Secret` header. This key is used to authenticate requests from other trusted server-side environments, such as another Edge Function or a cron job.
+
+The `tiktok-webhook` function is the only exception. It is publicly accessible to receive webhooks from TikTok, and it performs its own signature verification to ensure the request is legitimate.
+
+## Deployment
+
+All functions (except `tiktok-webhook`) should be deployed with the `--no-verify-jwt` flag, as the JWT verification is handled manually within each function.
 
 ```bash
 supabase functions deploy your-function-name --no-verify-jwt
+```
+
+## Environment Variables
+
+To enable the internal authentication mechanism, you must set the `INTERNAL_SECRET_KEY` environment variable. This can be done by creating a `.env` file in this directory for local development, or by setting it directly in your Supabase project's settings for production.
+
+**Example `.env` file:**
+
+```
+INTERNAL_SECRET_KEY="your-super-secret-key"
+```

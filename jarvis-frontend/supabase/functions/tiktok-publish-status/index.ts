@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import { corsHeaders } from "../_shared/cors.ts";
 import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const TIKTOK_STATUS_API_URL = "https://open.tiktokapis.com/v2/post/publish/status/fetch/";
 
@@ -15,6 +16,13 @@ serve(async (req) => {
   }
 
   try {
+    const { error: authError } = await authenticateRequest(req);
+    if (authError) {
+      return new Response(JSON.stringify({ error: authError.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const { published_post_id } = await req.json();
 
     if (!published_post_id) {

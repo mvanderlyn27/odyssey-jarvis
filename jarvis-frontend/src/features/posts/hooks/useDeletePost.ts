@@ -3,7 +3,6 @@ import { deletePost as deletePostApi } from "../api";
 import { queries } from "@/lib/queries";
 import { toast } from "sonner";
 import { useEditPostStore } from "@/store/useEditPostStore";
-import { PostWithAssets } from "../types";
 
 export const useDeletePost = (onSuccessCallback?: () => void) => {
   const queryClient = useQueryClient();

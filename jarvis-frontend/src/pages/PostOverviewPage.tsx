@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AccountSelector from "@/components/tiktok/AccountSelector";
 import { useFetchVideoAnalytics } from "@/features/analytics/hooks/useFetchVideoAnalytics";
@@ -13,7 +12,6 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import OverviewCalendar from "@/features/overview/components/OverviewCalendar";
 import { Separator } from "@/components/ui/separator";
-import { queries } from "@/lib/queries";
 import { getLatestAnalytics } from "@/features/posts/utils/getLatestAnalytics";
 
 const PostOverviewPage = () => {
@@ -109,7 +107,7 @@ const PostOverviewPage = () => {
   }, [filteredPosts]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6">
       <OverviewCalendar posts={posts} />
       <Card>
         <CardHeader>

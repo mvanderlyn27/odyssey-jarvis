@@ -69,7 +69,7 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
   }
 
   return (
-    <div>
+    <div className="p-6">
       <div className="w-full">
         <PageHeader title="" status={post.status}>
           <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />

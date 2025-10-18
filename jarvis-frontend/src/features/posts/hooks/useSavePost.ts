@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { savePostChanges } from "../api";
 import { useEditPostStore } from "@/store/useEditPostStore";
 import { supabase } from "@/lib/supabase/jarvisClient"; // Import supabase client
-import { DraftPost, PostWithAssets } from "../types";
+import { DraftPost } from "../types";
 
 const resizeImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {

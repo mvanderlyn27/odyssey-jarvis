@@ -43,6 +43,7 @@ const PostPublisher = () => {
       accountId,
       title: post.title,
       description: post.description || "",
+      scheduled_at: new Date().toISOString(),
     });
   };
 

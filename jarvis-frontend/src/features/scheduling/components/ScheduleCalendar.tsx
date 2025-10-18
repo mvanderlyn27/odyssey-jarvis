@@ -147,75 +147,81 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
 
   return (
     <SortableContext items={posts.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-      <Card className="min-w-[1500px] overflow-x-auto">
-        <CardHeader className="flex flex-row items-center">
-          <CardTitle>Post Schedule</CardTitle>
-          <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)} className="ml-2">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-[150px_repeat(7,1fr)] gap-4">
-            <div className="font-semibold text-center">Accounts</div>
-            {weekDays.map((day) => (
-              <div key={day.toISOString()} className="font-semibold text-center">
-                <div>{days[day.getDay() === 0 ? 6 : day.getDay() - 1]}</div>
-                <div className="text-xs text-muted-foreground">{day.toLocaleDateString()}</div>
+      <Card className="overflow-x-auto">
+        <div className="min-w-[1500px]">
+          <CardHeader className="flex flex-row items-center">
+            <CardTitle>Post Schedule</CardTitle>
+            <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)} className="ml-2">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-[150px_repeat(7,1fr)] gap-4">
+              <div className="font-semibold text-center">Accounts</div>
+              {weekDays.map((day) => (
+                <div key={day.toISOString()} className="font-semibold text-center">
+                  <div>{days[day.getDay() === 0 ? 6 : day.getDay() - 1]}</div>
+                  <div className="text-xs text-muted-foreground">{day.toLocaleDateString()}</div>
+                </div>
+              ))}
+            </div>
+            {accounts?.map((account, index) => (
+              <div key={account.id}>
+                {index > 0 && <hr className="col-span-8 my-4 border-t-2" />}
+                <div className="grid grid-cols-[150px_repeat(7,1fr)] gap-4 mt-2 items-center">
+                  <Link
+                    to={`/tiktok/${account.id}`}
+                    className="flex flex-col items-center space-y-1 transition-transform duration-200 hover:scale-110">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={account.tiktok_avatar_url ?? undefined} />
+                      <AvatarFallback>{account.tiktok_display_name?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="font-semibold text-xs truncate w-full text-center">
+                      {account.tiktok_display_name}
+                    </div>
+                  </Link>
+                  {weekDays.map((day) => {
+                    const dayAbbr = days[day.getDay() === 0 ? 6 : day.getDay() - 1];
+                    const { morning: morningTime, evening: eveningTime } = daySettings[dayAbbr];
+
+                    const now = new Date();
+                    const morningDateTime = new Date(day);
+                    const [morningHour, morningMinute] = morningTime.split(":").map(Number);
+                    morningDateTime.setHours(morningHour, morningMinute, 0, 0);
+
+                    const eveningDateTime = new Date(day);
+                    const [eveningHour, eveningMinute] = eveningTime.split(":").map(Number);
+                    eveningDateTime.setHours(eveningHour, eveningMinute, 0, 0);
+
+                    const isMorningPast = morningDateTime < now;
+                    const isEveningPast = eveningDateTime < now;
+
+                    const formattedDate = day.toISOString().split("T")[0];
+                    const morningSlotId = `${account.id}-${formattedDate}-morning`;
+                    const eveningSlotId = `${account.id}-${formattedDate}-evening`;
+                    const morningPosts = postsBySlot.get(morningSlotId) || [];
+                    const eveningPosts = postsBySlot.get(eveningSlotId) || [];
+
+                    return (
+                      <div key={day.toISOString()} className="flex space-x-2">
+                        <DroppableSlot id={morningSlotId} disabled={isMorningPast} time={morningTime} period="Morning">
+                          {morningPosts.map((post) => (
+                            <SortablePostCard key={post.id} post={post} isDraggable={!isMorningPast} />
+                          ))}
+                        </DroppableSlot>
+                        <DroppableSlot id={eveningSlotId} disabled={isEveningPast} time={eveningTime} period="Evening">
+                          {eveningPosts.map((post) => (
+                            <SortablePostCard key={post.id} post={post} isDraggable={!isEveningPast} />
+                          ))}
+                        </DroppableSlot>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ))}
-          </div>
-          {accounts?.map((account, index) => (
-            <div key={account.id}>
-              {index > 0 && <hr className="col-span-8 my-4 border-t-2" />}
-              <div className="grid grid-cols-[150px_repeat(7,1fr)] gap-4 mt-2 items-center">
-                <Link to={`/tiktok/${account.id}`} className="flex flex-col items-center space-y-1">
-                  <Avatar className="h-12 w-12 transition-transform duration-200 hover:scale-110">
-                    <AvatarImage src={account.tiktok_avatar_url ?? undefined} />
-                    <AvatarFallback>{account.tiktok_display_name?.[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="font-semibold text-xs truncate w-full text-center">{account.tiktok_display_name}</div>
-                </Link>
-                {weekDays.map((day) => {
-                  const dayAbbr = days[day.getDay() === 0 ? 6 : day.getDay() - 1];
-                  const { morning: morningTime, evening: eveningTime } = daySettings[dayAbbr];
-
-                  const now = new Date();
-                  const morningDateTime = new Date(day);
-                  const [morningHour, morningMinute] = morningTime.split(":").map(Number);
-                  morningDateTime.setHours(morningHour, morningMinute, 0, 0);
-
-                  const eveningDateTime = new Date(day);
-                  const [eveningHour, eveningMinute] = eveningTime.split(":").map(Number);
-                  eveningDateTime.setHours(eveningHour, eveningMinute, 0, 0);
-
-                  const isMorningPast = morningDateTime < now;
-                  const isEveningPast = eveningDateTime < now;
-
-                  const formattedDate = day.toISOString().split("T")[0];
-                  const morningSlotId = `${account.id}-${formattedDate}-morning`;
-                  const eveningSlotId = `${account.id}-${formattedDate}-evening`;
-                  const morningPosts = postsBySlot.get(morningSlotId) || [];
-                  const eveningPosts = postsBySlot.get(eveningSlotId) || [];
-
-                  return (
-                    <div key={day.toISOString()} className="flex space-x-2">
-                      <DroppableSlot id={morningSlotId} disabled={isMorningPast} time={morningTime} period="Morning">
-                        {morningPosts.map((post) => (
-                          <SortablePostCard key={post.id} post={post} isDraggable={!isMorningPast} />
-                        ))}
-                      </DroppableSlot>
-                      <DroppableSlot id={eveningSlotId} disabled={isEveningPast} time={eveningTime} period="Evening">
-                        {eveningPosts.map((post) => (
-                          <SortablePostCard key={post.id} post={post} isDraggable={!isEveningPast} />
-                        ))}
-                      </DroppableSlot>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </CardContent>
+          </CardContent>
+        </div>
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>

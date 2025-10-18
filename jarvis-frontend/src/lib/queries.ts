@@ -22,6 +22,7 @@ export const queries = createQueryKeyStore({
   tiktokAccountAnalytics: {
     all: () => ["tiktokAccountAnalytics"],
     detail: (accountId: string | undefined) => ["tiktokAccountAnalytics", "detail", accountId],
+    history: (accountId: string | undefined) => ["tiktokAccountAnalytics", "history", accountId],
   },
   tiktokPosts: {
     all: (accountId: string) => ["tiktokPosts", accountId],

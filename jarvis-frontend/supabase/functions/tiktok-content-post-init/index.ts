@@ -29,7 +29,7 @@ serve(async (req) => {
     const bodyPayload = await req.json();
     console.log("Received request body:", JSON.stringify(bodyPayload, null, 2));
 
-    const { accessToken, refreshToken, mediaUrls, accountId, title, description } = bodyPayload;
+    const { accessToken, refreshToken, mediaUrls, accountId, title, description, scheduled_at } = bodyPayload;
     postId = bodyPayload.postId;
 
     if (!accessToken || !refreshToken || !mediaUrls || !accountId || !postId) {
@@ -46,13 +46,20 @@ serve(async (req) => {
       });
     }
 
-    const { error: updateError } = await supabaseAdmin
-      .from("posts")
-      .update({
-        status: "PROCESSING",
-        tiktok_account_id: accountId,
-      })
-      .eq("id", postId);
+    const updatePayload: {
+      status: string;
+      tiktok_account_id: string;
+      scheduled_at?: string;
+    } = {
+      status: "PROCESSING",
+      tiktok_account_id: accountId,
+    };
+
+    if (scheduled_at) {
+      updatePayload.scheduled_at = scheduled_at;
+    }
+
+    const { error: updateError } = await supabaseAdmin.from("posts").update(updatePayload).eq("id", postId);
 
     if (updateError) {
       console.error("Error updating post to processing:", updateError);

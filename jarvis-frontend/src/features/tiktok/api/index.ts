@@ -69,10 +69,11 @@ export const initiateTikTokPost = async (
   mediaUrls: { video_url?: string; image_urls?: string[] },
   title: string,
   description: string,
-  postId: string
+  postId: string,
+  scheduled_at?: string
 ) => {
   const { data, error } = await supabase.functions.invoke("tiktok-content-post-init", {
-    body: { accessToken, refreshToken, mediaUrls, accountId, title, description, postId },
+    body: { accessToken, refreshToken, mediaUrls, accountId, title, description, postId, scheduled_at },
   });
 
   if (error) {

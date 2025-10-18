@@ -33,8 +33,14 @@ export const fetchWithRetry = async (url: string, options: any, refreshToken?: s
       throw new Error("Failed to refresh token.");
     }
 
-    options.headers.Authorization = `Bearer ${refreshedTokenData.access_token}`;
-    response = await fetch(url, options);
+    const newOptions = {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${refreshedTokenData.access_token}`,
+      },
+    };
+    response = await fetch(url, newOptions);
   }
 
   return response;

@@ -11,6 +11,7 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let accountId: string | null = null;
   try {
     const { error: authError } = await authenticateRequest(req);
     if (authError) {
@@ -19,12 +20,11 @@ serve(async (req) => {
         status: 401,
       });
     }
-    const { accountId } = await req.json();
+    const body = await req.json();
+    accountId = body.accountId;
     if (!accountId) {
       throw new Error("Missing accountId");
     }
-    // Add accountId to headers for logging in catch block
-    req.headers.set("X-Account-Id", accountId);
 
     const { data: account, error: accountError } = await supabase
       .from("tiktok_accounts")
@@ -155,7 +155,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    const accountId = req.headers.get("X-Account-Id");
     console.error("Error in sync-tiktok-account-stats for accountId:", accountId);
     console.error("Error details:", error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {

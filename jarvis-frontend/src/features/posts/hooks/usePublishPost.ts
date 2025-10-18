@@ -20,11 +20,13 @@ export const usePublishPost = (onSuccess?: () => void) => {
       accountId,
       title,
       description,
+      scheduled_at,
     }: {
       post: any;
       accountId: string;
       title: string;
       description: string;
+      scheduled_at?: string;
     }) => {
       const selectedAccount = tikTokAccounts?.find((acc) => acc.id === accountId);
       if (!selectedAccount) throw new Error("Selected TikTok account not found.");
@@ -52,7 +54,8 @@ export const usePublishPost = (onSuccess?: () => void) => {
         mediaUrls,
         title,
         description,
-        post.id
+        post.id,
+        scheduled_at
       );
 
       const { error } = await supabase.from("posts").update({ status: "PROCESSING" }).eq("id", post.id);

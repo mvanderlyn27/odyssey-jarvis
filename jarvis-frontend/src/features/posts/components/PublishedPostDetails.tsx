@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { RefreshButton } from "@/components/RefreshButton";
 import { useDeletePost } from "../hooks/useDeletePost";
 import { useClonePost } from "../hooks/useClonePost";
-import PostAssets from "./PostAssets";
+import PostDetailAssetList from "./PostDetailAssetList";
 import AnalyticsGraph from "@/features/analytics/components/AnalyticsGraph";
 
 const PublishedPostDetails = ({ postId }: { postId: string }) => {
@@ -78,7 +78,7 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
         </Button>
       </PageHeader>
       <div className="w-full">
-        <PostAssets post={post} viewOnly />
+        <PostDetailAssetList post={post} viewOnly />
       </div>
       <div className="my-4">
         <Card>

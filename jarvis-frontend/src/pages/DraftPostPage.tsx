@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useSavePost } from "@/features/posts/hooks/useSavePost";
 import { useDeletePost } from "@/features/posts/hooks/useDeletePost";
 import { useClonePost } from "@/features/posts/hooks/useClonePost";
-import PostAssets from "@/features/posts/components/PostAssets";
+import PostDetailAssetList from "@/features/posts/components/PostDetailAssetList";
 import PostDetails from "@/features/posts/components/PostDetails";
 import PostPublisher from "@/features/posts/components/PostPublisher";
 
@@ -86,7 +86,7 @@ const EditPost = ({ postId }: { postId: string }) => {
           </>
         )}
       </PageHeader>
-      <PostAssets />
+      <PostDetailAssetList />
       <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
         <div className="lg:col-span-1 space-y-4">
           <PostDetails />
@@ -136,7 +136,7 @@ const NewPost = () => {
           Delete
         </Button>
       </PageHeader>
-      <PostAssets />
+      <PostDetailAssetList />
       <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
         <div className="lg:col-span-1 space-y-4">
           <PostDetails />

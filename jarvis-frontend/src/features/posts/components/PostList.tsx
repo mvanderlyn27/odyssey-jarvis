@@ -1,9 +1,10 @@
 import { Post, PostWithAssets } from "../types";
 import ConfigurablePostCard from "./ConfigurablePostCard";
 import { VirtuosoGrid } from "react-virtuoso";
-import { forwardRef, HTMLAttributes, useMemo } from "react";
+import { forwardRef, HTMLAttributes, useMemo, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEditPostStore } from "@/store/useEditPostStore";
+import { ScrollContext } from "../../../contexts/ScrollContext";
 
 interface PostListProps {
   posts: Post[];
@@ -23,6 +24,7 @@ const List = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>((props, 
 const PostList = ({ posts, variant, startItems = [] }: PostListProps) => {
   const navigate = useNavigate();
   const { post: postInEdit, setPost, isDirty } = useEditPostStore();
+  const scrollContainerRef = useContext(ScrollContext);
 
   const handlePostClick = (post: Post) => {
     if (variant === "draft") {
@@ -44,7 +46,7 @@ const PostList = ({ posts, variant, startItems = [] }: PostListProps) => {
   return (
     <VirtuosoGrid
       data={items}
-      useWindowScroll
+      customScrollParent={scrollContainerRef?.current || undefined}
       overscan={200}
       itemContent={(index, item) => {
         if (index < startItems.length) {

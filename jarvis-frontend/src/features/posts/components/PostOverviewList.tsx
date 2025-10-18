@@ -1,7 +1,8 @@
 import { Post } from "../types";
 import PostOverviewPostCard from "./PostOverviewPostCard";
 import { VirtuosoGrid } from "react-virtuoso";
-import { forwardRef, HTMLAttributes } from "react";
+import { forwardRef, HTMLAttributes, useContext } from "react";
+import { ScrollContext } from "../../../contexts/ScrollContext";
 
 interface PostOverviewListProps {
   posts: Post[];
@@ -17,10 +18,12 @@ const List = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>((props, 
 });
 
 const PostOverviewList = ({ posts }: PostOverviewListProps) => {
+  const scrollContainerRef = useContext(ScrollContext);
+
   return (
     <VirtuosoGrid
       data={posts}
-      useWindowScroll
+      customScrollParent={scrollContainerRef?.current || undefined}
       overscan={200}
       itemContent={(index, post) => (
         <PostOverviewPostCard key={post.id} post={post} priority={index < 8} index={index} />

@@ -15,20 +15,24 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "./components/theme-provider";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import DraftPostPage from "./pages/DraftPostPage";
 import PostOverviewPage from "./pages/PostOverviewPage";
+import { ScrollContext } from "./contexts/ScrollContext";
 
 const MainLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const scrollContainerRef = useRef<HTMLElement>(null);
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <SideMenu isCollapsed={isSidebarCollapsed} onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
       <div className="flex-1 flex flex-col">
         <Header />
-        <main className="flex-1 p-6">
-          <Outlet />
+        <main className="flex-1 p-6 overflow-y-auto" ref={scrollContainerRef}>
+          <ScrollContext.Provider value={scrollContainerRef}>
+            <Outlet />
+          </ScrollContext.Provider>
         </main>
       </div>
     </div>

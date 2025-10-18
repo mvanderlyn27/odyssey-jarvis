@@ -43,7 +43,7 @@ export const DraftsPage = () => {
 
       {isLoading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error.message}</p>}
-      <div className="space-y-8 max-w-[60vw] mx-auto">
+      <div className="space-y-8 ">
         <PostList posts={filteredPosts} startItems={startItems} variant="draft" />
       </div>
     </div>

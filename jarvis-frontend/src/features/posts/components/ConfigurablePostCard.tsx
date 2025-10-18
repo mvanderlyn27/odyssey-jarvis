@@ -149,7 +149,7 @@ const ConfigurablePostCard = ({
       transition={{ duration: 0.5 }}
       viewport={{ once: true }}
       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-      className="rounded-lg overflow-hidden cursor-pointer"
+      className="rounded-lg overflow-hidden cursor-pointer w-[450px]"
       onClick={() => onClick(post)}>
       <Card className="overflow-hidden flex flex-row w-full bg-neutral-300 dark:bg-neutral-800 text-white border-none rounded-lg">
         <div className="w-40 aspect-[9/16] bg-gray-700 flex-shrink-0">{renderThumbnail()}</div>

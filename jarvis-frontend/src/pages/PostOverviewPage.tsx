@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AccountSelector from "@/components/tiktok/AccountSelector";
+import { useFetchVideoAnalytics } from "@/features/analytics/hooks/useFetchVideoAnalytics";
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import PostOverviewList from "@/features/posts/components/PostOverviewList";
 import { TikTokAccount } from "@/features/tiktok/types";
@@ -11,15 +13,30 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import OverviewCalendar from "@/features/overview/components/OverviewCalendar";
 import { Separator } from "@/components/ui/separator";
+import { queries } from "@/lib/queries";
+import { getLatestAnalytics } from "@/features/posts/utils/getLatestAnalytics";
 
 const PostOverviewPage = () => {
   const [selectedAccounts, setSelectedAccounts] = useState<TikTokAccount[]>([]);
   const [sortOption, setSortOption] = useState("published_at-desc");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { data: allPosts, isLoading: isLoadingPosts, refetch, isFetching } = usePosts();
+  const { mutate: fetchAnalytics, isPending: isFetchingAnalytics } = useFetchVideoAnalytics();
 
   const handleSelectionChange = (accounts: TikTokAccount[]) => {
     setSelectedAccounts(accounts);
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    if (filteredPosts && filteredPosts.length > 0) {
+      selectedAccounts.forEach((account) => {
+        const postIds = filteredPosts.filter((p) => p.tiktok_account_id === account.id).map((p) => p.post_id);
+        if (postIds.length > 0) {
+          fetchAnalytics({ accountId: account.id, postIds });
+        }
+      });
+    }
   };
 
   const filteredPosts = useMemo(() => {
@@ -55,8 +72,8 @@ const PostOverviewPage = () => {
       let valA, valB;
 
       if (sortBy === "views" || sortBy === "likes") {
-        valA = a.post_analytics?.[0]?.[sortBy] || 0;
-        valB = b.post_analytics?.[0]?.[sortBy] || 0;
+        valA = getLatestAnalytics(a.post_analytics)?.[sortBy] || 0;
+        valB = getLatestAnalytics(b.post_analytics)?.[sortBy] || 0;
       } else if (sortBy === "published_at") {
         valA = a.published_at ? new Date(a.published_at).getTime() : 0;
         valB = b.published_at ? new Date(b.published_at).getTime() : 0;
@@ -78,7 +95,7 @@ const PostOverviewPage = () => {
     if (!filteredPosts) return { views: 0, likes: 0, comments: 0, shares: 0 };
     return filteredPosts.reduce(
       (acc, post) => {
-        const latestAnalytics = post.post_analytics?.[0];
+        const latestAnalytics = getLatestAnalytics(post.post_analytics);
         if (latestAnalytics) {
           acc.views += latestAnalytics.views || 0;
           acc.likes += latestAnalytics.likes || 0;
@@ -145,7 +162,7 @@ const PostOverviewPage = () => {
                 <SelectItem value="likes-asc">Likes (Low to High)</SelectItem>
               </SelectContent>
             </Select>
-            <RefreshButton isRefreshing={isFetching} onClick={() => refetch()} />
+            <RefreshButton isRefreshing={isFetching || isFetchingAnalytics} onClick={handleRefresh} />
           </div>
         </div>
         <Separator className="my-4" />

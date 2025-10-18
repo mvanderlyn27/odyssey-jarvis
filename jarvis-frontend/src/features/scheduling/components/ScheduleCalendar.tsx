@@ -169,7 +169,7 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
               {index > 0 && <hr className="col-span-8 my-4 border-t-2" />}
               <div className="grid grid-cols-[150px_repeat(7,1fr)] gap-4 mt-2 items-center">
                 <Link to={`/tiktok/${account.id}`} className="flex flex-col items-center space-y-1">
-                  <Avatar className="h-12 w-12">
+                  <Avatar className="h-12 w-12 transition-transform duration-200 hover:scale-110">
                     <AvatarImage src={account.tiktok_avatar_url ?? undefined} />
                     <AvatarFallback>{account.tiktok_display_name?.[0]}</AvatarFallback>
                   </Avatar>

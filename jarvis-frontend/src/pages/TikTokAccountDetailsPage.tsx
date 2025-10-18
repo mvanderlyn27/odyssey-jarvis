@@ -26,6 +26,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings } from "lucide-react";
 import { queries } from "@/lib/queries";
 import { Separator } from "@/components/ui/separator";
+import { getLatestAnalytics } from "../features/posts/utils/getLatestAnalytics";
+import { useTikTokAccountAnalytics } from "../features/tiktok/hooks/useTikTokAccountAnalytics";
 
 type SortOrder = "recency" | "views" | "likes" | "comments" | "shares";
 
@@ -38,21 +40,19 @@ const TikTokAccountDetailsPage = () => {
   const { mutate: syncVideos, isPending: isSyncing } = useSyncTikTokVideos();
   const { data: posts, isLoading, isError, error } = usePosts({ accountId: accountId, status: "PUBLISHED" });
   const { mutate: fetchAnalytics, isPending: isFetchingAnalytics } = useFetchVideoAnalytics();
+  const { data: accountAnalytics, isLoading: isLoadingAccountAnalytics } = useTikTokAccountAnalytics(accountId);
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("recency");
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (account?.id && posts && posts.length > 0) {
-      fetchAnalytics({ accountId: account.id, postIds: posts.map((p) => p.post_id) });
-    }
-  }, [posts, account, fetchAnalytics]);
-
   const handleRefresh = () => {
     if (account?.id) {
       queryClient.invalidateQueries({
-        queryKey: queries.posts.byStatus("PUBLISHED", [account.id]).queryKey,
+        queryKey: queries.tiktokAccountAnalytics.detail(account.id).queryKey,
       });
+      if (posts && posts.length > 0) {
+        fetchAnalytics({ accountId: account.id, postIds: posts.map((p) => p.post_id) });
+      }
     }
   };
 
@@ -61,18 +61,48 @@ const TikTokAccountDetailsPage = () => {
     const sorted = [...posts];
     switch (sortOrder) {
       case "views":
-        return sorted.sort((a, b) => (b.post_analytics?.[0]?.views || 0) - (a.post_analytics?.[0]?.views || 0));
+        return sorted.sort(
+          (a, b) =>
+            (getLatestAnalytics(b.post_analytics)?.views || 0) - (getLatestAnalytics(a.post_analytics)?.views || 0)
+        );
       case "likes":
-        return sorted.sort((a, b) => (b.post_analytics?.[0]?.likes || 0) - (a.post_analytics?.[0]?.likes || 0));
+        return sorted.sort(
+          (a, b) =>
+            (getLatestAnalytics(b.post_analytics)?.likes || 0) - (getLatestAnalytics(a.post_analytics)?.likes || 0)
+        );
       case "comments":
-        return sorted.sort((a, b) => (b.post_analytics?.[0]?.comments || 0) - (a.post_analytics?.[0]?.comments || 0));
+        return sorted.sort(
+          (a, b) =>
+            (getLatestAnalytics(b.post_analytics)?.comments || 0) -
+            (getLatestAnalytics(a.post_analytics)?.comments || 0)
+        );
       case "shares":
-        return sorted.sort((a, b) => (b.post_analytics?.[0]?.shares || 0) - (a.post_analytics?.[0]?.shares || 0));
+        return sorted.sort(
+          (a, b) =>
+            (getLatestAnalytics(b.post_analytics)?.shares || 0) - (getLatestAnalytics(a.post_analytics)?.shares || 0)
+        );
       case "recency":
       default:
         return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
   }, [posts, sortOrder]);
+
+  const kpis = useMemo(() => {
+    if (!posts) return { views: 0, likes: 0, comments: 0, shares: 0 };
+    return posts.reduce(
+      (acc, post) => {
+        const latestAnalytics = getLatestAnalytics(post.post_analytics);
+        if (latestAnalytics) {
+          acc.views += latestAnalytics.views || 0;
+          acc.likes += latestAnalytics.likes || 0;
+          acc.comments += latestAnalytics.comments || 0;
+          acc.shares += latestAnalytics.shares || 0;
+        }
+        return acc;
+      },
+      { views: 0, likes: 0, comments: 0, shares: 0 }
+    );
+  }, [posts]);
 
   if (isLoading || isLoadingAccounts) {
     return (
@@ -128,7 +158,24 @@ const TikTokAccountDetailsPage = () => {
                 </div>
               </div>
               <div className="my-6 border-t border-border" />
-              <AccountAnalyticsKPIs accountId={accountId} />
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <p className="text-sm text-muted-foreground">Followers</p>
+                  <p className="text-2xl font-bold">{accountAnalytics?.follower_count?.toLocaleString() ?? "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Likes</p>
+                  <p className="text-2xl font-bold">{accountAnalytics?.likes_count?.toLocaleString() ?? "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Videos</p>
+                  <p className="text-2xl font-bold">{accountAnalytics?.video_count?.toLocaleString() ?? "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Following</p>
+                  <p className="text-2xl font-bold">{accountAnalytics?.following_count?.toLocaleString() ?? "N/A"}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -138,6 +185,32 @@ const TikTokAccountDetailsPage = () => {
             <CardContent>{accountId && <AccountAnalyticsGraph accountId={accountId} />}</CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Post Stats</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Views</h3>
+                <p>{kpis.views.toLocaleString()}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Likes</h3>
+                <p>{kpis.likes.toLocaleString()}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Comments</h3>
+                <p>{kpis.comments.toLocaleString()}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Shares</h3>
+                <p>{kpis.shares.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Video Section */}
         <div className="space-y-4">
@@ -151,7 +224,7 @@ const TikTokAccountDetailsPage = () => {
               </Button>
             </div>
             <div className="flex items-center gap-4">
-              <RefreshButton onClick={handleRefresh} isRefreshing={isFetchingAnalytics} />
+              <RefreshButton onClick={handleRefresh} isRefreshing={isFetchingAnalytics || isLoadingAccountAnalytics} />
               <Select onValueChange={(value) => setSortOrder(value as SortOrder)} defaultValue={sortOrder}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Sort by" />

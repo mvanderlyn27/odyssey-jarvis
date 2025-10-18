@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
 
 serve(async (_req: Request) => {
   try {
@@ -35,8 +36,15 @@ serve(async (_req: Request) => {
           .map((a) => a.asset_url),
       };
 
-      await supabaseAdmin.functions.invoke("tiktok-content-post-init", {
-        body: {
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/tiktok-content-post-init`;
+      const options = {
+        method: "POST",
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${account.access_token}`,
+        },
+        body: JSON.stringify({
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
           accountId: account.id,
@@ -44,8 +52,10 @@ serve(async (_req: Request) => {
           title: post.title,
           description: post.description,
           postId: post.id,
-        },
-      });
+        }),
+      };
+
+      await fetchWithRetry(url, options, account.refresh_token, `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`);
     }
 
     return new Response(JSON.stringify({ message: `Published ${posts.length} posts.` }), {

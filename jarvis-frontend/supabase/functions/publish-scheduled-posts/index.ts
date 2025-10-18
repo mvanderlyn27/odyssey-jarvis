@@ -83,14 +83,9 @@ serve(async (_req: Request) => {
       };
 
       try {
-        await fetchWithRetry(
-          url,
-          options,
-          account.refresh_token,
-          `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
-        );
+        await fetchWithRetry(url, options, account.refresh_token);
         console.log(`Successfully initiated content post for post ${post.id}`);
-      } catch (e) {
+      } catch (e: any) {
         console.error(`Failed to initiate content post for post ${post.id}:`, e);
         await supabaseAdmin.from("posts").update({ status: "FAILED", reason: e.message }).eq("id", post.id);
       }

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/jarvisClient";
-import { Asset, DraftAsset } from "@/store/useEditPostStore";
+import { Asset } from "../types";
 
 const getFileType = (fileType: string) => {
   if (fileType.startsWith("image/")) return "slides";
@@ -280,7 +280,7 @@ export const clonePost = async (postId: string, newFiles?: { file: File }[]) => 
 
   if (assetsToClone && assetsToClone.length > 0) {
     const newAssets = await Promise.all(
-      assetsToClone.map(async (asset: DraftAsset, index: number) => {
+      assetsToClone.map(async (asset: Asset, index: number) => {
         const fromPath = asset.asset_url;
         let toPath: string;
 

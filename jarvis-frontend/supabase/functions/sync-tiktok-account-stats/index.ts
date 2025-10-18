@@ -39,13 +39,18 @@ serve(async (req) => {
     const fields = ["follower_count", "following_count", "likes_count", "video_count"];
     const url = `https://open.tiktokapis.com/v2/user/info/?fields=${fields.join(",")}`;
 
+    const authorization = req.headers.get("Authorization") ?? req.headers.get("X-Internal-Secret");
+    if (!authorization) {
+      throw new Error("Missing authorization headers.");
+    }
+
     const response = await fetchWithRetry(
       url,
       {
         headers: { Authorization: `Bearer ${account.access_token}` },
       },
       account.refresh_token,
-      req.headers.get("Authorization")!
+      authorization
     );
 
     if (!response.ok) {

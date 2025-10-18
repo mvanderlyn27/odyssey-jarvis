@@ -32,7 +32,7 @@ interface PostAnalytic {
 
 const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
-async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
+async function fetchVideoStatsForAccount(account: Account, postIds: string[], authorization: string) {
   if (!postIds || postIds.length === 0) {
     console.log(`No posts to update for account ${account.id}.`);
     return;
@@ -57,12 +57,7 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
       body: JSON.stringify({ filters: { video_ids: batch } }),
     };
 
-    const response = await fetchWithRetry(
-      url.toString(),
-      options,
-      account.refresh_token,
-      `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
-    );
+    const response = await fetchWithRetry(url.toString(), options, account.refresh_token, authorization);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: "Failed to parse error JSON" }));
@@ -224,7 +219,12 @@ serve(async (req: Request) => {
       if (accountError) throw accountError;
       if (!account) throw new Error("TikTok account not found.");
 
-      await fetchVideoStatsForAccount(account, post_ids);
+      const authorization = req.headers.get("Authorization") ?? req.headers.get("X-Internal-Secret");
+      if (!authorization) {
+        throw new Error("Missing authorization headers.");
+      }
+
+      await fetchVideoStatsForAccount(account, post_ids, authorization);
 
       return new Response(JSON.stringify({ message: `Successfully processed stats for account ${account_id}.` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -279,7 +279,14 @@ serve(async (req: Request) => {
       console.log(`Processing ${accountPostIds.length} valid posts for account ${account.id}.`, {
         postIds: accountPostIds,
       });
-      await fetchVideoStatsForAccount(account, accountPostIds);
+
+      const authorization = req.headers.get("Authorization") ?? req.headers.get("X-Internal-Secret");
+      if (!authorization) {
+        console.error("Missing authorization headers for bulk processing. Skipping account:", account.id);
+        continue;
+      }
+
+      await fetchVideoStatsForAccount(account, accountPostIds, authorization);
     }
 
     return new Response(JSON.stringify({ message: "Successfully completed bulk analytics update." }), {

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "uuid";
-import { DraftPost, Asset, CroppedArea, PostWithAssets } from "@/features/posts/types";
+import { DraftPost, CroppedArea, PostWithAssets, Asset } from "@/features/posts/types";
 import { persist, PersistStorage } from "zustand/middleware";
 import { get, set, del } from "idb-keyval";
 

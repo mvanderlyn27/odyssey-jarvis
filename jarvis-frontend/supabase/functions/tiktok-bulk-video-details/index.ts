@@ -55,12 +55,35 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`TikTok Video Query API error for account ${account.id}, batch:`, errorData);
+      const errorData = await response.json().catch(() => ({ message: "Failed to parse error JSON" }));
+      console.error(
+        `TikTok Video Query API HTTP error for account ${account.id}, status: ${response.status}, batch:`,
+        errorData
+      );
+      return []; // Return empty on HTTP error
+    }
+
+    const responseData = await response.json();
+
+    // TikTok API can return 200 OK but still have an error in the body
+    if (responseData.error && responseData.error.code !== "ok") {
+      console.error(`TikTok Video Query API logical error for account ${account.id}, batch:`, responseData.error);
+      // Here we could handle specific errors, e.g., refresh token if expired
+      return []; // Return empty on logical error
+    }
+
+    const videos = responseData.data?.videos as TikTokVideoStat[];
+
+    // Validate the data before returning
+    if (!videos || !Array.isArray(videos)) {
+      console.warn(
+        `TikTok API returned unexpected data structure for account ${account.id}. Expected 'data.videos' array.`,
+        responseData
+      );
       return [];
     }
-    const { data } = await response.json();
-    return (data.videos as TikTokVideoStat[]) || [];
+
+    return videos;
   });
 
   const results = await Promise.all(fetchPromises);
@@ -111,13 +134,19 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
       const postCreationDate = new Date(post.created_at);
       const latest = latestAnalyticsMap.get(post.id);
 
+      // Failsafe: Ensure new analytic values are not less than the latest recorded ones.
+      const newLikes = latest ? Math.max(latest.likes, video.like_count || 0) : video.like_count || 0;
+      const newComments = latest ? Math.max(latest.comments, video.comment_count || 0) : video.comment_count || 0;
+      const newShares = latest ? Math.max(latest.shares, video.share_count || 0) : video.share_count || 0;
+      const newViews = latest ? Math.max(latest.views, video.view_count || 0) : video.view_count || 0;
+
       // If the post is older than 30 days, check if stats have changed.
       if (postCreationDate < thirtyDaysAgo && latest) {
         const statsChanged =
-          video.like_count !== latest.likes ||
-          video.comment_count !== latest.comments ||
-          video.share_count !== latest.shares ||
-          video.view_count !== latest.views;
+          newLikes !== latest.likes ||
+          newComments !== latest.comments ||
+          newShares !== latest.shares ||
+          newViews !== latest.views;
 
         if (!statsChanged) {
           return null; // Stats are the same, so we skip inserting a new record.
@@ -126,10 +155,10 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
 
       return {
         post_id: post.id,
-        likes: video.like_count,
-        comments: video.comment_count,
-        shares: video.share_count,
-        views: video.view_count,
+        likes: newLikes,
+        comments: newComments,
+        shares: newShares,
+        views: newViews,
       };
     })
     .filter((p): p is PostAnalytic => p !== null);

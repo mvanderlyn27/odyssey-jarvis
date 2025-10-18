@@ -1,40 +1,22 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { Database } from "@/lib/supabase/database";
 import { v4 as uuidv4 } from "uuid";
-
-export type PostWithAssets = Database["public"]["Tables"]["posts"]["Row"] & {
-  post_assets: DraftAsset[];
-};
-export type Post = Database["public"]["Tables"]["posts"]["Row"] & {
-  post_assets: Asset[];
-};
-export type DraftAsset = Database["public"]["Tables"]["post_assets"]["Row"];
-
-export interface CroppedArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export type Asset = DraftAsset & {
-  status: "new" | "deleted" | "modified" | "unchanged";
-  file?: File; // The edited blob, if modifications have been made
-  originalFile?: File; // The original file, for new or modified assets
-  editSettings?: {
-    crop?: CroppedArea;
-    zoom?: number;
-    rotation?: number;
-  };
-};
+import { DraftPost, Asset, CroppedArea, PostWithAssets } from "@/features/posts/types";
+import { persist, PersistStorage } from "zustand/middleware";
+import { get, set, del } from "idb-keyval";
 
 type EditPostState = {
-  post: Post | null;
+  post: DraftPost | null;
   isDirty: boolean;
+  saving: boolean;
   initialAssets: Asset[];
   setPost: (post: PostWithAssets | null) => void;
-  setPostAsSaved: () => void;
+  createNewPost: () => boolean;
+  confirmDiscardChanges: () => boolean;
+  clearPost: () => void;
+  deleteUnsavedDraft: () => boolean;
+  setCreatedPost: (post: PostWithAssets) => void;
+  setPostAsSaved: (post: PostWithAssets) => void;
+  setSaving: (saving: boolean) => void;
   updateTitle: (title: string) => void;
   updateDescription: (description: string) => void;
   addAsset: (file: File) => void;
@@ -55,23 +37,98 @@ export const useEditPostStore = create(
     (set, get) => ({
       post: null,
       isDirty: false,
+      saving: false,
       initialAssets: [],
       setPost: (post) => {
-        if (post) {
-          const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
-            ...asset,
-            status: "unchanged",
-          }));
-          set({ post: { ...post, post_assets: assetsWithStatus }, initialAssets: assetsWithStatus, isDirty: false });
-        } else {
-          set({ post: null, initialAssets: [], isDirty: false });
+        if (get().post?.id === post?.id) {
+          return;
+        }
+
+        if (get().confirmDiscardChanges()) {
+          if (post) {
+            const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
+              ...asset,
+              status: "unchanged",
+            }));
+            set({
+              post: { ...post, post_assets: assetsWithStatus } as DraftPost,
+              initialAssets: assetsWithStatus,
+              isDirty: false,
+            });
+          } else {
+            set({ post: null, initialAssets: [], isDirty: false });
+          }
         }
       },
-      setPostAsSaved: () =>
+      createNewPost: () => {
+        if (get().confirmDiscardChanges()) {
+          const newPost: DraftPost = {
+            id: "draft",
+            title: "",
+            description: "",
+            post_assets: [],
+            status: "DRAFT",
+            created_at: new Date().toISOString(),
+          } as any;
+          set({
+            post: newPost,
+            initialAssets: [],
+            isDirty: false, // A new post isn't dirty until edited
+          });
+          return true;
+        }
+        return false;
+      },
+      confirmDiscardChanges: () => {
+        if (get().isDirty) {
+          return window.confirm("You have unsaved changes. Are you sure you want to discard them?");
+        }
+        return true;
+      },
+      deleteUnsavedDraft: () => {
+        if (window.confirm("Are you sure you want to delete this draft?")) {
+          get().clearPost();
+          return true;
+        }
+        return false;
+      },
+      clearPost: async () => {
+        const post = get().post;
+        if (post && post.post_assets) {
+          await Promise.all(
+            post.post_assets.map(async (asset) => {
+              await del(`file_${asset.id}`);
+              await del(`originalFile_${asset.id}`);
+            })
+          );
+        }
+        set({ post: null, initialAssets: [], isDirty: false });
+      },
+      setCreatedPost: (post) => {
+        const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
+          ...asset,
+          status: "unchanged",
+        }));
         set((state) => ({
+          post: {
+            ...(state.post as DraftPost),
+            ...post,
+            post_assets: assetsWithStatus,
+          },
+        }));
+      },
+      setPostAsSaved: (post) => {
+        const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
+          ...asset,
+          status: "unchanged",
+        }));
+        set({
+          post: { ...post, post_assets: assetsWithStatus } as DraftPost,
+          initialAssets: assetsWithStatus,
           isDirty: false,
-          initialAssets: state.post?.post_assets || [],
-        })),
+        });
+      },
+      setSaving: (saving) => set({ saving }),
       updateTitle: (title) =>
         set((state) => ({
           post: state.post ? { ...state.post, title } : null,
@@ -109,6 +166,11 @@ export const useEditPostStore = create(
       removeAsset: (assetId) =>
         set((state) => {
           if (!state.post) return {};
+          const assetToRemove = state.post.post_assets.find((asset) => asset.id === assetId);
+          if (assetToRemove) {
+            del(`file_${assetToRemove.id}`);
+            del(`originalFile_${assetToRemove.id}`);
+          }
           return {
             post: {
               ...state.post,
@@ -196,25 +258,95 @@ export const useEditPostStore = create(
     }),
     {
       name: "edit-post-storage",
-      partialize: (state) => ({
-        ...state,
-        post: state.post
-          ? {
-              ...state.post,
-              post_assets: state.post.post_assets.map(({ file, originalFile, ...rest }) => rest),
+      storage: {
+        getItem: async (name) => {
+          try {
+            const str = localStorage.getItem(name);
+            if (!str) return null;
+
+            const { state, version } = JSON.parse(str);
+
+            const rehydrateAssets = async (assets: Asset[]) => {
+              if (!assets) return [];
+              return Promise.all(
+                assets.map(async (asset) => {
+                  const file = await get(`file_${asset.id}`);
+                  const originalFile = await get(`originalFile_${asset.id}`);
+                  const rehydratedAsset = { ...asset };
+                  if (file) rehydratedAsset.file = file as File;
+                  if (originalFile) rehydratedAsset.originalFile = originalFile as File;
+                  if (rehydratedAsset.file) {
+                    rehydratedAsset.asset_url = URL.createObjectURL(rehydratedAsset.file);
+                  }
+                  return rehydratedAsset;
+                })
+              );
+            };
+
+            const rehydratedPostAssets = state.post ? await rehydrateAssets(state.post.post_assets) : [];
+            const rehydratedInitialAssets = await rehydrateAssets(state.initialAssets);
+
+            const rehydratedState = {
+              ...state,
+              post: state.post
+                ? {
+                    ...state.post,
+                    post_assets: rehydratedPostAssets,
+                  }
+                : null,
+              initialAssets: rehydratedInitialAssets,
+              isDirty: false,
+            };
+
+            return { state: rehydratedState, version };
+          } catch (error) {
+            console.error("Failed to rehydrate state:", error);
+            localStorage.removeItem(name);
+            return null;
+          }
+        },
+        setItem: async (name, newValue) => {
+          try {
+            const { state, version } = newValue;
+            const stateToPersist = JSON.parse(JSON.stringify(state));
+
+            const processAssetsForPersistence = async (assets: Asset[]) => {
+              if (!assets) return [];
+              await Promise.all(
+                assets.map(async (asset) => {
+                  if (asset.file instanceof File) await set(`file_${asset.id}`, asset.file);
+                  if (asset.originalFile instanceof File) await set(`originalFile_${asset.id}`, asset.originalFile);
+                })
+              );
+              return assets.map(({ file, originalFile, ...rest }) => rest);
+            };
+
+            if (state.post) {
+              stateToPersist.post.post_assets = await processAssetsForPersistence(state.post.post_assets);
             }
-          : null,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (state?.post) {
-          const validAssets = state.post.post_assets.filter(
-            (asset) => asset.asset_url && !asset.asset_url.startsWith("blob:")
-          );
-          state.post.post_assets = validAssets;
-          state.initialAssets = validAssets;
-          state.isDirty = false;
-        }
-      },
+            stateToPersist.initialAssets = await processAssetsForPersistence(state.initialAssets);
+
+            localStorage.setItem(name, JSON.stringify({ state: stateToPersist, version }));
+          } catch (error) {
+            console.error("Failed to persist state:", error);
+          }
+        },
+        removeItem: async (name) => {
+          try {
+            const str = localStorage.getItem(name);
+            if (str) {
+              const { state } = JSON.parse(str);
+              if (state.post && state.post.post_assets) {
+                await Promise.all(state.post.post_assets.map((asset: Asset) => del(`file_${asset.id}`)));
+                await Promise.all(state.post.post_assets.map((asset: Asset) => del(`originalFile_${asset.id}`)));
+              }
+            }
+            localStorage.removeItem(name);
+          } catch (error) {
+            console.error("Failed to remove persisted state:", error);
+          }
+        },
+      } as PersistStorage<EditPostState>,
     }
   )
 );

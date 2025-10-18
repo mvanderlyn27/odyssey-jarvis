@@ -1,9 +1,10 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Asset } from "@/store/useEditPostStore";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import { XIcon } from "lucide-react";
 import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
+import { Asset } from "../types";
 
 const SortableAsset = ({
   asset,
@@ -29,19 +30,23 @@ const SortableAsset = ({
   };
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className={`w-full aspect-[9/16] relative group overflow-hidden rounded-lg ${!viewOnly ? "cursor-grab" : ""}`}>
+      className={`w-full aspect-[9/16] relative group overflow-hidden rounded-lg ${!viewOnly ? "cursor-grab" : ""}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}>
       <div className="w-full h-full">
         {asset.asset_type === "slides" ? (
           <SignedUrlImage
             thumbnailPath={asset.thumbnail_path}
             fullSizePath={asset.asset_url}
             blurhash={asset.blurhash}
-            blobUrl={asset.file ? URL.createObjectURL(asset.file) : null}
+            blobUrl={asset.file instanceof Blob ? URL.createObjectURL(asset.file) : null}
             size="large"
             preferFullSize={preferFullSize}
           />
@@ -61,7 +66,7 @@ const SortableAsset = ({
           <XIcon className="h-4 w-4" />
         </Button>
       )}
-    </div>
+    </motion.div>
   );
 };
 

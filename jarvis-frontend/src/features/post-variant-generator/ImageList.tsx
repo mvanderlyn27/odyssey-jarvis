@@ -1,9 +1,9 @@
-import { Asset } from "@/store/useEditPostStore";
 import { cn } from "@/lib/utils";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
+import { Asset } from "../posts/types";
 
 interface ImageListProps {
   assets: Asset[];

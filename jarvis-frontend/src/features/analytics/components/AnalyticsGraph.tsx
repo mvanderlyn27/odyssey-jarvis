@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { usePostAnalyticsHistory } from "../hooks/usePostAnalyticsHistory";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";

@@ -4,7 +4,6 @@ import { useEditPostStore } from "@/store/useEditPostStore";
 import { Post } from "../types";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MessageCircle, Send, Eye } from "lucide-react";
-import { useSignedUrls } from "@/hooks/useSignedUrls";
 import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
 
 interface PostCardProps {

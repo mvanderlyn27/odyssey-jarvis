@@ -150,6 +150,7 @@ serve(async (req: Request) => {
           created_in_jarvis: false,
           tiktok_share_url: video.share_url,
           tiktok_embed_url: video.embed_link,
+          published_at: new Date(video.create_time * 1000).toISOString(),
           created_at: new Date(video.create_time * 1000).toISOString(),
         };
       });
@@ -232,8 +233,42 @@ serve(async (req: Request) => {
       }
     }
 
-    // Handle existing videos - just insert new stats
+    // Handle existing videos - update post data and insert new stats
     if (videosToUpdate.length > 0) {
+      // Update post details
+      const postsToUpdate = videosToUpdate.map((video) => {
+        const existingPost = existingPosts.find((p: { id: number; post_id: string }) => p.post_id === video.id);
+        return {
+          id: existingPost!.id,
+          post_id: video.id,
+          title: video.title,
+          description: video.video_description,
+          tiktok_share_url: video.share_url,
+          tiktok_embed_url: video.embed_link,
+          published_at: new Date(video.create_time * 1000).toISOString(),
+        };
+      });
+
+      for (const post of postsToUpdate) {
+        const { error: updateError } = await supabaseAdmin
+          .from("posts")
+          .update({
+            title: post.title,
+            description: post.description,
+            tiktok_share_url: post.tiktok_share_url,
+            tiktok_embed_url: post.tiktok_embed_url,
+            published_at: post.published_at,
+          })
+          .eq("id", post.id);
+
+        if (updateError) {
+          console.error(`Error updating post ${post.id}:`, updateError);
+          // Decide if you want to throw or just log the error
+        }
+      }
+      console.log(`Updated ${postsToUpdate.length} existing posts.`);
+
+      // Insert new analytics
       const analyticsToInsert = videosToUpdate.map((video) => {
         const existingPost = existingPosts.find((p: { id: number; post_id: string }) => p.post_id === video.id);
         return {

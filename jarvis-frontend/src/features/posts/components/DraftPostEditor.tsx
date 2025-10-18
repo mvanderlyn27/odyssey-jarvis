@@ -7,13 +7,16 @@ import { useSavePost } from "@/features/posts/hooks/useSavePost";
 import { useDeletePost } from "@/features/posts/hooks/useDeletePost";
 import { useClonePost } from "@/features/posts/hooks/useClonePost";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const DraftPostEditor = () => {
   const navigate = useNavigate();
-  const { post, isDirty } = useEditPostStore();
+  const { post, isDirty, clearPost } = useEditPostStore();
   const { mutate: savePost, isPending: isSaving } = useSavePost();
-  const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => navigate("/posts"));
+  const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => {
+    clearPost();
+    navigate(-1);
+  });
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
 
   const handleClonePost = () => {
@@ -29,13 +32,16 @@ const DraftPostEditor = () => {
   const handleDelete = () => {
     if (post?.id) {
       deletePost(post.id);
+    } else {
+      clearPost();
+      navigate(-1);
     }
   };
 
   if (!post) return <div>Loading post...</div>;
 
   return (
-    <div className="container mx-auto p-4">
+    <div>
       <PageHeader title={post.id ? "Edit Post" : "New Post"}>
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
         <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>
@@ -52,12 +58,16 @@ const DraftPostEditor = () => {
           </>
         )}
       </PageHeader>
-      <PostAssets />
-      <div className="lg:col-span-2 space-y-4">
-        <PostDetails />
-      </div>
-      <div className="lg:col-span-2 space-y-4">
-        <PostPublisher />
+      <div className="max-w-7xl mx-auto">
+        <PostAssets />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+          <div className="lg:col-span-2 space-y-4">
+            <PostDetails />
+          </div>
+          <div className="space-y-4">
+            <PostPublisher />
+          </div>
+        </div>
       </div>
     </div>
   );

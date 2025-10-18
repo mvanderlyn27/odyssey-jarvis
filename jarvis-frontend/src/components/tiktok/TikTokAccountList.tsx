@@ -2,7 +2,6 @@ import { removeTikTokAccount } from "../../features/tiktok/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TikTokAccount } from "@/features/tiktok/types";
-import { useState } from "react";
 import { TikTokAccountCard } from "@/features/tiktok/components/TikTokAccountCard";
 
 interface TikTokAccountListProps {

@@ -47,40 +47,43 @@ serve(async (req) => {
 
     // 3. Clone assets
     if (originalPost.post_assets && originalPost.post_assets.length > 0) {
-      const newAssets = [];
-      for (const asset of originalPost.post_assets) {
-        const newAssetId = crypto.randomUUID();
-        const bucketName = "tiktok_assets";
+      const bucketName = "tiktok_assets";
+      const oldPostId = originalPost.id;
+      const assetType = originalPost.post_assets[0].asset_type === "video" ? "video" : "slides";
+      const oldPostFolderPath = `${assetType}/${oldPostId}`;
+      const newPostFolderPath = `${assetType}/${newPostId}`;
 
-        // Extract path from URL
-        const url = new URL(asset.asset_url);
-        const pathParts = url.pathname.split("/");
-        const bucketIndex = pathParts.indexOf(bucketName);
+      // Get the folder path of the original post's assets
+      const { data: files, error: listError } = await supabaseAdmin.storage.from(bucketName).list(oldPostFolderPath);
 
-        if (bucketIndex === -1) {
-          console.error("Could not find bucket name in asset URL path:", asset.asset_url);
-          continue;
-        }
-
-        const oldPath = pathParts.slice(bucketIndex + 1).join("/");
-        const newPath = `${asset.asset_type}/${newPostId}/${newAssetId}`;
-
-        // Copy file in storage
-        const { error: storageError } = await supabaseAdmin.storage.from(bucketName).copy(oldPath, newPath);
-
-        if (storageError) {
-          console.error("Storage error:", storageError);
-          continue; // Or handle error more gracefully
-        }
-
-        newAssets.push({
-          id: newAssetId,
-          post_id: newPostId,
-          asset_url: newPath,
-          asset_type: asset.asset_type,
-          order: asset.order,
-        });
+      if (listError) {
+        console.error(`Error listing files in ${oldPostFolderPath}:`, listError);
+        throw listError;
       }
+
+      // Copy all files from the old folder to a new folder for the cloned post
+      for (const file of files) {
+        const oldPath = `${oldPostFolderPath}/${file.name}`;
+        const newPath = `${newPostFolderPath}/${file.name}`;
+        const { error: copyError } = await supabaseAdmin.storage.from(bucketName).copy(oldPath, newPath);
+
+        if (copyError) {
+          console.error(`Error copying ${oldPath} to ${newPath}:`, copyError);
+          throw copyError;
+        }
+      }
+
+      // Create new post_assets records with the correct paths
+      const newAssets = originalPost.post_assets.map((asset: any) => {
+        const oldPath = asset.asset_url;
+        const fileName = oldPath.split("/").pop();
+        return {
+          ...asset,
+          id: crypto.randomUUID(),
+          post_id: newPostId,
+          asset_url: `${newPostFolderPath}/${fileName}`,
+        };
+      });
 
       const { error: newAssetsError } = await supabaseAdmin.from("post_assets").insert(newAssets);
 

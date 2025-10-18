@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
@@ -13,11 +13,25 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
   date: DateRange | undefined;
   setDate: (date: DateRange | undefined) => void;
+  onClear?: () => void;
 }
 
-export function DatePickerWithRange({ className, date, setDate }: DatePickerWithRangeProps) {
+export function DatePickerWithRange({ className, date, setDate, onClear }: DatePickerWithRangeProps) {
+  const handleClear = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setDate(undefined);
+    if (onClear) {
+      onClear();
+    }
+  };
+
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn("flex items-center gap-2", className)}>
+      {date && (
+        <Button variant="ghost" onClick={handleClear} className="p-2 h-auto">
+          <X className="w-4 h-4" />
+        </Button>
+      )}
       <Popover>
         <PopoverTrigger asChild>
           <Button

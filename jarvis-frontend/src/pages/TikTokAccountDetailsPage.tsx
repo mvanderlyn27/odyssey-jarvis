@@ -1,15 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTikTokAccounts } from "../features/tiktok/hooks/useTikTokAccounts";
 import { usePosts } from "../features/posts/hooks/usePosts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PostCard } from "@/features/analytics/components/PostCard";
+import PostList from "@/features/posts/components/PostList";
 import { useSyncTikTokVideos } from "../features/tiktok/hooks/useSyncTikTokVideos";
 import { useFetchVideoAnalytics } from "../features/analytics/hooks/useFetchVideoAnalytics";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import PageHeader from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { RefreshButton } from "@/components/RefreshButton";
 import {
   Dialog,
@@ -23,14 +23,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountAnalyticsKPIs } from "../features/tiktok/components/AccountAnalyticsKPIs";
 import AccountAnalyticsGraph from "../features/analytics/components/AccountAnalyticsGraph";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { RefreshCw, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { queries } from "@/lib/queries";
 
 type SortOrder = "recency" | "views" | "likes" | "comments" | "shares";
 
 const TikTokAccountDetailsPage = () => {
   const { accountId } = useParams<{ accountId: string }>();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: accounts, isLoading: isLoadingAccounts } = useTikTokAccounts();
   const account = accounts?.find((acc) => acc.id === accountId);
@@ -159,22 +158,44 @@ const TikTokAccountDetailsPage = () => {
             <p className="text-sm text-muted-foreground">Total Videos: {posts?.length ?? 0}</p>
           </div>
         </div>
-
-        {sortedPosts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {sortedPosts.map((post: any) => (
-              <PostCard key={post.id} post={post} />
-            ))}
+        <div className="grid grid-cols-12 gap-8">
+          <div className="col-span-9">
+            {sortedPosts.length > 0 ? (
+              <PostList posts={sortedPosts} variant="published" />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
+                <h3 className="text-xl font-semibold">No Videos Found</h3>
+                <p className="text-muted-foreground mt-2 mb-4">
+                  Sync with TikTok to see your videos and analytics here.
+                </p>
+                <Button onClick={() => syncVideos(account.id)} disabled={isSyncing}>
+                  {isSyncing ? "Syncing..." : "Sync Account Videos"}
+                </Button>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
-            <h3 className="text-xl font-semibold">No Videos Found</h3>
-            <p className="text-muted-foreground mt-2 mb-4">Sync with TikTok to see your videos and analytics here.</p>
-            <Button onClick={() => syncVideos(account.id)} disabled={isSyncing}>
-              {isSyncing ? "Syncing..." : "Sync Account Videos"}
-            </Button>
+          <div className="col-span-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Select onValueChange={(value) => setSortOrder(value as SortOrder)} defaultValue={sortOrder}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recency">Most Recent</SelectItem>
+                    <SelectItem value="views">Most Views</SelectItem>
+                    <SelectItem value="likes">Most Likes</SelectItem>
+                    <SelectItem value="comments">Most Comments</SelectItem>
+                    <SelectItem value="shares">Most Shares</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Settings Modal */}

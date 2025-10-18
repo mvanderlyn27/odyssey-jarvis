@@ -19,7 +19,7 @@ export const useSyncTikTokAccountStats = () => {
 
       return data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (variables) => {
       toast.success("Account stats refreshed successfully!");
       queryClient.invalidateQueries({ queryKey: queries.tiktokAccountAnalytics.detail(variables).queryKey });
     },

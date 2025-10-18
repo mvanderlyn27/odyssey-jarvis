@@ -17,8 +17,8 @@ const PostPublisher = () => {
   const { post, isDirty } = useEditPostStore();
 
   const canPublish = useMemo(() => {
-    if (!post) return false;
-    return !isDirty && (post.status === "DRAFT" || post.status === "FAILED");
+    if (!post || isDirty) return false;
+    return post.status === "DRAFT" || post.status === "FAILED" || post.status === "SCHEDULED";
   }, [post, isDirty]);
 
   const handleAccountChange = useCallback((id: string) => {
@@ -47,9 +47,9 @@ const PostPublisher = () => {
   if (!post) return null;
 
   return (
-    <Card className={!canPublish ? "bg-gray-100" : ""}>
+    <Card className={!canPublish ? "bg-gray-100 dark:bg-neutral-700" : ""}>
       <CardHeader>
-        <CardTitle className={!canPublish ? "text-gray-400" : ""}>Publish Post</CardTitle>
+        <CardTitle className={!canPublish ? "text-muted-foreground" : ""}>Publish Post</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <fieldset disabled={!canPublish} className="space-y-4">

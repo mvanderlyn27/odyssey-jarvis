@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queries } from "@/lib/queries";
+import { useNavigate } from "react-router-dom";
 import { savePostChanges } from "../api";
-import { Post, useEditPostStore } from "@/store/useEditPostStore";
+import { useEditPostStore } from "@/store/useEditPostStore";
 import { supabase } from "@/lib/supabase/jarvisClient"; // Import supabase client
+import { DraftPost, PostWithAssets } from "../types";
 
 const resizeImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
@@ -43,17 +45,19 @@ const resizeImage = (file: File): Promise<File> => {
 
 export const useSavePost = () => {
   const queryClient = useQueryClient();
-  const { initialAssets, setPostAsSaved, setPost } = useEditPostStore();
+  const navigate = useNavigate();
+  const { initialAssets, setPostAsSaved, setCreatedPost, setSaving, clearPost } = useEditPostStore();
 
   return useMutation({
-    mutationFn: async (post: Post) => {
+    mutationFn: async (post: DraftPost) => {
+      setSaving(true);
       if (!post) throw new Error("No post to save.");
 
       let currentPost = { ...post };
 
-      // If the post is new (no id), create it first
-      if (!currentPost.id) {
-        const { post_assets, ...postData } = currentPost;
+      // If the post is new (id is "draft"), create it first
+      if (currentPost.id === "draft") {
+        const { id, post_assets, ...postData } = currentPost;
         const { data, error } = await supabase
           .from("posts")
           .insert({
@@ -65,7 +69,7 @@ export const useSavePost = () => {
           .single();
         if (error) throw new Error(`Failed to create post: ${error.message}`);
         currentPost = { ...data, post_assets };
-        setPost(currentPost as any); // Update the store with the new post, including the ID
+        setCreatedPost(currentPost as any); // Update the store with the new post, including the ID
       }
 
       // 1. Upload new assets and update their URLs
@@ -125,14 +129,27 @@ export const useSavePost = () => {
       await savePostChanges(updatedPost, initialAssets);
       return updatedPost;
     },
-    onSuccess: (post) => {
-      setPostAsSaved();
+    onSuccess: (data, variables) => {
       toast.success("Changes saved successfully!");
-      // Invalidate all queries related to posts to ensure data is fresh everywhere
-      queryClient.invalidateQueries({ queryKey: queries.posts._def });
+      queryClient.invalidateQueries({
+        queryKey: queries.posts.byStatus("DRAFT").queryKey,
+      });
+
+      if (variables.id === "draft") {
+        queryClient.setQueryData(queries.posts.detail(data.id).queryKey, data);
+        navigate(`/posts/${data.id}`);
+        clearPost();
+      } else {
+        setPostAsSaved(data as any);
+        // navigate(`/drafts`);
+        toast.success("Post Saved");
+      }
     },
     onError: (error) => {
       toast.error(`Failed to save changes: ${error.message}`);
+    },
+    onSettled: () => {
+      setSaving(false);
     },
   });
 };

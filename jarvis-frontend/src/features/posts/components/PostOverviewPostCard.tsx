@@ -1,6 +1,7 @@
 import { Card, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Post } from "../types";
+import { getLatestAnalytics } from "../utils/getLatestAnalytics";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MessageCircle, Send, Eye } from "lucide-react";
 import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
@@ -13,8 +14,9 @@ interface PostOverviewPostCardProps {
   index: number;
 }
 
-const PostOverviewPostCard = ({ post, priority, index }: PostOverviewPostCardProps) => {
-  const latestAnalytics = post.post_analytics?.[0];
+const PostOverviewPostCard = ({ post, priority }: PostOverviewPostCardProps) => {
+  const latestAnalytics = getLatestAnalytics(post.post_analytics);
+  console.log("latest antlytics vs all", latestAnalytics, post.post_analytics);
   const firstAsset = post.post_assets?.[0];
 
   const getStatusVariant = (status: string): "default" | "destructive" | "secondary" => {
@@ -49,9 +51,11 @@ const PostOverviewPostCard = ({ post, priority, index }: PostOverviewPostCardPro
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      viewport={{ once: true }}>
+      viewport={{ once: true }}
+      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      className="rounded-lg overflow-hidden">
       <Link to={`/posts/${post.id}`} key={post.id}>
-        <Card className="overflow-hidden flex flex-row w-[450px] bg-neutral-300 dark:bg-neutral-800 text-white">
+        <Card className="overflow-hidden flex flex-row w-[450px] bg-neutral-300 dark:bg-neutral-800 text-white border-none rounded-lg">
           <div className="w-40 aspect-[9/16] bg-gray-700 flex-shrink-0">{renderThumbnail()}</div>
           <div className="p-4 flex flex-col flex-grow justify-between min-w-0">
             <div>

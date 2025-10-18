@@ -1,5 +1,4 @@
 import { createQueryKeyStore } from "@lukemorales/query-key-factory";
-import { getPost } from "@/features/posts/api";
 
 export const queries = createQueryKeyStore({
   posts: {

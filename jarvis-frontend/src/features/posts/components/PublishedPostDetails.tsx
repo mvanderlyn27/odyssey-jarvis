@@ -1,17 +1,16 @@
 import { usePost } from "../hooks/usePost";
+import { PostAnalytics } from "../types";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { useFetchVideoAnalytics } from "@/features/analytics/hooks/useFetchVideoAnalytics";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { RefreshButton } from "@/components/RefreshButton";
 import { useDeletePost } from "../hooks/useDeletePost";
 import { useClonePost } from "../hooks/useClonePost";
 import PostAssets from "./PostAssets";
 import AnalyticsGraph from "@/features/analytics/components/AnalyticsGraph";
-import { useEditPostStore } from "@/store/useEditPostStore";
-import { useEffect } from "react";
 
 const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const navigate = useNavigate();
@@ -20,18 +19,12 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const { mutate: refreshAnalytics, isPending: isRefreshing } = useFetchVideoAnalytics();
   const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => navigate("/posts"));
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
-  const { setPost, post: storePost } = useEditPostStore();
   const analytics =
     post?.post_analytics
       ?.slice()
-      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] || {};
-
-  useEffect(() => {
-    if (post) {
-      setPost(post as any);
-    }
-    return () => setPost(null);
-  }, [post, setPost]);
+      .sort(
+        (a: PostAnalytics, b: PostAnalytics) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )[0] || {};
 
   const handleRefresh = () => {
     if (post && post.tiktok_accounts && post.tiktok_accounts.open_id) {
@@ -69,7 +62,7 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
     return <div>Loading...</div>;
   }
 
-  if (!post || !storePost) {
+  if (!post) {
     return <div>Post not found</div>;
   }
 
@@ -85,7 +78,7 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
         </Button>
       </PageHeader>
       <div className="w-full">
-        <PostAssets viewOnly />
+        <PostAssets post={post} viewOnly />
       </div>
       <div className="my-4">
         <Card>

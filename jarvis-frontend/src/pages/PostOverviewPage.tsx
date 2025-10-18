@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { motion } from "framer-motion";
 import AccountSelector from "@/components/tiktok/AccountSelector";
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import PostOverviewList from "@/features/posts/components/PostOverviewList";
@@ -15,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 
 const PostOverviewPage = () => {
   const [selectedAccounts, setSelectedAccounts] = useState<TikTokAccount[]>([]);
-  const [sortOption, setSortOption] = useState("scheduled_at-desc");
+  const [sortOption, setSortOption] = useState("published_at-desc");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { data: allPosts, isLoading: isLoadingPosts, refetch, isFetching } = usePosts();
 
@@ -28,11 +27,20 @@ const PostOverviewPage = () => {
 
     let posts = allPosts?.filter((p) => selectedAccounts.some((a) => a.id === p.tiktok_account_id));
 
-    if (dateRange?.from && dateRange?.to) {
+    if (dateRange?.from) {
       posts = posts?.filter((p) => {
-        if (!p.scheduled_at) return false;
-        const scheduledAt = new Date(p.scheduled_at);
-        return scheduledAt >= dateRange.from! && scheduledAt <= dateRange.to!;
+        if (!p.published_at) return false;
+        const publishedAt = new Date(p.published_at);
+        const from = new Date(dateRange.from!);
+        from.setHours(0, 0, 0, 0);
+
+        if (dateRange.to) {
+          const to = new Date(dateRange.to);
+          to.setHours(23, 59, 59, 999);
+          return publishedAt >= from && publishedAt <= to;
+        } else {
+          return publishedAt.toDateString() === from.toDateString();
+        }
       });
     }
 
@@ -49,6 +57,9 @@ const PostOverviewPage = () => {
       if (sortBy === "views" || sortBy === "likes") {
         valA = a.post_analytics?.[0]?.[sortBy] || 0;
         valB = b.post_analytics?.[0]?.[sortBy] || 0;
+      } else if (sortBy === "published_at") {
+        valA = a.published_at ? new Date(a.published_at).getTime() : 0;
+        valB = b.published_at ? new Date(b.published_at).getTime() : 0;
       } else {
         valA = a[sortBy];
         valB = b[sortBy];
@@ -126,8 +137,8 @@ const PostOverviewPage = () => {
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="scheduled_at-desc">Newest</SelectItem>
-                <SelectItem value="scheduled_at-asc">Oldest</SelectItem>
+                <SelectItem value="published_at-desc">Newest</SelectItem>
+                <SelectItem value="published_at-asc">Oldest</SelectItem>
                 <SelectItem value="views-desc">Views (High to Low)</SelectItem>
                 <SelectItem value="views-asc">Views (Low to High)</SelectItem>
                 <SelectItem value="likes-desc">Likes (High to Low)</SelectItem>

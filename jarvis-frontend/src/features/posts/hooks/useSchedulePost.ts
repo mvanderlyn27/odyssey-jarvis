@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queries } from "@/lib/queries";
 import { schedulePost } from "../api";
 import { toast } from "sonner";
-import { Post } from "../types";
 import { useSchedulePageStore } from "@/store/useSchedulePageStore";
 
 export const useSchedulePost = () => {
@@ -24,6 +23,7 @@ export const useSchedulePost = () => {
       toast.success("Post scheduled successfully!");
     },
     onError: (err: Error, newPost, context) => {
+      console.log("new post error", newPost);
       queryClient.setQueryData(queries.posts.all().queryKey, context?.previousPosts);
       toast.error("Error scheduling post: " + err.message);
     },

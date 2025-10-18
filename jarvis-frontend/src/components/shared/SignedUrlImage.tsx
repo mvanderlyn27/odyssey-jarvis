@@ -19,7 +19,7 @@ export const SignedUrlImage = ({
   fullSizePath,
   blurhash,
   blobUrl,
-  size = "medium",
+  // size = "medium",
   className,
   preferFullSize = false,
   priority = false,

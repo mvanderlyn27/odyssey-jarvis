@@ -6,12 +6,20 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import SortableAsset from "@/features/posts/components/SortableAsset";
 import { useEditPostStore } from "@/store/useEditPostStore";
+import { Post, DraftPost, Asset } from "../types";
 
-const PostAssets = ({ viewOnly = false }: { viewOnly?: boolean }) => {
-  const { post, reorderAssets, addAssets, removeAsset } = useEditPostStore();
+const PostAssets = ({ post: postProp, viewOnly = false }: { post?: Post | DraftPost; viewOnly?: boolean }) => {
+  const { post: postFromStore, reorderAssets, addAssets, removeAsset } = useEditPostStore();
+  const post = postProp || postFromStore;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const assets = useMemo(() => post?.post_assets?.filter((asset) => asset) || [], [post]);
+  const assets: Asset[] = useMemo(
+    () =>
+      post?.post_assets.map((asset) =>
+        "status" in asset ? (asset as Asset) : ({ ...asset, status: "unchanged" } as Asset)
+      ) || [],
+    [post]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -56,7 +64,7 @@ const PostAssets = ({ viewOnly = false }: { viewOnly?: boolean }) => {
         onClick={() => handleScroll("left")}
         variant="outline"
         size="icon"
-        className="absolute -left-12 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/80 hover:bg-white">
+        className="absolute -left-4 sm:-left-12 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 hover:bg-background">
         <ChevronLeftIcon className="h-6 w-6" />
       </Button>
       <div ref={scrollContainerRef} className="overflow-x-auto px-8 w-full">
@@ -78,7 +86,7 @@ const PostAssets = ({ viewOnly = false }: { viewOnly?: boolean }) => {
           {!viewOnly && (
             <label
               htmlFor="file-upload"
-              className="w-full aspect-[9/16] flex items-center justify-center bg-gray-200 rounded-lg cursor-pointer">
+              className="w-full aspect-[9/16] flex items-center justify-center bg-muted rounded-lg cursor-pointer">
               <span className="text-4xl">+</span>
               <input
                 id="file-upload"
@@ -96,7 +104,7 @@ const PostAssets = ({ viewOnly = false }: { viewOnly?: boolean }) => {
         onClick={() => handleScroll("right")}
         variant="outline"
         size="icon"
-        className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/80 hover:bg-white">
+        className="absolute -right-4 sm:-right-12 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 hover:bg-background">
         <ChevronRightIcon className="h-6 w-6" />
       </Button>
     </div>

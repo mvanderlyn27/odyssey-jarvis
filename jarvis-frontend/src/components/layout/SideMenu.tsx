@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase as jarvisClient } from "../../lib/supabase/jarvisClient";
 import { useAuthStore } from "../../store/useAuthStore";
+import { ModeToggle } from "../mode-toggle";
 
 interface SideMenuProps {
   isCollapsed: boolean;
@@ -50,23 +51,37 @@ const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
         </Button>
       </div>
       <nav className="flex flex-col space-y-2 mt-4">
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/tiktok/accounts">{isCollapsed ? "📞" : "TikTok Accounts"}</NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/tiktok/analytics">{isCollapsed ? "📊" : "TikTok Analytics"}</NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/posts">{isCollapsed ? "📝" : "Posts"}</NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/inbox">{isCollapsed ? "📥" : "Inbox"}</NavLink>
-        </Button>
-        <Button asChild variant="ghost" className={isCollapsed ? "justify-center" : ""}>
-          <NavLink to="/admin">{isCollapsed ? "⚙️" : "Admin Panel"}</NavLink>
-        </Button>
+        <NavLink to="/home">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "🏠" : "Home"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/drafts">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "✍️" : "Drafts"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/schedule">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "🗓️" : "Scheduler"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/overview">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "📊" : "Post Overview"}
+            </Button>
+          )}
+        </NavLink>
       </nav>
-      <div className="mt-auto">
+      <div className="mt-auto space-y-2 border-t pt-4">
+        <ModeToggle />
         <Button variant="outline" onClick={handleLogout} className="w-full">
           {isCollapsed ? "🚪" : "Logout"}
         </Button>

@@ -1,24 +1,17 @@
 import { removeTikTokAccount } from "../../features/tiktok/api";
-import TikTokAccountCard from "./TikTokAccountCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TikTokAccount } from "@/features/tiktok/types";
+import { TikTokAccountCard } from "@/features/tiktok/components/TikTokAccountCard";
 
 interface TikTokAccountListProps {
   accounts: TikTokAccount[];
   isLoading: boolean;
   isError?: boolean;
   error?: Error | null;
-  onReauthenticate: () => void;
 }
 
-const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
-  accounts,
-  isLoading,
-  isError,
-  error,
-  onReauthenticate,
-}) => {
+const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ accounts, isLoading, isError, error }) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -34,13 +27,13 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="flex flex-wrap gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-center space-x-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
+          <div key={i} className="flex flex-col items-center space-y-4">
+            <Skeleton className="h-32 w-32 rounded-md" />
             <div className="space-y-2">
-              <Skeleton className="h-4 w-[250px]" />
               <Skeleton className="h-4 w-[200px]" />
+              <Skeleton className="h-4 w-[150px]" />
             </div>
           </div>
         ))}
@@ -57,13 +50,13 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="flex flex-wrap gap-4">
       {accounts.map((account) => (
         <TikTokAccountCard
           key={account.id}
           account={account}
-          onReauthenticate={onReauthenticate}
           onRemove={() => handleRemoveAccount(account.id)}
+          isLoading={isLoading}
         />
       ))}
     </div>

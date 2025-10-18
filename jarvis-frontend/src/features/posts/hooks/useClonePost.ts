@@ -1,9 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase as jarvisClient } from "@/lib/supabase/jarvisClient";
 import { queries } from "@/lib/queries";
+import { useEditPostStore } from "@/store/useEditPostStore";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
-export const useClonePost = (onSuccess?: (data: any) => void) => {
+export const useClonePost = () => {
   const queryClient = useQueryClient();
+  const clearPost = useEditPostStore((state) => state.clearPost);
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (postId: string) => {
@@ -15,8 +20,18 @@ export const useClonePost = (onSuccess?: (data: any) => void) => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: queries.posts.all._def });
-      onSuccess?.(data);
+      queryClient.invalidateQueries({
+        queryKey: queries.posts.byStatus("DRAFT").queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey,
+      });
+      clearPost();
+      navigate(`/drafts/${data.post.id}`);
+      toast.success("Post cloned successfully!");
+    },
+    onError: (error) => {
+      toast.error(`Failed to clone post: ${error.message}`);
     },
   });
 };

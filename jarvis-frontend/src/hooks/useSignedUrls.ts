@@ -1,45 +1,30 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/jarvisClient";
 
-const signedUrlCache = new Map<string, { url: string; expires: number }>();
+export const useSignedUrls = (paths: (string | undefined | null)[]) => {
+  const validPaths = paths.filter(Boolean) as string[];
 
-export const useSignedUrls = (assets: { asset_url: string }[] | undefined) => {
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: signedUrls = {}, isLoading } = useQuery({
+    queryKey: ["signedUrls", validPaths],
+    queryFn: async () => {
+      if (validPaths.length === 0) {
+        return {};
+      }
 
-  useEffect(() => {
-    if (assets && assets.length > 0) {
-      const generateSignedUrls = async () => {
-        setIsLoading(true);
-        const urls: Record<string, string> = {};
-        const now = Date.now();
-        const fiveMinutes = 60 * 5;
+      const urls: Record<string, string> = {};
+      const fiveMinutes = 60 * 5;
 
-        for (const asset of assets) {
-          const cached = signedUrlCache.get(asset.asset_url);
-          if (cached && cached.expires > now) {
-            urls[asset.asset_url] = cached.url;
-          } else {
-            const path =
-              typeof asset.asset_url === "string" && asset.asset_url.startsWith("tiktok_assets/")
-                ? asset.asset_url.replace("tiktok_assets/", "")
-                : asset.asset_url;
-            const { data } = await supabase.storage.from("tiktok_assets").createSignedUrl(path, fiveMinutes);
-            if (data) {
-              urls[asset.asset_url] = data.signedUrl;
-              signedUrlCache.set(asset.asset_url, {
-                url: data.signedUrl,
-                expires: now + fiveMinutes * 1000 - 10000, // 10-second buffer
-              });
-            }
-          }
+      for (const path of validPaths) {
+        const { data } = await supabase.storage.from("tiktok_assets").createSignedUrl(path, fiveMinutes);
+        if (data) {
+          urls[path] = data.signedUrl;
         }
-        setSignedUrls(urls);
-        setIsLoading(false);
-      };
-      generateSignedUrls();
-    }
-  }, [assets]);
+      }
+      return urls;
+    },
+    staleTime: 1000 * 60 * 4, // 4 minutes
+    enabled: validPaths.length > 0,
+  });
 
   return { signedUrls, isLoading };
 };

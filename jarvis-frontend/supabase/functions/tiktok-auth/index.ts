@@ -2,6 +2,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const TIKTOK_CLIENT_KEY = Deno.env.get("VITE_TIKTOK_CLIENT_KEY");
 const TIKTOK_CLIENT_SECRET = Deno.env.get("VITE_TIKTOK_CLIENT_SECRET");
@@ -18,6 +19,13 @@ serve(async (req: Request) => {
   }
 
   try {
+    const { error: authError } = await authenticateRequest(req);
+    if (authError) {
+      return new Response(JSON.stringify({ error: authError.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const { code, code_verifier } = await req.json();
 
     if (!code) throw new Error("Authorization code is missing.");
@@ -94,7 +102,20 @@ serve(async (req: Request) => {
 
     if (upsertError) throw upsertError;
 
-    return new Response(JSON.stringify({ message: "TikTok account linked successfully." }), {
+    // After successfully linking the account, trigger the video sync
+    const { data: newAccount } = await supabaseAdmin
+      .from("tiktok_accounts")
+      .select("id")
+      .eq("tiktok_open_id", userInfo.open_id)
+      .single();
+
+    if (newAccount) {
+      await supabaseAdmin.functions.invoke("sync-tiktok-videos", {
+        body: { account_id: newAccount.id },
+      });
+    }
+
+    return new Response(JSON.stringify({ message: "TikTok account linked and videos synced." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

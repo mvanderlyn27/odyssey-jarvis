@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import { corsHeaders } from "../_shared/cors.ts";
 import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const TIKTOK_CONTENT_API_URL = "https://open.tiktokapis.com/v2/post/publish/content/init/";
 const TIKTOK_INBOX_API_URL = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/";
@@ -15,12 +16,30 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let postId: string | undefined;
+
   try {
-    const { accessToken, refreshToken, mediaUrls, accountId, title, description, postId } = await req.json();
-    console.log("Received request with postId:", postId, "and accountId:", accountId);
+    const { error: authError } = await authenticateRequest(req);
+    if (authError) {
+      return new Response(JSON.stringify({ error: authError.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    const bodyPayload = await req.json();
+    console.log("Received request body:", JSON.stringify(bodyPayload, null, 2));
+
+    const { accessToken, refreshToken, mediaUrls, accountId, title, description } = bodyPayload;
+    postId = bodyPayload.postId;
 
     if (!accessToken || !refreshToken || !mediaUrls || !accountId || !postId) {
-      console.error("Missing required parameters:", { accessToken, refreshToken, mediaUrls, accountId, postId });
+      console.error("Validation failed. Missing required parameters in payload:", {
+        accessToken: accessToken ? "present" : "missing",
+        refreshToken: refreshToken ? "present" : "missing",
+        mediaUrls: mediaUrls ? "present" : "missing",
+        accountId: accountId ? "present" : "missing",
+        postId: postId ? "present" : "missing",
+      });
       return new Response(JSON.stringify({ error: "Missing required parameters." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
@@ -53,11 +72,13 @@ serve(async (req) => {
         photo_images: mediaUrls.image_urls,
       };
     } else {
+      console.error("No valid media provided in mediaUrls:", mediaUrls);
       return new Response(JSON.stringify({ error: "No valid media provided." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
+    console.log("Constructed source_info:", JSON.stringify(source_info, null, 2));
 
     let TIKTOK_API_URL;
     const body: any = {};
@@ -83,7 +104,7 @@ serve(async (req) => {
     }
 
     console.log("Sending request to TikTok API:", TIKTOK_API_URL);
-    console.log("Request body:", JSON.stringify(body, null, 2));
+    console.log("Final request body being sent to TikTok:", JSON.stringify(body, null, 2));
 
     const response = await fetchWithRetry(
       TIKTOK_API_URL,
@@ -101,8 +122,10 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Full TikTok API Error Response:", JSON.stringify(errorData, null, 2));
-      throw new Error(`TikTok API request failed: ${errorData.error.message}`);
+      console.error("TikTok API request failed. Full Error Response:", JSON.stringify(errorData, null, 2));
+      const errorMessage = errorData.error?.message || "Unknown TikTok API error";
+      const errorCode = errorData.error?.code || "N/A";
+      throw new Error(`TikTok API request failed with code ${errorCode}: ${errorMessage}`);
     }
 
     const data = await response.json();
@@ -124,7 +147,12 @@ serve(async (req) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    console.error("An error occurred in the function:", errorMessage);
+    console.error(`An error occurred in tiktok-content-post-init for post ${postId}:`, errorMessage);
+
+    if (postId) {
+      await supabaseAdmin.from("posts").update({ status: "FAILED", reason: errorMessage }).eq("id", postId);
+    }
+
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

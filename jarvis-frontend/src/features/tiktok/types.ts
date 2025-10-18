@@ -1,11 +1,15 @@
 import { Tables } from "@/lib/supabase/database";
 
-export type TikTokAccount = Tables<"tiktok_accounts"> & {
-  follower_count?: number;
-  following_count?: number;
-  likes_count?: number;
-  video_count?: number;
+export type TikTokAccountAnalytics = {
+  account_id: string;
+  follower_count: number;
+  following_count: number;
+  likes_count: number;
+  video_count: number;
+  created_at: string;
 };
+
+export type TikTokAccount = Tables<"tiktok_accounts"> & Partial<TikTokAccountAnalytics>;
 
 export interface TikTokVideo {
   id: string;

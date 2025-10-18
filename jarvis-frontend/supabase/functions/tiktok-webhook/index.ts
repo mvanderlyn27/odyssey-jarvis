@@ -31,11 +31,14 @@ serve(async (req) => {
       return new Response("ok", { headers: corsHeaders });
     }
 
-    const updatePayload: { status: string; post_url?: string; reason?: string } = { status: "unknown" };
+    const updatePayload: { status: string; post_url?: string; reason?: string; published_at?: string } = {
+      status: "unknown",
+    };
 
     if (event === "post.publish.complete") {
       updatePayload.status = "PUBLISHED";
       updatePayload.post_url = payload.share_url;
+      updatePayload.published_at = new Date().toISOString();
     } else if (event === "post.publish.failed") {
       updatePayload.status = "FAILED";
       updatePayload.reason = reason;

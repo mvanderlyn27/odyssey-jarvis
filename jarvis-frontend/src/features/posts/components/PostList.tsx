@@ -15,7 +15,7 @@ interface PostListProps {
 const List = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>((props, ref) => {
   const { children, ...rest } = props;
   return (
-    <div ref={ref} {...rest} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div ref={ref} {...rest} className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-4">
       {children}
     </div>
   );

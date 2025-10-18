@@ -27,7 +27,7 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ accounts, isLoadi
 
   if (isLoading) {
     return (
-      <div className="flex flex-wrap gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center space-y-4">
             <Skeleton className="h-32 w-32 rounded-md" />
@@ -50,7 +50,7 @@ const TikTokAccountList: React.FC<TikTokAccountListProps> = ({ accounts, isLoadi
   }
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-4">
       {accounts.map((account) => (
         <TikTokAccountCard
           key={account.id}

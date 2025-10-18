@@ -53,10 +53,12 @@ const PostOverviewPostCard = ({ post, priority }: PostOverviewPostCardProps) => 
       transition={{ duration: 0.5 }}
       viewport={{ once: true }}
       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-      className="rounded-lg overflow-hidden">
+      className="rounded-lg overflow-hidden w-full">
       <Link to={`/posts/${post.id}`} key={post.id}>
-        <Card className="overflow-hidden flex flex-row w-[450px] bg-neutral-300 dark:bg-neutral-800 text-white border-none rounded-lg">
-          <div className="w-40 aspect-[9/16] bg-gray-700 flex-shrink-0">{renderThumbnail()}</div>
+        <Card className="overflow-hidden flex flex-col sm:flex-row w-full bg-neutral-300 dark:bg-neutral-800 text-white border-none rounded-lg">
+          <div className="w-full sm:w-40 aspect-video sm:aspect-[9/16] bg-gray-700 flex-shrink-0">
+            {renderThumbnail()}
+          </div>
           <div className="p-4 flex flex-col flex-grow justify-between min-w-0">
             <div>
               <CardTitle className="truncate text-lg font-bold">{post.title || "Untitled Post"}</CardTitle>

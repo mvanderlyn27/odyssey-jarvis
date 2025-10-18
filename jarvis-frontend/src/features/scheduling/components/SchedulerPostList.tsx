@@ -1,65 +1,64 @@
+import { PostWithAssets } from "@/features/posts/types";
 import DraggableSchedulerPostCard from "./DraggableSchedulerPostCard";
 import { useDroppable } from "@dnd-kit/core";
-import { PostWithAssets } from "./PostCard";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef } from "react";
+import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import React from "react";
+
+const SortablePostCard = ({ post }: { post: PostWithAssets }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: post.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition || undefined,
+    visibility: isDragging ? "hidden" : "visible",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <DraggableSchedulerPostCard
+        post={post}
+        isDragging={isDragging}
+        transform={transform}
+        transition={transition}
+        listeners={listeners}
+      />
+    </div>
+  );
+};
 
 interface SchedulerPostListProps {
   posts: PostWithAssets[];
   isLoading: boolean;
+  onSort: (posts: PostWithAssets[]) => void;
 }
 
-const SchedulerPostList = ({ posts, isLoading }: SchedulerPostListProps) => {
+const SchedulerPostList = ({ posts, isLoading, onSort }: SchedulerPostListProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: "drafts-list" });
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const virtualizer = useVirtualizer({
-    count: posts.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 150,
-    overscan: 5,
-    horizontal: true,
-  });
-
-  const virtualItems = virtualizer.getVirtualItems();
 
   if (isLoading) return <div>Loading drafts...</div>;
 
   return (
-    <div className="p-4 border rounded-lg bg-card">
+    <div className="p-4 border rounded-lg  bg-card">
       <h2 className="font-semibold mb-2">Drafts</h2>
       <div
-        ref={parentRef}
-        className={`flex overflow-x-auto pb-4 rounded-md p-2 transition-colors ${
-          isOver ? "bg-gray-200 dark:bg-gray-700" : "bg-muted"
+        ref={setNodeRef}
+        className={`overflow-x-auto pb-4 rounded-md p-2 transition-colors ${
+          isOver ? "bg-slate-200 dark:bg-gray-700" : "bg-slate-100 dark:bg-gray-900"
         }`}
         style={{
-          height: "250px",
+          height: "180px",
+          minHeight: "180px",
+          overflowY: "hidden",
         }}>
-        <div
-          ref={setNodeRef}
-          style={{
-            width: `${virtualizer.getTotalSize()}px`,
-            height: "100%",
-            position: "relative",
-          }}>
-          {virtualItems.map((virtualItem) => {
-            const post = posts[virtualItem.index];
-            return (
-              <div
-                key={virtualItem.key}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  height: "100%",
-                  width: `${virtualItem.size}px`,
-                  transform: `translateX(${virtualItem.start}px)`,
-                }}>
-                <DraggableSchedulerPostCard post={post} />
-              </div>
-            );
-          })}
+        <div className="flex gap-4 h-full">
+          <SortableContext items={posts.map((p) => p.id)} strategy={horizontalListSortingStrategy}>
+            {posts.map((post) => (
+              <SortablePostCard key={post.id} post={post} />
+            ))}
+          </SortableContext>
         </div>
       </div>
     </div>

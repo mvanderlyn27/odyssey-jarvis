@@ -62,11 +62,6 @@ const PostPublisher = () => {
     <Card className={!canPublish ? "bg-gray-100 dark:bg-neutral-700" : ""}>
       <CardHeader>
         <CardTitle className={!canPublish ? "text-muted-foreground" : ""}>Post Publisher</CardTitle>
-        {isScheduled && post.scheduled_at && (
-          <p className="text-sm text-muted-foreground">
-            Post Scheduled for {new Date(post.scheduled_at).toLocaleString()}
-          </p>
-        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <fieldset disabled={!canPublish || isScheduled} className="space-y-4">
@@ -77,10 +72,15 @@ const PostPublisher = () => {
         </fieldset>
       </CardContent>
       <CardFooter className="flex flex-col gap-4 justify-center">
-        {isScheduled ? (
-          <Button onClick={handleUnschedule} disabled={unscheduleMutation.isPending} variant="outline">
-            {unscheduleMutation.isPending ? "Unscheduling..." : "Unschedule Post"}
-          </Button>
+        {isScheduled && post.scheduled_at ? (
+          <div className="flex items-center justify-between w-full">
+            <p className="text-sm text-muted-foreground">
+              Scheduled for {new Date(post.scheduled_at).toLocaleString()}
+            </p>
+            <Button onClick={handleUnschedule} disabled={unscheduleMutation.isPending} variant="outline">
+              {unscheduleMutation.isPending ? "Unscheduling..." : "Unschedule"}
+            </Button>
+          </div>
         ) : (
           <Button
             onClick={handlePublish}

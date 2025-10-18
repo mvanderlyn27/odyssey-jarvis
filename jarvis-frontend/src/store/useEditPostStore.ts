@@ -166,15 +166,31 @@ export const useEditPostStore = create(
       removeAsset: (assetId) =>
         set((state) => {
           if (!state.post) return {};
+
           const assetToRemove = state.post.post_assets.find((asset) => asset.id === assetId);
           if (assetToRemove) {
             del(`file_${assetToRemove.id}`);
             del(`originalFile_${assetToRemove.id}`);
           }
+
+          const newAssets = state.post.post_assets
+            .map((asset) => {
+              if (asset.id === assetId) {
+                // If the asset is new, just remove it.
+                if (asset.status === "new") {
+                  return null;
+                }
+                // If it's an existing asset, mark it as deleted.
+                return { ...asset, status: "deleted" };
+              }
+              return asset;
+            })
+            .filter((asset): asset is Asset => asset !== null);
+
           return {
             post: {
               ...state.post,
-              post_assets: state.post.post_assets.filter((asset) => asset.id !== assetId),
+              post_assets: newAssets,
             },
             isDirty: true,
           };

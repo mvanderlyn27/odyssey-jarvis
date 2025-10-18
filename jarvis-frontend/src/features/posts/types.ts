@@ -37,3 +37,5 @@ export type DraftPost = Omit<Post, "post_assets"> & {
 export type PostWithAssets = Database["public"]["Tables"]["posts"]["Row"] & {
   post_assets: PostAsset[];
 };
+
+export type PostStatus = Database["public"]["Enums"]["post_status"];

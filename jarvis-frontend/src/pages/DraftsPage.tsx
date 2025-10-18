@@ -36,14 +36,14 @@ export const DraftsPage = () => {
   const filteredPosts = (posts || []).filter((p) => p.id !== postInEdit?.id);
 
   return (
-    <div className="container p-4">
-      <PageHeader title="">
+    <div className="p-4 sm:p-6 md:p-8">
+      <PageHeader>
         <RefreshButton onClick={() => refetch()} isRefreshing={isLoading} />
       </PageHeader>
 
       {isLoading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error.message}</p>}
-      <div className="space-y-8">
+      <div className="space-y-8 max-w-[60vw] mx-auto">
         <PostList posts={filteredPosts} startItems={startItems} variant="draft" />
       </div>
     </div>

@@ -30,7 +30,7 @@ const EditPost = ({ postId }: { postId: string }) => {
   }, [fetchedPost, post?.id, setPost]);
 
   const handleBack = () => {
-    navigate("/drafts");
+    navigate(-1);
   };
 
   const handleClonePost = () => {
@@ -51,7 +51,7 @@ const EditPost = ({ postId }: { postId: string }) => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4 text-center">
+      <div className="p-4 sm:p-6 md:p-8 text-center">
         <p>Loading post...</p>
       </div>
     );
@@ -59,7 +59,7 @@ const EditPost = ({ postId }: { postId: string }) => {
 
   if (!post) {
     return (
-      <div className="container mx-auto p-4 text-center">
+      <div className="p-4 sm:p-6 md:p-8 text-center">
         <p>Post not found.</p>
         <Button onClick={() => navigate("/drafts")} className="mt-4">
           Go to Drafts
@@ -69,8 +69,8 @@ const EditPost = ({ postId }: { postId: string }) => {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <PageHeader title={post.title || "Edit Draft"} onBackClick={handleBack}>
+    <div className="p-4 sm:p-6 md:p-8">
+      <PageHeader onBackClick={handleBack} status={post.status || undefined}>
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
         <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>
           {isSaving ? "Saving..." : "Save"}
@@ -86,13 +86,15 @@ const EditPost = ({ postId }: { postId: string }) => {
           </>
         )}
       </PageHeader>
-      <PostDetailAssetList />
-      <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
-        <div className="lg:col-span-1 space-y-4">
-          <PostDetails />
-        </div>
-        <div className="lg-col-span-1 space-y-4">
-          <PostPublisher />
+      <div className="max-w-[80vw] mx-auto">
+        <PostDetailAssetList />
+        <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
+          <div className="lg:col-span-1 space-y-4">
+            <PostDetails />
+          </div>
+          <div className="lg-col-span-1 space-y-4">
+            <PostPublisher />
+          </div>
         </div>
       </div>
     </div>
@@ -105,7 +107,7 @@ const NewPost = () => {
   const { mutate: savePost, isPending: isSaving } = useSavePost();
 
   const handleBack = () => {
-    navigate("/drafts");
+    navigate(-1);
   };
 
   const handleDelete = () => {
@@ -116,7 +118,7 @@ const NewPost = () => {
 
   if (!post) {
     return (
-      <div className="container mx-auto p-4 text-center">
+      <div className="p-4 sm:p-6 md:p-8 text-center">
         <p>No post is currently being edited.</p>
         <Button onClick={() => navigate("/drafts")} className="mt-4">
           Go to Drafts
@@ -126,7 +128,7 @@ const NewPost = () => {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title={post.title || "New Draft"} onBackClick={handleBack}>
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
         <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>
@@ -136,13 +138,15 @@ const NewPost = () => {
           Delete
         </Button>
       </PageHeader>
-      <PostDetailAssetList />
-      <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
-        <div className="lg:col-span-1 space-y-4">
-          <PostDetails />
-        </div>
-        <div className="lg-col-span-1 space-y-4">
-          <PostPublisher />
+      <div className="max-w-[80vw] mx-auto">
+        <PostDetailAssetList />
+        <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
+          <div className="lg:col-span-1 space-y-4">
+            <PostDetails />
+          </div>
+          <div className="lg-col-span-1 space-y-4">
+            <PostPublisher />
+          </div>
         </div>
       </div>
     </div>

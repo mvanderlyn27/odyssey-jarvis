@@ -23,6 +23,9 @@ export const useClonePost = () => {
       queryClient.invalidateQueries({
         queryKey: queries.posts.byStatus("DRAFT").queryKey,
       });
+      queryClient.invalidateQueries({
+        queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey,
+      });
       clearPost();
       navigate(`/drafts/${data.post.id}`);
       toast.success("Post cloned successfully!");

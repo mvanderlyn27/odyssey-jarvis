@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
   DndContext,
   closestCenter,
@@ -21,20 +21,44 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { PostDetailAsset, AssetCard } from "@/features/posts/components/PostDetailAsset";
 import { useEditPostStore } from "@/store/useEditPostStore";
 import { Post, DraftPost, Asset } from "../types";
+import { NewPostDetailAssetButton } from "./NewPostDetailAssetButton";
 
 const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post | DraftPost; viewOnly?: boolean }) => {
   const { post: postFromStore, reorderAssets, addAssets, removeAsset } = useEditPostStore();
   const post = postProp || postFromStore;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   const assets: Asset[] = useMemo(
     () =>
-      post?.post_assets.map((asset) =>
-        "status" in asset ? (asset as Asset) : ({ ...asset, status: "unchanged" } as Asset)
-      ) || [],
+      post?.post_assets
+        .map((asset) => ("status" in asset ? (asset as Asset) : ({ ...asset, status: "unchanged" } as Asset)))
+        .filter((asset) => asset.status !== "deleted") || [],
     [post]
   );
+
+  const checkScrollability = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      setCanScrollLeft(container.scrollLeft > 0);
+      setCanScrollRight(container.scrollLeft < container.scrollWidth - container.clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      checkScrollability();
+      container.addEventListener("scroll", checkScrollability);
+      window.addEventListener("resize", checkScrollability);
+      return () => {
+        container.removeEventListener("scroll", checkScrollability);
+        window.removeEventListener("resize", checkScrollability);
+      };
+    }
+  }, [assets, checkScrollability]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -86,17 +110,21 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
         onClick={() => handleScroll("left")}
         variant="outline"
         size="icon"
-        className="absolute -left-4 sm:-left-12 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 hover:bg-background">
+        className="absolute -left-4 sm:-left-12 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 hover:bg-background"
+        disabled={!canScrollLeft}>
         <ChevronLeftIcon className="h-6 w-6" />
       </Button>
-      <div ref={scrollContainerRef} className="overflow-x-auto px-8 w-full">
+      <div
+        ref={scrollContainerRef}
+        className="overflow-x-auto px-12 w-full"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}>
-          <SortableContext items={assets.map((asset) => asset.id!)} strategy={horizontalListSortingStrategy}>
-            <div className="flex gap-4 p-4">
+          <div className="flex gap-4 p-4">
+            <SortableContext items={assets.map((asset) => asset.id!)} strategy={horizontalListSortingStrategy}>
               {assets.map((asset) => (
                 <PostDetailAsset
                   key={asset.id}
@@ -105,23 +133,9 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
                   viewOnly={viewOnly}
                 />
               ))}
-              {!viewOnly && (
-                <label
-                  htmlFor="file-upload"
-                  className="w-full aspect-[9/16] flex items-center justify-center bg-muted rounded-lg cursor-pointer">
-                  <span className="text-4xl">+</span>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={handleFileChange}
-                    accept="image/webp,image/jpeg,video/mp4"
-                  />
-                </label>
-              )}
-            </div>
-          </SortableContext>
+            </SortableContext>
+            {!viewOnly && <NewPostDetailAssetButton onFileChange={handleFileChange} />}
+          </div>
           <DragOverlay>
             {activeAsset ? <AssetCard asset={activeAsset} onRemove={() => {}} viewOnly={viewOnly} isDragging /> : null}
           </DragOverlay>
@@ -131,7 +145,8 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
         onClick={() => handleScroll("right")}
         variant="outline"
         size="icon"
-        className="absolute -right-4 sm:-right-12 top-1/2 -translate-y-12 z-10 h-10 w-10 rounded-full bg-background/80 hover:bg-background">
+        className="absolute -right-4 sm:-right-12 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 hover:bg-background"
+        disabled={!canScrollRight}>
         <ChevronRightIcon className="h-6 w-6" />
       </Button>
     </div>

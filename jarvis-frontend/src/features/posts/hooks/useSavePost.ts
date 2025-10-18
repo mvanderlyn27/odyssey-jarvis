@@ -134,6 +134,9 @@ export const useSavePost = () => {
       queryClient.invalidateQueries({
         queryKey: queries.posts.byStatus("DRAFT").queryKey,
       });
+      queryClient.invalidateQueries({
+        queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey,
+      });
 
       if (variables.id === "draft") {
         queryClient.setQueryData(queries.posts.detail(data.id).queryKey, data);

@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
 
 const TIKTOK_API_BASE = "https://open.tiktokapis.com/v2";
 
@@ -17,6 +18,7 @@ interface TikTokVideoStat {
 interface Account {
   id: string;
   access_token: string;
+  refresh_token: string;
 }
 
 interface PostAnalytic {
@@ -45,14 +47,21 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
     const url = new URL(`${TIKTOK_API_BASE}/video/query/`);
     url.searchParams.append("fields", "id,like_count,comment_count,share_count,view_count");
 
-    const response = await fetch(url.toString(), {
+    const options = {
       method: "POST",
       headers: {
         Authorization: `Bearer ${account.access_token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ filters: { video_ids: batch } }),
-    });
+    };
+
+    const response = await fetchWithRetry(
+      url.toString(),
+      options,
+      account.refresh_token,
+      `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: "Failed to parse error JSON" }));
@@ -200,7 +209,7 @@ serve(async (req: Request) => {
 
       const { data: account, error: accountError } = await supabaseAdmin
         .from("tiktok_accounts")
-        .select("id, access_token")
+        .select("id, access_token, refresh_token")
         .eq("id", account_id)
         .single();
 
@@ -219,7 +228,7 @@ serve(async (req: Request) => {
     console.log("Starting bulk analytics fetch for all accounts.");
     const { data: accounts, error: accountsError } = await supabaseAdmin
       .from("tiktok_accounts")
-      .select("id, access_token");
+      .select("id, access_token, refresh_token");
 
     if (accountsError) {
       console.error("Error fetching tiktok_accounts:", accountsError);

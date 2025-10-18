@@ -1,16 +1,17 @@
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { useEffect, useState } from "react";
 import SchedulerPostList from "@/features/scheduling/components/SchedulerPostList";
 import ScheduleCalendar from "@/features/scheduling/components/ScheduleCalendar";
-import { useScheduleStore } from "@/store/useScheduleStore";
 import { useSchedulePost } from "@/features/posts/hooks/useSchedulePost";
-import PostCard, { PostWithAssets } from "@/features/scheduling/components/PostCard";
 import { useUnschedulePost } from "@/features/posts/hooks/useUnschedulePost";
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import { useSchedulePageStore } from "@/store/useSchedulePageStore";
+import DraggableSchedulerPostCard from "@/features/scheduling/components/DraggableSchedulerPostCard";
+import { PostWithAssets } from "@/features/posts/types";
 
 const PostSchedulePage = () => {
-  const { morningTime, eveningTime } = useScheduleStore();
+  const { daySettings } = useSchedulePageStore();
   const { mutate: schedulePost } = useSchedulePost();
   const { mutate: unschedulePost } = useUnschedulePost();
   const [activePost, setActivePost] = useState<PostWithAssets | null>(null);
@@ -20,7 +21,6 @@ const PostSchedulePage = () => {
     useSchedulePageStore();
 
   useEffect(() => {
-    console.log("updating posts");
     if (posts) {
       const drafts = posts.filter((p) => p.status === "DRAFT");
       const scheduled = posts.filter((p) => p.status === "SCHEDULED");
@@ -30,7 +30,8 @@ const PostSchedulePage = () => {
   }, [posts, setDraftPosts, setScheduledPosts]);
 
   const handleDragStart = (event: DragStartEvent) => {
-    const post = event.active.data.current?.post as PostWithAssets;
+    const { active } = event;
+    const post = posts?.find((p) => p.id === active.id);
     if (post) {
       setActivePost(post);
     }
@@ -44,29 +45,35 @@ const PostSchedulePage = () => {
     const postId = active.id as string;
     const overId = over.id.toString();
 
-    if (overId === "drafts-list") {
-      movePostToDrafts(postId);
-      unschedulePost(postId);
+    if (overId === "drafts-list" || draftPosts.some((p) => p.id === overId)) {
+      const oldIndex = draftPosts.findIndex((p) => p.id === postId);
+      const newIndex = overId === "drafts-list" ? draftPosts.length - 1 : draftPosts.findIndex((p) => p.id === overId);
+
+      if (oldIndex !== -1) {
+        if (newIndex !== -1) {
+          setDraftPosts(arrayMove(draftPosts, oldIndex, newIndex));
+        }
+      } else {
+        movePostToDrafts(postId);
+        unschedulePost(postId);
+      }
       return;
     }
 
     const parts = overId.split("-");
     const timeSlot = parts.pop();
-    const datePart = parts.pop();
-    const monthPart = parts.pop();
-    const yearPart = parts.pop();
+    const dateStr = parts.pop();
     const accountId = parts.join("-");
 
-    const time = timeSlot === "morning" ? morningTime : eveningTime;
+    if (!dateStr || !timeSlot || !accountId) return;
+
+    const day = new Date(dateStr);
+    const dayAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day.getUTCDay()];
+    const time = timeSlot === "morning" ? daySettings[dayAbbr].morning : daySettings[dayAbbr].evening;
     const [hours, minutes] = time.split(":").map(Number);
 
-    const scheduledAtDate = new Date(
-      parseInt(yearPart!),
-      parseInt(monthPart!) - 1,
-      parseInt(datePart!),
-      hours,
-      minutes
-    );
+    const scheduledAtDate = new Date(dateStr);
+    scheduledAtDate.setUTCHours(hours, minutes, 0, 0);
 
     if (isNaN(scheduledAtDate.getTime())) {
       console.error("Constructed date is invalid.");
@@ -86,13 +93,14 @@ const PostSchedulePage = () => {
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Post Scheduler</h1>
-        <SchedulerPostList posts={draftPosts} isLoading={isLoading} />
+        <div className="sticky top-0 z-50 bg-white dark:bg-gray-950 py-4">
+          <SchedulerPostList posts={draftPosts} isLoading={isLoading} onSort={setDraftPosts} />
+        </div>
         <div className="overflow-x-auto">
           <ScheduleCalendar posts={scheduledPosts} isLoading={isLoading} />
         </div>
       </div>
-      <DragOverlay>{activePost ? <PostCard post={activePost} isOverlay /> : <div></div>}</DragOverlay>
+      <DragOverlay>{activePost ? <DraggableSchedulerPostCard post={activePost} /> : null}</DragOverlay>
     </DndContext>
   );
 };

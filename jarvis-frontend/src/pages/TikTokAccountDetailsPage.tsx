@@ -25,6 +25,7 @@ import AccountAnalyticsGraph from "../features/analytics/components/AccountAnaly
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings } from "lucide-react";
 import { queries } from "@/lib/queries";
+import { Separator } from "@/components/ui/separator";
 
 type SortOrder = "recency" | "views" | "likes" | "comments" | "shares";
 
@@ -100,66 +101,74 @@ const TikTokAccountDetailsPage = () => {
 
   return (
     <div className="p-4 space-y-8">
-      <PageHeader title={account.tiktok_display_name || ""}>
-        <RefreshButton onClick={handleRefresh} isRefreshing={isFetchingAnalytics} />
-        <Select onValueChange={(value) => setSortOrder(value as SortOrder)} defaultValue={sortOrder}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recency">Most Recent</SelectItem>
-            <SelectItem value="views">Most Views</SelectItem>
-            <SelectItem value="likes">Most Likes</SelectItem>
-            <SelectItem value="comments">Most Comments</SelectItem>
-            <SelectItem value="shares">Most Shares</SelectItem>
-          </SelectContent>
-        </Select>
-      </PageHeader>
+      <PageHeader title={account.tiktok_display_name || ""}></PageHeader>
 
-      {/* Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center justify-center w-full space-y-2 text-center">
-              <Avatar className="h-24 w-24 border-2 border-primary">
-                <AvatarImage
-                  src={account.tiktok_avatar_url ?? undefined}
-                  alt={account.tiktok_display_name ?? undefined}
-                />
-                <AvatarFallback>{account.tiktok_display_name?.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-bold">{account.tiktok_display_name}</h1>
-                <p className="text-muted-foreground">@{account.tiktok_username}</p>
+      <div className="max-w-[80vw] mx-auto space-y-8">
+        {/* Analytics Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center justify-center w-full space-y-2 text-center">
+                <Avatar className="h-24 w-24 border-2 border-primary">
+                  <AvatarImage
+                    src={account.tiktok_avatar_url ?? undefined}
+                    alt={account.tiktok_display_name ?? undefined}
+                  />
+                  <AvatarFallback>{account.tiktok_display_name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-2xl font-bold">{account.tiktok_display_name}</h1>
+                  <a
+                    href={`https://www.tiktok.com/@${account.tiktok_username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:underline">
+                    @{account.tiktok_username}
+                  </a>
+                </div>
               </div>
-            </div>
-            <div className="my-6 border-t border-border" />
-            <AccountAnalyticsKPIs accountId={accountId} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Follower History</CardTitle>
-          </CardHeader>
-          <CardContent>{accountId && <AccountAnalyticsGraph accountId={accountId} />}</CardContent>
-        </Card>
-      </div>
-
-      {/* Video Section */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold">Videos</h2>
-            <Button variant="ghost" size="icon" onClick={() => setSettingsModalOpen(true)}>
-              <Settings className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-muted-foreground">Total Videos: {posts?.length ?? 0}</p>
-          </div>
+              <div className="my-6 border-t border-border" />
+              <AccountAnalyticsKPIs accountId={accountId} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Follower History</CardTitle>
+            </CardHeader>
+            <CardContent>{accountId && <AccountAnalyticsGraph accountId={accountId} />}</CardContent>
+          </Card>
         </div>
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-9">
+
+        {/* Video Section */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold">
+                Videos <span className="text-sm text-muted-foreground">({posts?.length ?? 0})</span>
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setSettingsModalOpen(true)}>
+                <Settings className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-4">
+              <RefreshButton onClick={handleRefresh} isRefreshing={isFetchingAnalytics} />
+              <Select onValueChange={(value) => setSortOrder(value as SortOrder)} defaultValue={sortOrder}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recency">Most Recent</SelectItem>
+                  <SelectItem value="views">Most Views</SelectItem>
+                  <SelectItem value="likes">Most Likes</SelectItem>
+                  <SelectItem value="comments">Most Comments</SelectItem>
+                  <SelectItem value="shares">Most Shares</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Separator />
+          {/* <div className="max-w-[0vw] mx-auto"> */}
+          <div className="">
             {sortedPosts.length > 0 ? (
               <PostList posts={sortedPosts} variant="published" />
             ) : (
@@ -173,27 +182,6 @@ const TikTokAccountDetailsPage = () => {
                 </Button>
               </div>
             )}
-          </div>
-          <div className="col-span-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>Filters</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Select onValueChange={(value) => setSortOrder(value as SortOrder)} defaultValue={sortOrder}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recency">Most Recent</SelectItem>
-                    <SelectItem value="views">Most Views</SelectItem>
-                    <SelectItem value="likes">Most Likes</SelectItem>
-                    <SelectItem value="comments">Most Comments</SelectItem>
-                    <SelectItem value="shares">Most Shares</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

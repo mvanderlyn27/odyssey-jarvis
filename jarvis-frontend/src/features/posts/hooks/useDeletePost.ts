@@ -28,6 +28,9 @@ export const useDeletePost = (onSuccessCallback?: () => void) => {
       queryClient.invalidateQueries({
         queryKey: queries.posts.byStatus("DRAFT").queryKey,
       });
+      queryClient.invalidateQueries({
+        queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey,
+      });
 
       if (post?.id === deletedPostId) {
         clearPost();

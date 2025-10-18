@@ -20,10 +20,9 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
       <div ref={ref} {...props} className="w-[300px] flex-shrink-0">
         <motion.div
           className={`w-full aspect-[9/16] relative group overflow-hidden rounded-lg ${!viewOnly ? "cursor-grab" : ""}`}
-          // initial={{ opacity: 0 }}
-          // animate={{ opacity: 1 }}
-          // transition={{ duration: 0.5 }}
-          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}>
+          transition={{ duration: 0.5 }}
+          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+          animate={{ scale: isDragging ? 1.05 : 1 }}>
           <div className="w-full h-full">
             {asset.asset_type === "slides" ? (
               <SignedUrlImage
@@ -33,6 +32,7 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
                 blobUrl={asset.file instanceof Blob ? URL.createObjectURL(asset.file) : undefined}
                 size="large"
                 preferFullSize={true}
+                isDragging={isDragging}
               />
             ) : (
               <video src={asset.asset_url} className="w-full h-full object-cover rounded-lg" controls />
@@ -43,6 +43,7 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
               variant="destructive"
               size="icon"
               className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove();

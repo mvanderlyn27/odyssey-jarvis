@@ -11,27 +11,32 @@ export const fetchWithRetry = async (url: string, options: any, refreshToken?: s
 
     console.log("Access token expired, attempting refresh...");
 
-    const headers: { [key: string]: string } = {};
+    const headers: { [key: string]: string } = {
+      "Content-Type": "application/json",
+    };
+
     if (authorization) {
-      headers["Authorization"] = authorization;
-    }
-    const internalSecret = Deno.env.get("INTERNAL_SECRET_KEY");
-    if (options.headers["X-Internal-Secret"] && internalSecret) {
-      headers["X-Internal-Secret"] = internalSecret;
-    }
-
-    const { data: refreshedTokenData, error: refreshError } = await supabaseAdmin.functions.invoke(
-      "tiktok-refresh-token",
-      {
-        body: { refresh_token: refreshToken },
-        headers,
+      if (authorization.startsWith("Bearer ")) {
+        headers["Authorization"] = authorization;
+      } else {
+        headers["X-Internal-Secret"] = authorization;
       }
-    );
+    }
 
-    if (refreshError) {
-      console.error("Error invoking tiktok-refresh-token function:", refreshError);
+    const functionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/tiktok-refresh-token`;
+    const refreshResponse = await fetch(functionUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!refreshResponse.ok) {
+      const errorText = await refreshResponse.text();
+      console.error(`Error refreshing token: ${refreshResponse.status} ${refreshResponse.statusText}`, errorText);
       throw new Error("Failed to refresh token.");
     }
+
+    const refreshedTokenData = await refreshResponse.json();
 
     const newOptions = {
       ...options,

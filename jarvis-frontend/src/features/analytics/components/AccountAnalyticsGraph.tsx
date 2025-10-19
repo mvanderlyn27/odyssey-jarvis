@@ -5,15 +5,6 @@ import { useTheme } from "@/components/theme-provider";
 import { subDays, startOfHour, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import { AnalyticsGraphControls, DateRange } from "./AnalyticsGraphControls";
 
-type AccountAnalytics = {
-  id: string;
-  created_at: string;
-  follower_count: number;
-  likes_count: number;
-  video_count: number;
-  [key: string]: any; // Add index signature for dynamic access
-};
-
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (

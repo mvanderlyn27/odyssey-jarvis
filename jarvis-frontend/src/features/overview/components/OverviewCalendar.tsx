@@ -6,6 +6,7 @@ import { getLatestAnalytics } from "@/features/posts/utils/getLatestAnalytics";
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
+import { CheckCircle, Clock } from "lucide-react";
 
 const OverviewCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -75,14 +76,24 @@ const OverviewCalendar = () => {
             <div className="h-32 border rounded-md p-2 flex flex-col hover:bg-muted transition-colors">
               <p className="text-sm font-medium">{i}</p>
               <div className="space-y-1 mt-1 flex-grow overflow-y-auto">
-                <div className="text-xs">
-                  <p>{publishedPosts.length || 0} published</p>
-                  <p>{scheduledPosts.length || 0} scheduled</p>
-                </div>
+                {publishedPosts.length > 0 && (
+                  <div className="text-xs inline-flex items-center bg-green-100 border border-green-200 text-green-800 dark:bg-green-900/50 dark:border-green-800 dark:text-green-300 px-3 py-1 rounded-md">
+                    <CheckCircle className="h-4 w-4 mr-1 flex-shrink-0" />
+                    <span className="font-bold">{publishedPosts.length}</span>
+                  </div>
+                )}
+                {scheduledPosts.length > 0 && (
+                  <div className="text-xs inline-flex items-center bg-yellow-100 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/50 dark:border-yellow-800 dark:text-yellow-300 px-3 py-1 rounded-md">
+                    <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
+                    <span className="font-bold">{scheduledPosts.length}</span>
+                  </div>
+                )}
               </div>
               {!isFutureDate && (
-                <div className="text-xs text-muted-foreground mt-2">
-                  <p>Views: {kpis.views.toLocaleString()}</p>
+                <div className="text-xs mt-2">
+                  <p>
+                    Views: <span className="font-bold">{kpis.views.toLocaleString()}</span>
+                  </p>
                 </div>
               )}
             </div>

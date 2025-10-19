@@ -28,7 +28,12 @@ const DayDetailPage = () => {
   }, [date]);
 
   const publishedPosts = useMemo(() => {
-    return posts?.filter((post) => post.status === "PUBLISHED") || [];
+    const filtered = posts?.filter((post) => post.status === "PUBLISHED") || [];
+    return filtered.sort((a, b) => {
+      const viewsA = getLatestAnalytics(a.post_analytics)?.views || 0;
+      const viewsB = getLatestAnalytics(b.post_analytics)?.views || 0;
+      return viewsB - viewsA;
+    });
   }, [posts]);
 
   const scheduledPosts = useMemo(() => {

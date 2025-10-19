@@ -1,30 +1,22 @@
 import { PostWithAssets } from "@/features/posts/types";
 import DraggableSchedulerPostCard from "./DraggableSchedulerPostCard";
-import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import React from "react";
 
-const SortablePostCard = ({ post }: { post: PostWithAssets }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+const DraggablePostCard = ({ post }: { post: PostWithAssets }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: post.id,
   });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition: transition || undefined,
     visibility: isDragging ? "hidden" : "visible",
   };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <DraggableSchedulerPostCard
-        post={post}
-        isDragging={isDragging}
-        transform={transform}
-        transition={transition}
-        listeners={listeners}
-      />
+      <DraggableSchedulerPostCard post={post} isDragging={isDragging} listeners={listeners} />
     </div>
   );
 };
@@ -54,11 +46,9 @@ const SchedulerPostList = ({ posts, isLoading }: SchedulerPostListProps) => {
           overflowY: "hidden",
         }}>
         <div className="flex gap-4 h-full">
-          <SortableContext items={posts.map((p) => p.id)} strategy={horizontalListSortingStrategy}>
-            {posts.map((post) => (
-              <SortablePostCard key={post.id} post={post} />
-            ))}
-          </SortableContext>
+          {posts.map((post) => (
+            <DraggablePostCard key={post.id} post={post} />
+          ))}
         </div>
       </div>
     </div>

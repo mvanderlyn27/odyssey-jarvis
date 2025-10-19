@@ -23,7 +23,12 @@ export const usePosts = ({
   return useQuery({
     ...queries.posts.all(),
     queryFn: () =>
-      fetchPostsByStatus(["DRAFT", "FAILED", "PROCESSING", "PUBLISHED", "INBOX"], accountIds, startDate, endDate),
+      fetchPostsByStatus(
+        ["DRAFT", "FAILED", "PROCESSING", "PUBLISHED", "INBOX", "SCHEDULED"],
+        accountIds,
+        startDate,
+        endDate
+      ),
     staleTime,
   });
 };

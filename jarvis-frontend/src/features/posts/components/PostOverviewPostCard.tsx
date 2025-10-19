@@ -55,14 +55,14 @@ const PostOverviewPostCard = ({ post, priority }: PostOverviewPostCardProps) => 
       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
       className="rounded-lg overflow-hidden w-full max-w-[450px]">
       <Link to={`/posts/${post.id}`} key={post.id}>
-        <Card className="overflow-hidden flex flex-col sm:flex-row w-full bg-neutral-300 dark:bg-neutral-800 text-white border-none rounded-lg">
-          <div className="w-full sm:w-40 aspect-video sm:aspect-[9/16] bg-gray-700 flex-shrink-0">
+        <Card className="overflow-hidden flex flex-col sm:flex-row w-full bg-white dark:bg-neutral-800 text-gray-800 dark:text-white border-none rounded-lg">
+          <div className="w-full sm:w-40 aspect-video sm:aspect-[9/16] bg-gray-200 dark:bg-gray-700 flex-shrink-0">
             {renderThumbnail()}
           </div>
           <div className="p-4 flex flex-col flex-grow justify-between min-w-0">
             <div>
               <CardTitle className="truncate text-lg font-bold">{post.title || "Untitled Post"}</CardTitle>
-              <div className="flex flex-col text-sm text-gray-400 mt-2">
+              <div className="flex flex-col text-sm text-gray-500 dark:text-gray-400 mt-2">
                 {post.tiktok_accounts && (
                   <div className="flex items-center mb-2">
                     <img

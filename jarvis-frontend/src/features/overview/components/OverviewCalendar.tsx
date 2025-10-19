@@ -167,8 +167,12 @@ const OverviewCalendar = () => {
           {currentDate.toLocaleString("default", { month: "long" })} {currentDate.getFullYear()}
         </CardTitle>
         <div className="space-x-2">
-          <Button onClick={prevMonth}>{"<"}</Button>
-          <Button onClick={nextMonth}>{">"}</Button>
+          <Button variant="outline" onClick={prevMonth}>
+            {"<"}
+          </Button>
+          <Button variant="outline" onClick={nextMonth}>
+            {">"}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="flex-grow overflow-x-auto">

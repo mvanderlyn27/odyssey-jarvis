@@ -139,13 +139,16 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
 
   const weekDays = useMemo(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay();
+    const dayOfWeek = today.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
     const days: Date[] = [];
-    const startOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    // Calculate the start of the current week (Monday)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // Adjust for Sunday being 0
 
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + startOffset + i);
+    for (let i = 0; i < 14; i++) {
+      // Generate 14 days for two weeks
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
       date.setHours(0, 0, 0, 0);
       days.push(date);
     }
@@ -176,7 +179,7 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
           </Button>
         </CardHeader>
         <CardContent ref={calendarRef} className="p-0 overflow-x-auto">
-          <div className="grid grid-cols-[100px_repeat(7,minmax(280px,1fr))]">
+          <div className="grid grid-cols-[100px_repeat(14,minmax(280px,1fr))]">
             {/* Header Row */}
             <div className="sticky left-0 z-30 p-2 font-semibold text-center bg-card"></div>
             {weekDays.map((day, index) => (
@@ -185,7 +188,7 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
                 className={`p-2 mb-2 font-semibold text-center ${
                   day.toDateString() === todayDateString ? "bg-gray-200 dark:bg-gray-800 rounded-3xl" : ""
                 }`}>
-                <div>{dayAbbreviations[index]}</div>
+                <div>{dayAbbreviations[index % 7]}</div>
                 <div className="text-xs text-muted-foreground">{day.toLocaleDateString()}</div>
               </div>
             ))}
@@ -207,7 +210,7 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
                   </Link>
                 </div>
                 {weekDays.map((day, index) => {
-                  const dayAbbr = dayAbbreviations[index];
+                  const dayAbbr = dayAbbreviations[index % 7];
                   const { morning: morningTime, evening: eveningTime } = daySettings[dayAbbr];
 
                   const now = new Date();

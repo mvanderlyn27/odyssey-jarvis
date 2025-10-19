@@ -2,22 +2,28 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/lib/queries";
 import { fetchPostsByStatus } from "@/features/posts/api";
 
-export const usePosts = ({ status, accountId }: { status?: string; accountId?: string | string[] } = {}) => {
+export const usePosts = ({
+  status,
+  accountId,
+  startDate,
+  endDate,
+}: { status?: string; accountId?: string | string[]; startDate?: string; endDate?: string } = {}) => {
   const accountIds = accountId ? (Array.isArray(accountId) ? accountId : [accountId]) : undefined;
   const staleTime = 1000 * 60 * 10; // 10 minutes
 
   if (status) {
     const statuses = status.split(",");
     return useQuery({
-      ...queries.posts.byStatus(status, accountIds),
-      queryFn: () => fetchPostsByStatus(statuses, accountIds),
+      ...queries.posts.byStatus(status, accountIds, startDate, endDate),
+      queryFn: () => fetchPostsByStatus(statuses, accountIds, startDate, endDate),
       staleTime,
     });
   }
 
   return useQuery({
     ...queries.posts.all(),
-    queryFn: () => fetchPostsByStatus(["DRAFT", "FAILED", "PROCESSING", "PUBLISHED", "INBOX"], accountIds),
+    queryFn: () =>
+      fetchPostsByStatus(["DRAFT", "FAILED", "PROCESSING", "PUBLISHED", "INBOX"], accountIds, startDate, endDate),
     staleTime,
   });
 };

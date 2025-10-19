@@ -1,74 +1,99 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Post } from "@/features/posts/types";
-import { useDailyAccountAnalytics } from "@/features/analytics/hooks/useDailyAccountAnalytics";
-import { useAnalyticsStore } from "@/store/useAnalyticsStore";
+import { Link } from "react-router-dom";
+import { getLatestAnalytics } from "@/features/posts/utils/getLatestAnalytics";
+import { usePosts } from "@/features/posts/hooks/usePosts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
-interface OverviewCalendarProps {
-  posts: Post[] | undefined;
-}
-
-const OverviewCalendar = ({ posts }: OverviewCalendarProps) => {
+const OverviewCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const selectedAccounts = useAnalyticsStore((state) => state.selectedAccounts);
-  const accountIds = selectedAccounts.map((account) => account.id);
+  const { data: posts, isLoading } = usePosts();
 
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-  const { data: analytics } = useDailyAccountAnalytics(
-    accountIds,
-    startOfMonth.toISOString(),
-    endOfMonth.toISOString()
-  );
 
   const startDay = startOfMonth.getDay();
   const daysInMonth = endOfMonth.getDate();
 
   const days = [];
   for (let i = 0; i < startDay; i++) {
-    days.push(<div key={`prev-${i}`} className="h-24 border rounded-md bg-muted" />);
+    days.push(<div key={`prev-${i}`} className="h-32 border rounded-md bg-muted" />);
   }
   for (let i = 1; i <= daysInMonth; i++) {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
-    const postsForDay =
-      posts?.filter(
-        (post) => post.scheduled_at && new Date(post.scheduled_at).toDateString() === date.toDateString()
-      ) || [];
-    const analyticsForDay = analytics?.find(
-      (analytic) => new Date(analytic.created_at).toDateString() === date.toDateString()
-    );
+    const dayIndex = startDay + i - 1;
+    if (isLoading) {
+      days.push(
+        <motion.div
+          key={`skeleton-${i}`}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: dayIndex * 0.02 }}>
+          <Skeleton className="h-32" />
+        </motion.div>
+      );
+    } else {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
 
-    const kpis = {
-      views: analyticsForDay?.total_post_views_delta || 0,
-      likes: analyticsForDay?.total_post_likes_delta || 0,
-    };
+      const publishedPosts =
+        posts?.filter(
+          (post) =>
+            post.status === "PUBLISHED" &&
+            post.published_at &&
+            new Date(post.published_at).toDateString() === date.toDateString()
+        ) || [];
 
-    const isFutureDate = date > new Date();
+      const scheduledPosts =
+        posts?.filter(
+          (post) =>
+            post.status === "SCHEDULED" &&
+            post.scheduled_at &&
+            new Date(post.scheduled_at).toDateString() === date.toDateString()
+        ) || [];
 
-    days.push(
-      <div key={i} className="h-32 border rounded-md p-2 flex flex-col">
-        <p className="text-sm font-medium">{i}</p>
-        <div className="space-y-1 mt-1 flex-grow overflow-y-auto">
-          {postsForDay.map((post) => (
-            <div key={post.id} className="text-xs p-1 bg-primary text-primary-foreground rounded-md truncate">
-              {post.title}
+      const kpis = publishedPosts.reduce(
+        (acc, post) => {
+          const latestAnalytics = getLatestAnalytics(post.post_analytics);
+          if (latestAnalytics) {
+            acc.views += latestAnalytics.views || 0;
+          }
+          return acc;
+        },
+        { views: 0 }
+      );
+
+      const isFutureDate = date > new Date();
+
+      days.push(
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: dayIndex * 0.02 }}>
+          <Link to={`/day/${date.toISOString().split("T")[0]}`}>
+            <div className="h-32 border rounded-md p-2 flex flex-col hover:bg-muted transition-colors">
+              <p className="text-sm font-medium">{i}</p>
+              <div className="space-y-1 mt-1 flex-grow overflow-y-auto">
+                <div className="text-xs">
+                  <p>{publishedPosts.length || 0} published</p>
+                  <p>{scheduledPosts.length || 0} scheduled</p>
+                </div>
+              </div>
+              {!isFutureDate && (
+                <div className="text-xs text-muted-foreground mt-2">
+                  <p>Views: {kpis.views.toLocaleString()}</p>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-        {!isFutureDate && (
-          <div className="text-xs text-muted-foreground mt-2">
-            <p>Views: {kpis.views}</p>
-            <p>Likes: {kpis.likes}</p>
-          </div>
-        )}
-      </div>
-    );
+          </Link>
+        </motion.div>
+      );
+    }
   }
   const remainingDays = 42 - days.length;
   for (let i = 0; i < remainingDays; i++) {
-    days.push(<div key={`next-${i}`} className="h-24 border rounded-md bg-muted" />);
+    days.push(<div key={`next-${i}`} className="h-32 border rounded-md bg-muted" />);
   }
 
   const prevMonth = () => {
@@ -80,7 +105,7 @@ const OverviewCalendar = ({ posts }: OverviewCalendarProps) => {
   };
 
   return (
-    <Card>
+    <Card className="w-full h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>
           {currentDate.toLocaleString("default", { month: "long" })} {currentDate.getFullYear()}
@@ -90,8 +115,8 @@ const OverviewCalendar = ({ posts }: OverviewCalendarProps) => {
           <Button onClick={nextMonth}>{">"}</Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-2 text-center font-semibold">
+      <CardContent className="flex-grow overflow-x-auto">
+        <div className="grid grid-cols-7 gap-2 text-center font-semibold min-w-[1000px]">
           <div>Sun</div>
           <div>Mon</div>
           <div>Tue</div>
@@ -100,7 +125,7 @@ const OverviewCalendar = ({ posts }: OverviewCalendarProps) => {
           <div>Fri</div>
           <div>Sat</div>
         </div>
-        <div className="grid grid-cols-7 gap-2 mt-2">{days}</div>
+        <div className="grid grid-cols-7 gap-2 mt-2 min-w-[1000px]">{days}</div>
       </CardContent>
     </Card>
   );

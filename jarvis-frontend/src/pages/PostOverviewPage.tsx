@@ -108,7 +108,7 @@ const PostOverviewPage = () => {
 
   return (
     <div className="space-y-8 p-6">
-      <OverviewCalendar posts={posts} />
+      <OverviewCalendar />
       <Card>
         <CardHeader>
           <CardTitle>Post List</CardTitle>

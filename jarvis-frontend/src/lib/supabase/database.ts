@@ -18,29 +18,65 @@ export type Database = {
         Row: {
           created_at: string
           follower_count: number
+          follower_count_delta: number
           following_count: number
+          following_count_delta: number
           id: number
           likes_count: number
+          likes_count_delta: number
           tiktok_account_id: string
+          total_post_comments: number
+          total_post_comments_delta: number
+          total_post_likes: number
+          total_post_likes_delta: number
+          total_post_shares: number
+          total_post_shares_delta: number
+          total_post_views: number
+          total_post_views_delta: number
           video_count: number
+          video_count_delta: number
         }
         Insert: {
           created_at?: string
           follower_count: number
+          follower_count_delta?: number
           following_count: number
+          following_count_delta?: number
           id?: number
           likes_count: number
+          likes_count_delta?: number
           tiktok_account_id: string
+          total_post_comments?: number
+          total_post_comments_delta?: number
+          total_post_likes?: number
+          total_post_likes_delta?: number
+          total_post_shares?: number
+          total_post_shares_delta?: number
+          total_post_views?: number
+          total_post_views_delta?: number
           video_count: number
+          video_count_delta?: number
         }
         Update: {
           created_at?: string
           follower_count?: number
+          follower_count_delta?: number
           following_count?: number
+          following_count_delta?: number
           id?: number
           likes_count?: number
+          likes_count_delta?: number
           tiktok_account_id?: string
+          total_post_comments?: number
+          total_post_comments_delta?: number
+          total_post_likes?: number
+          total_post_likes_delta?: number
+          total_post_shares?: number
+          total_post_shares_delta?: number
+          total_post_views?: number
+          total_post_views_delta?: number
           video_count?: number
+          video_count_delta?: number
         }
         Relationships: [
           {
@@ -139,6 +175,7 @@ export type Database = {
           id: string
           post_id: string | null
           post_url: string | null
+          published_at: string | null
           reason: string | null
           scheduled_at: string | null
           status: Database["public"]["Enums"]["post_status"] | null
@@ -155,6 +192,7 @@ export type Database = {
           id?: string
           post_id?: string | null
           post_url?: string | null
+          published_at?: string | null
           reason?: string | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["post_status"] | null
@@ -171,6 +209,7 @@ export type Database = {
           id?: string
           post_id?: string | null
           post_url?: string | null
+          published_at?: string | null
           reason?: string | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["post_status"] | null
@@ -268,9 +307,21 @@ export type Database = {
           account_id: string
           created_at: string
           follower_count: number
+          follower_count_delta: number
           following_count: number
+          following_count_delta: number
           likes_count: number
+          likes_count_delta: number
+          total_post_comments: number
+          total_post_comments_delta: number
+          total_post_likes: number
+          total_post_likes_delta: number
+          total_post_shares: number
+          total_post_shares_delta: number
+          total_post_views: number
+          total_post_views_delta: number
           video_count: number
+          video_count_delta: number
         }[]
       }
       invoke_fetch_post_analytics: {

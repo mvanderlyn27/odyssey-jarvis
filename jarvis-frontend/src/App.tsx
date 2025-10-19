@@ -18,6 +18,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { useState, useRef } from "react";
 import DraftPostPage from "./pages/DraftPostPage";
 import PostOverviewPage from "./pages/PostOverviewPage";
+import DayDetailPage from "./pages/DayDetailPage";
 import { ScrollContext } from "./contexts/ScrollContext";
 
 const MainLayout = () => {
@@ -63,6 +64,7 @@ function App() {
               <Route path="posts/draft" element={<DraftPostPage />} />
               <Route path="posts/:id" element={<PostDetailPage />} />
               <Route path="overview" element={<PostOverviewPage />} />
+              <Route path="day/:date" element={<DayDetailPage />} />
             </Route>
           </Route>
           <Route path="/login" element={<LoginPage />} />

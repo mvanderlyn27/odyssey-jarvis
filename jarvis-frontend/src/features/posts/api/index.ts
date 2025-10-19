@@ -329,7 +329,12 @@ export const clonePost = async (postId: string, newFiles?: { file: File }[]) => 
   return newPost;
 };
 
-export const fetchPostsByStatus = async (statuses: string[], accountIds?: string[]) => {
+export const fetchPostsByStatus = async (
+  statuses: string[],
+  accountIds?: string[],
+  startDate?: string,
+  endDate?: string
+) => {
   let query = supabase
     .from("posts")
     .select("*, post_assets(*), tiktok_accounts(*), post_analytics(*)")
@@ -339,12 +344,36 @@ export const fetchPostsByStatus = async (statuses: string[], accountIds?: string
     query = query.in("tiktok_account_id", accountIds);
   }
 
+  if (startDate && endDate) {
+    // Appending T00:00:00 ensures the date is parsed in the local timezone, not UTC.
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T23:59:59.999`);
+
+    const startISO = start.toISOString();
+    const endISO = end.toISOString();
+
+    const dateFilters = statuses
+      .map((status) => {
+        const dateColumn = status === "PUBLISHED" ? "published_at" : "scheduled_at";
+        return `and(${dateColumn}.gte.${startISO},${dateColumn}.lte.${endISO},status.eq.${status})`;
+      })
+      .join(",");
+
+    if (statuses.length > 1) {
+      query = query.or(dateFilters);
+    } else if (statuses.length === 1) {
+      const dateColumn = statuses[0] === "PUBLISHED" ? "published_at" : "scheduled_at";
+      query = query.gte(dateColumn, startISO).lte(dateColumn, endISO);
+    }
+  }
+
   const { data, error } = await query;
 
   if (error) {
     console.error("Error fetching posts by status:", error);
     throw new Error(error.message);
   }
+
   return data || [];
 };
 

@@ -1,22 +1,30 @@
 import { PostWithAssets } from "@/features/posts/types";
 import DraggableSchedulerPostCard from "./DraggableSchedulerPostCard";
-import { useDroppable, useDraggable } from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import React from "react";
+import { SortableContext, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 
-const DraggablePostCard = ({ post }: { post: PostWithAssets }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+const SortablePostCard = ({ post }: { post: PostWithAssets }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: post.id,
   });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
+    transition: transition || undefined,
     visibility: isDragging ? "hidden" : "visible",
   };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <DraggableSchedulerPostCard post={post} isDragging={isDragging} listeners={listeners} />
+      <DraggableSchedulerPostCard
+        post={post}
+        isDragging={isDragging}
+        listeners={listeners}
+        transform={transform}
+        transition={transition}
+      />
     </div>
   );
 };
@@ -24,7 +32,6 @@ const DraggablePostCard = ({ post }: { post: PostWithAssets }) => {
 interface SchedulerPostListProps {
   posts: PostWithAssets[];
   isLoading: boolean;
-  onSort: (posts: PostWithAssets[]) => void;
 }
 
 const SchedulerPostList = ({ posts, isLoading }: SchedulerPostListProps) => {
@@ -33,8 +40,7 @@ const SchedulerPostList = ({ posts, isLoading }: SchedulerPostListProps) => {
   if (isLoading) return <div>Loading drafts...</div>;
 
   return (
-    <div className="p-6 border rounded-lg bg-card">
-      <h2 className="font-semibold mb-2">Drafts</h2>
+    <div className=" border rounded-lg bg-card">
       <div
         ref={setNodeRef}
         className={`overflow-x-auto p-4 rounded-md  transition-colors ${
@@ -45,11 +51,13 @@ const SchedulerPostList = ({ posts, isLoading }: SchedulerPostListProps) => {
           minHeight: "180px",
           overflowY: "hidden",
         }}>
-        <div className="flex gap-4 h-full">
-          {posts.map((post) => (
-            <DraggablePostCard key={post.id} post={post} />
-          ))}
-        </div>
+        <SortableContext items={posts.map((p) => p.id)} strategy={horizontalListSortingStrategy}>
+          <div className="flex gap-4 h-full">
+            {posts.map((post) => (
+              <SortablePostCard key={post.id} post={post} />
+            ))}
+          </div>
+        </SortableContext>
       </div>
     </div>
   );

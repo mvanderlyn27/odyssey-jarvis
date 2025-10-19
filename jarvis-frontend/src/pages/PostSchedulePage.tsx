@@ -40,61 +40,95 @@ const PostSchedulePage = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     setActivePost(null);
     const { over, active } = event;
-    if (!over) return;
+    console.log("Drag ended. Active:", active.id, "Over:", over?.id);
+
+    if (!over) {
+      console.log("No drop target.");
+      return;
+    }
+
+    if (active.id === over.id) {
+      console.log("Item dropped on itself.");
+      return;
+    }
 
     const postId = active.id as string;
     const overId = over.id.toString();
 
-    if (overId === "drafts-list" || draftPosts.some((p) => p.id === overId)) {
-      const oldIndex = draftPosts.findIndex((p) => p.id === postId);
-      const newIndex = overId === "drafts-list" ? draftPosts.length - 1 : draftPosts.findIndex((p) => p.id === overId);
+    const isOverDrafts = overId.includes("drafts-list");
+    const activeContainer = draftPosts.some((p) => p.id === postId) ? "drafts" : "calendar";
+    const overContainer = isOverDrafts ? "drafts" : "calendar";
 
-      if (oldIndex !== -1) {
-        if (newIndex !== -1) {
-          setDraftPosts(arrayMove(draftPosts, oldIndex, newIndex));
-        }
-      } else {
-        movePostToDrafts(postId);
-        unschedulePost(postId);
+    console.log(`Moving from ${activeContainer} to ${overContainer}`);
+
+    // Reordering within drafts
+    if (activeContainer === "drafts" && overContainer === "drafts") {
+      console.log("Reordering within drafts.");
+      const oldIndex = draftPosts.findIndex((p) => p.id === active.id);
+      const newIndex = draftPosts.findIndex((p) => p.id === over.id);
+      if (oldIndex !== newIndex && oldIndex !== -1 && newIndex !== -1) {
+        const newDrafts = arrayMove(draftPosts, oldIndex, newIndex);
+        setDraftPosts(newDrafts);
       }
       return;
     }
 
-    const parts = overId.split("-");
-    const timeSlot = parts.pop();
-    const dateStr = parts.pop();
-    const accountId = parts.join("-");
-
-    if (!dateStr || !timeSlot || !accountId) return;
-
-    const day = new Date(dateStr);
-    const dayAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day.getUTCDay()];
-    const time = timeSlot === "morning" ? daySettings[dayAbbr].morning : daySettings[dayAbbr].evening;
-    const [hours, minutes] = time.split(":").map(Number);
-
-    const scheduledAtDate = new Date(dateStr);
-    scheduledAtDate.setUTCHours(hours, minutes, 0, 0);
-
-    if (isNaN(scheduledAtDate.getTime())) {
-      console.error("Constructed date is invalid.");
+    // Moving from calendar to drafts
+    if (activeContainer === "calendar" && overContainer === "drafts") {
+      console.log(`Moving post ${postId} from calendar to drafts.`);
+      movePostToDrafts(postId);
+      unschedulePost(postId);
       return;
     }
 
-    const scheduled_at = scheduledAtDate.toISOString();
+    // Moving to a calendar slot (from drafts or calendar)
+    if (overContainer === "calendar") {
+      const parts = overId.split("-");
+      const timeSlot = parts.pop();
+      const dayPart = parts.pop();
+      const monthPart = parts.pop();
+      const yearPart = parts.pop();
+      const dateStr = `${yearPart}-${monthPart}-${dayPart}`;
+      const accountId = parts.join("-");
 
-    movePostToSchedule(postId, scheduled_at, accountId);
-    schedulePost({
-      postId: postId,
-      scheduledAt: scheduled_at,
-      accountId: accountId,
-    });
+      if (!dateStr || !timeSlot || !accountId) {
+        console.error("Invalid drop target ID:", overId);
+        return;
+      }
+
+      console.log(`Scheduling post ${postId} to account ${accountId} on ${dateStr} in the ${timeSlot}.`);
+
+      const day = new Date(`${dateStr}T00:00:00.000Z`);
+      const dayAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day.getUTCDay()];
+
+      if (!daySettings[dayAbbr]) {
+        console.error("Could not find day settings for:", dayAbbr);
+        return;
+      }
+
+      const time = timeSlot === "morning" ? daySettings[dayAbbr].morning : daySettings[dayAbbr].evening;
+      const [hours, minutes] = time.split(":").map(Number);
+
+      const scheduledAtDate = new Date(`${dateStr}T00:00:00.000Z`);
+      scheduledAtDate.setUTCHours(hours, minutes, 0, 0);
+
+      if (isNaN(scheduledAtDate.getTime())) {
+        console.error("Constructed an invalid date.");
+        return;
+      }
+
+      const scheduled_at = scheduledAtDate.toISOString();
+
+      movePostToSchedule(postId, scheduled_at, accountId);
+      schedulePost({ postId, scheduledAt: scheduled_at, accountId });
+    }
   };
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       {/* <div className="bg-card rounded-lg"> */}
       <div className="sticky top-0 z-50 p-4  bg-card">
-        <SchedulerPostList posts={draftPosts} isLoading={isLoading} onSort={setDraftPosts} />
+        <SchedulerPostList posts={draftPosts} isLoading={isLoading} />
       </div>
       <div className="overflow-x-auto p-4">
         <ScheduleCalendar posts={scheduledPosts} isLoading={isLoading} />

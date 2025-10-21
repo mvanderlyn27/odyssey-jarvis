@@ -9,6 +9,9 @@ export const queries = createQueryKeyStore({
       { status, accountIds, startDate, endDate },
     ],
   },
+  post: {
+    detail: (id: string) => ["post", id],
+  },
   analytics: {
     dailyKpis: (accountIds: string[], startDate?: string, endDate?: string) => [
       "analytics",

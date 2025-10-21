@@ -3,10 +3,11 @@ import { PostAnalytics } from "../types";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { useFetchVideoAnalytics } from "@/features/analytics/hooks/useFetchVideoAnalytics";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRefreshPost } from "../api/refreshPost";
 import { useNavigate } from "react-router-dom";
+import { queries } from "@/lib/queries";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RefreshButton } from "@/components/RefreshButton";
 import { useDeletePost } from "../hooks/useDeletePost";
@@ -18,7 +19,7 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: post, isLoading } = usePost(postId);
-  const { mutate: refreshAnalytics, isPending: isRefreshing } = useFetchVideoAnalytics();
+  const { mutate: refreshPost, isPending: isRefreshing } = useRefreshPost();
   const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => navigate("/posts"));
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
   const analytics =
@@ -29,18 +30,12 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
       )[0] || {};
 
   const handleRefresh = () => {
-    if (post && post.tiktok_accounts && post.tiktok_accounts.open_id) {
-      refreshAnalytics(
-        {
-          accountId: post.tiktok_accounts.open_id,
-          postIds: [post.id],
+    if (post) {
+      refreshPost(post.id, {
+        onSuccess: () => {
+          queryClient.invalidateQueries(queries.post.detail(postId));
         },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["post", postId] });
-          },
-        }
-      );
+      });
     }
   };
 

@@ -75,7 +75,7 @@ serve(async (req) => {
     } else if (mediaUrls.image_urls && mediaUrls.image_urls.length > 0) {
       source_info = {
         source: "PULL_FROM_URL",
-        photo_cover_index: 1,
+        photo_cover_index: 0,
         photo_images: mediaUrls.image_urls,
       };
     } else {

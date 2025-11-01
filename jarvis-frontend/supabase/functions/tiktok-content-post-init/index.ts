@@ -5,13 +5,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import { corsHeaders } from "../_shared/cors.ts";
 import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { getUserPlanFeatures } from "../_shared/get_user_plan_features.ts";
 
 const TIKTOK_CONTENT_API_URL = "https://open.tiktokapis.com/v2/post/publish/content/init/";
 const TIKTOK_INBOX_API_URL = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/";
 
 const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -19,18 +20,57 @@ serve(async (req) => {
   let postId: string | undefined;
 
   try {
-    const { error: authError } = await authenticateRequest(req);
+    const { user, error: authError } = await authenticateRequest(req);
     if (authError) {
       return new Response(JSON.stringify({ error: authError.message }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
+    if (!user) {
+      return new Response(JSON.stringify({ error: "User not found." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    const features = await getUserPlanFeatures(user.id);
     const bodyPayload = await req.json();
     console.log("Received request body:", JSON.stringify(bodyPayload, null, 2));
 
     const { accessToken, refreshToken, mediaUrls, accountId, title, description, scheduled_at } = bodyPayload;
     postId = bodyPayload.postId;
+
+    // Enforce daily direct post limit
+    if (!scheduled_at) {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+
+      const { count, error: countError } = await supabaseAdmin
+        .from("posts")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("tiktok_account_id", accountId)
+        .is("scheduled_at", null)
+        .gte("created_at", today.toISOString());
+
+      if (countError) {
+        console.error("Error counting user's direct posts:", countError);
+        throw new Error("Could not verify your post count.");
+      }
+
+      if (count !== null && features.daily_direct_post_limit && count >= features.daily_direct_post_limit) {
+        return new Response(
+          JSON.stringify({
+            error: `You have reached your daily direct post limit of ${features.daily_direct_post_limit}. Please upgrade your plan or schedule this post for a later time.`,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 403, // Forbidden
+          }
+        );
+      }
+    }
 
     if (!accessToken || !refreshToken || !mediaUrls || !accountId || !postId) {
       console.error("Validation failed. Missing required parameters in payload:", {

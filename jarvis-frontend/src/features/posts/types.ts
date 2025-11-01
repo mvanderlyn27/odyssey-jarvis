@@ -18,6 +18,7 @@ export type Asset = PostAsset & {
     crop?: CroppedArea;
     zoom?: number;
     rotation?: number;
+    thumbnail?: File;
   };
 };
 

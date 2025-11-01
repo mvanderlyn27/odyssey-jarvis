@@ -6,7 +6,7 @@ import { useSchedulePageStore } from "@/store/useSchedulePageStore";
 
 export const useSchedulePost = () => {
   const queryClient = useQueryClient();
-  const movePostToSchedule = useSchedulePageStore((state) => state.movePostToSchedule);
+  const { movePostToSchedule, movePostToDrafts } = useSchedulePageStore();
 
   return useMutation({
     mutationFn: schedulePost,
@@ -24,7 +24,10 @@ export const useSchedulePost = () => {
     },
     onError: (err: Error, newPost, context) => {
       console.log("new post error", newPost);
-      queryClient.setQueryData(queries.posts.all().queryKey, context?.previousPosts);
+      if (context?.previousPosts) {
+        queryClient.setQueryData(queries.posts.all().queryKey, context.previousPosts);
+      }
+      movePostToDrafts(newPost.postId);
       toast.error("Error scheduling post: " + err.message);
     },
     onSettled: () => {

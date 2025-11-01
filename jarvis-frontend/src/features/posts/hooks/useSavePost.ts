@@ -90,9 +90,23 @@ export const useSavePost = () => {
             if (error) {
               throw new Error(`Failed to upload asset: ${error.message}`);
             }
+
+            let thumbnailPath = asset.thumbnail_path;
+            if (asset.asset_type === "video" && asset.editSettings?.thumbnail) {
+              const thumbnailFilePath = `thumbnails/${currentPost.id}/${asset.id}.jpg`;
+              const { error: thumbnailError } = await supabase.storage
+                .from("tiktok_assets")
+                .upload(thumbnailFilePath, asset.editSettings.thumbnail);
+              if (thumbnailError) {
+                console.error("Failed to upload thumbnail:", thumbnailError.message);
+              } else {
+                thumbnailPath = thumbnailFilePath;
+              }
+            }
+
             // We save the path, not the public URL, as the URL can change.
             const { file, ...assetWithoutFile } = asset;
-            return { ...assetWithoutFile, asset_url: filePath, post_id: currentPost.id };
+            return { ...assetWithoutFile, asset_url: filePath, post_id: currentPost.id, thumbnail_path: thumbnailPath };
           }
           return asset;
         })

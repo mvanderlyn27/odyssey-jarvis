@@ -2,7 +2,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Post } from "../types";
 import { getLatestAnalytics } from "../utils/getLatestAnalytics";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Send, Eye, Calendar, Edit } from "lucide-react";
+import { Heart, MessageCircle, Send, Eye, Calendar, Edit, Video } from "lucide-react";
 import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
 import { motion } from "framer-motion";
 import { memo } from "react";
@@ -50,13 +50,20 @@ const ConfigurablePostCard = ({
     }
 
     return (
-      <SignedUrlImage
-        thumbnailPath={firstAsset.thumbnail_path}
-        fullSizePath={firstAsset.asset_url}
-        blurhash={firstAsset.blurhash}
-        size="large"
-        priority={priority}
-      />
+      <>
+        {firstAsset.asset_type === "video" && (
+          <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded-full p-1">
+            <Video className="w-4 h-4 text-white" />
+          </div>
+        )}
+        <SignedUrlImage
+          thumbnailPath={firstAsset.thumbnail_path}
+          fullSizePath={firstAsset.asset_url}
+          blurhash={firstAsset.blurhash}
+          size="large"
+          priority={priority}
+        />
+      </>
     );
   };
 

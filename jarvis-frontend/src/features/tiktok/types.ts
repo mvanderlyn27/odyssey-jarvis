@@ -9,7 +9,10 @@ export type TikTokAccountAnalytics = {
   created_at: string;
 };
 
-export type TikTokAccount = Tables<"tiktok_accounts"> & Partial<TikTokAccountAnalytics>;
+export type TikTokAccount = Tables<"tiktok_accounts"> &
+  Partial<TikTokAccountAnalytics> & {
+    last_video_import_at?: string;
+  };
 
 export interface TikTokVideo {
   id: string;

@@ -1,0 +1,2 @@
+ALTER TABLE public.tiktok_accounts
+ADD COLUMN last_video_import_at TIMESTAMPTZ;

@@ -9,7 +9,7 @@ interface ImageListProps {
   assets: Asset[];
   selectedAsset: Asset | null;
   onSelectAsset: (asset: Asset) => void;
-  onAddNewAsset: (file: File) => void;
+  onAddNewAsset: (file: File, asset_type: "photo" | "video") => void;
 }
 
 export const ImageList = ({ assets, selectedAsset, onSelectAsset, onAddNewAsset }: ImageListProps) => {
@@ -22,13 +22,18 @@ export const ImageList = ({ assets, selectedAsset, onSelectAsset, onAddNewAsset 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      onAddNewAsset(file);
+      const asset_type = file.type.startsWith("video/") ? "video" : "photo";
+      if (asset_type === "video" && assets.some((asset) => asset.asset_type === "video")) {
+        alert("You can only upload one video per post.");
+        return;
+      }
+      onAddNewAsset(file, asset_type);
     }
   };
 
   return (
     <div className="flex flex-col flex-shrink-0 w-32 p-4 bg-gray-100">
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,video/*" />
       <div className="flex-grow overflow-y-auto">
         <div className="flex flex-col gap-2">
           {assets.map((asset) => (

@@ -22,6 +22,8 @@ import { PostDetailAsset, AssetCard } from "@/features/posts/components/PostDeta
 import { useEditPostStore } from "@/store/useEditPostStore";
 import { Post, DraftPost, Asset } from "../types";
 import { NewPostDetailAssetButton } from "./NewPostDetailAssetButton";
+import { generateVideoThumbnail } from "../utils";
+import { toast } from "sonner";
 
 const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post | DraftPost; viewOnly?: boolean }) => {
   const { post: postFromStore, reorderAssets, addAssets, removeAsset } = useEditPostStore();
@@ -86,11 +88,44 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
     setActiveAsset(null);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
-      files.sort((a, b) => a.name.localeCompare(b.name));
-      addAssets(files);
+      const videoFile = files.find((file) => file.type.startsWith("video/"));
+      const hasVideo = assets.some((asset) => asset.asset_type === "video");
+
+      if (videoFile && hasVideo) {
+        toast.error("Only one video is allowed per post.");
+        return;
+      }
+
+      if (videoFile && files.length > 1) {
+        toast.error("You can only upload one video at a time.");
+        return;
+      }
+
+      const processedFiles = [];
+      const thumbnails = [];
+
+      for (const file of files) {
+        if (file.type.startsWith("video/")) {
+          try {
+            const thumbnail = await generateVideoThumbnail(file);
+            processedFiles.push(file);
+            thumbnails.push(thumbnail);
+          } catch (error) {
+            console.error("Error generating video thumbnail:", error);
+            toast.error("Failed to generate video thumbnail.");
+          }
+        } else {
+          processedFiles.push(file);
+          thumbnails.push(null);
+        }
+      }
+
+      if (processedFiles.length > 0) {
+        addAssets(processedFiles, thumbnails);
+      }
     }
   };
 

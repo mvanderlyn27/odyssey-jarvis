@@ -8,7 +8,7 @@ export const useTikTokAccounts = () => {
   const userId = session?.user?.id;
 
   return useQuery({
-    ...queries.tiktokAccounts.details(),
+    ...queries.tiktokAccounts.all(),
     queryFn: () => fetchTikTokAccounts(),
     enabled: !!userId,
     staleTime: 1000 * 60 * 60, // 1 hour

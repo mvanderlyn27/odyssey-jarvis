@@ -52,7 +52,7 @@ serve(async (req: Request) => {
     console.log("Querying for account with ID:", account_id);
     const { data: account, error: accountError } = await supabaseAdmin
       .from("tiktok_accounts")
-      .select("access_token")
+      .select("access_token, last_video_import_at")
       .eq("id", account_id)
       .single();
 
@@ -63,6 +63,23 @@ serve(async (req: Request) => {
     if (!account) {
       console.error("TikTok account not found for ID:", account_id);
       throw new Error("TikTok account not found.");
+    }
+
+    if (account.last_video_import_at) {
+      const lastImportDate = new Date(account.last_video_import_at);
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      if (lastImportDate > sevenDaysAgo) {
+        const nextAvailableImport = new Date(lastImportDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        return new Response(
+          JSON.stringify({
+            error: `You can import videos again on ${nextAvailableImport.toDateString()}.`,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 429,
+          }
+        );
+      }
     }
 
     console.log("Successfully fetched account from Supabase. Access token:", account.access_token);
@@ -296,6 +313,17 @@ serve(async (req: Request) => {
         throw analyticsError;
       }
       console.log(`Inserted ${analyticsToInsert.length} post analytics records for existing posts.`);
+    }
+
+    // Update the last_video_import_at timestamp
+    const { error: updateTimestampError } = await supabaseAdmin
+      .from("tiktok_accounts")
+      .update({ last_video_import_at: new Date().toISOString() })
+      .eq("id", account_id);
+
+    if (updateTimestampError) {
+      console.error("Error updating last_video_import_at:", updateTimestampError);
+      // Do not throw, as the main operation was successful
     }
 
     console.log("Sync process completed successfully.");

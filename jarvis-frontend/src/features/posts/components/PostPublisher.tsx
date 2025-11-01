@@ -9,19 +9,27 @@ import { useEditPostStore } from "@/store/useEditPostStore";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 import { useUnschedulePost } from "../hooks/useUnschedulePost";
+import { useUserAccount } from "@/features/accounts/hooks/useUserAccount";
+import { Link } from "react-router-dom";
 
 const PostPublisher = () => {
   const navigate = useNavigate();
   const { data: tikTokAccounts } = useTikTokAccounts();
+  const { data: userAccount } = useUserAccount();
   const [accountId, setAccountId] = useState<string | null>(null);
   const publishMutation = usePublishPost(() => navigate("/inbox"));
   const unscheduleMutation = useUnschedulePost();
   const { post, isDirty } = useEditPostStore();
 
+  const features = userAccount?.subscription?.plans?.features;
+  const postLimit = features?.daily_direct_post_limit ?? 0;
+  const postsToday = userAccount?.posts_today ?? 0;
+  const limitReached = postsToday >= postLimit;
+
   const canPublish = useMemo(() => {
-    if (!post || isDirty) return false;
+    if (!post || isDirty || limitReached) return false;
     return post.status === "DRAFT" || post.status === "FAILED" || post.status === "SCHEDULED";
-  }, [post, isDirty]);
+  }, [post, isDirty, limitReached]);
 
   const handleAccountChange = useCallback((id: string) => {
     setAccountId(id);
@@ -80,6 +88,13 @@ const PostPublisher = () => {
             </p>
             <Button onClick={handleUnschedule} disabled={unscheduleMutation.isPending} variant="outline">
               {unscheduleMutation.isPending ? "Unscheduling..." : "Unschedule"}
+            </Button>
+          </div>
+        ) : limitReached ? (
+          <div className="text-center">
+            <p className="text-sm text-red-500">You've reached your daily post limit.</p>
+            <Button asChild variant="link">
+              <Link to="/billing">Upgrade Your Plan</Link>
             </Button>
           </div>
         ) : (

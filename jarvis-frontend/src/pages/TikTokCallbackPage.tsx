@@ -33,7 +33,7 @@ const TikTokCallbackPage = () => {
 
       const exchangeCodeForToken = async () => {
         try {
-          const { data, error } = await jarvisClient.functions.invoke("tiktok-auth", {
+          const { data, error } = await jarvisClient.functions.invoke("link-tiktok-account", {
             body: { code, code_verifier: verifier },
           });
 

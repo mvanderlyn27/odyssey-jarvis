@@ -11,18 +11,33 @@ export async function getUserPlanFeatures(userId: string) {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
-  // First, get the user's active subscription
-  const { data: subscription, error: subError } = await supabaseAdmin
+  // First, try to get the user's active subscription directly
+  let { data: subscription } = await supabaseAdmin
     .from("subscriptions")
     .select("plan_id, organization_id")
     .eq("user_id", userId)
     .eq("status", "active")
-    .single();
+    .maybeSingle();
 
-  if (subError || !subscription) {
-    // It's possible the subscription is tied to an organization, not the user directly.
-    // We'll need to handle that logic here or in the calling function.
-    // For now, we assume user-based subscriptions.
+  // If no direct subscription, check for an organization-level subscription
+  if (!subscription) {
+    const { data: profile } = await supabaseAdmin.from("profiles").select("organization_id").eq("id", userId).single();
+
+    if (profile && profile.organization_id) {
+      const { data: orgSubscription } = await supabaseAdmin
+        .from("subscriptions")
+        .select("plan_id, organization_id")
+        .eq("organization_id", profile.organization_id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (orgSubscription) {
+        subscription = orgSubscription;
+      }
+    }
+  }
+
+  if (!subscription) {
     throw new Error("Could not find an active subscription for the user.");
   }
 

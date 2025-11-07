@@ -36,14 +36,7 @@ serve(async (req: Request) => {
     const tokenResponse = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_key: TIKTOK_CLIENT_KEY,
-        client_secret: TIKTOK_CLIENT_SECRET,
-        code: code,
-        grant_type: "authorization_code",
-        redirect_uri: TIKTOK_REDIRECT_URI,
-        code_verifier: code_verifier,
-      }),
+      body: `client_key=${TIKTOK_CLIENT_KEY}&client_secret=${TIKTOK_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${TIKTOK_REDIRECT_URI}&code_verifier=${code_verifier}`,
     });
 
     if (!tokenResponse.ok) {
@@ -52,12 +45,16 @@ serve(async (req: Request) => {
     }
 
     const tokenData = await tokenResponse.json();
+    if (tokenData.error) {
+      throw new Error(`TikTok Token API error: ${tokenData.error_description || tokenData.error}`);
+    }
     const accessToken = tokenData.access_token;
 
     // 2. Fetch user info from TikTok API
     const userResponse = await fetch(
       `https://open.tiktokapis.com/v2/user/info/?fields=open_id,username,display_name,avatar_large_url`,
       {
+        method: "POST",
         headers: { Authorization: `Bearer ${accessToken}` },
       }
     );

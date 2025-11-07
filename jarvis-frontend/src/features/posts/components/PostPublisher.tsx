@@ -19,7 +19,7 @@ const PostPublisher = () => {
   const { data: posts } = usePosts({ status: "PUBLISHED" });
   const { plan } = useUserPlan();
   const [accountId, setAccountId] = useState<string | null>(null);
-  const publishMutation = usePublishPost(() => navigate("/inbox"));
+  const publishMutation = usePublishPost(() => navigate("/app/overview"));
   const unscheduleMutation = useUnschedulePost();
   const { post, isDirty } = useEditPostStore();
   const { gate } = useFeatureGate();

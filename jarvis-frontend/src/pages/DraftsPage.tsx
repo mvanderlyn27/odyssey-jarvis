@@ -21,6 +21,10 @@ export const DraftsPage = () => {
   const { plan } = useUserPlan();
 
   useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  useEffect(() => {
     if (posts && postInEdit) {
       const updatedPostInEdit = posts.find((p) => p.id === postInEdit.id);
       if (updatedPostInEdit) {

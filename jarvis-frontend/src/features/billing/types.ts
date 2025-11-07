@@ -2,7 +2,7 @@
 export type Feature = "max_accounts" | "max_posts_per_day" | "video_uploads" | "draft_limit";
 
 export interface PlanFeatures {
-  analytics_granularity: "hourly" | "daily" | null;
+  analytics_granularity: "hourly" | "daily" | "monthly" | null;
   max_accounts: number;
   video_uploads: boolean;
   unlimited_drafts: boolean;

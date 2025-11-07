@@ -120,6 +120,7 @@ serve(async (req: Request) => {
         user_id: jarvisUser.id,
         open_id: userInfo.open_id,
         display_name: userInfo.display_name,
+        username: userInfo.username,
         profile_image_url: userInfo.avatar_large_url,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,

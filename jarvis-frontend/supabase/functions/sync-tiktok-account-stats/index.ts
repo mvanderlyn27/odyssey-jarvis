@@ -74,50 +74,13 @@ serve(async (req) => {
     const userDetails = responseData.data;
 
     const { data: latestAnalytics, error: latestAnalyticsError } = await supabase
-      .from("account_analytics")
-      .select("*")
-      .eq("tiktok_account_id", accountId)
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .rpc("get_latest_account_analytics")
+      .eq("account_id", accountId)
       .single();
 
     if (latestAnalyticsError && latestAnalyticsError.code !== "PGRST116") {
       throw new Error(`Failed to fetch latest account analytics: ${latestAnalyticsError.message}`);
     }
-
-    console.log(`Fetching posts for accountId: ${accountId}`);
-    const { data: posts, error: postsError } = await supabase
-      .from("posts")
-      .select("id")
-      .eq("tiktok_account_id", accountId);
-
-    if (postsError) {
-      throw new Error(`Failed to fetch posts: ${postsError.message}`);
-    }
-    console.log(`Found ${posts.length} posts for accountId: ${accountId}`);
-
-    const postIds = posts.map((post: any) => post.id);
-
-    const { data: postAnalytics, error: postAnalyticsError } = await supabase
-      .from("post_analytics")
-      .select("views, likes, comments, shares")
-      .in("post_id", postIds);
-
-    if (postAnalyticsError) {
-      throw new Error(`Failed to fetch post analytics: ${postAnalyticsError.message}`);
-    }
-
-    const totalPostViews = postAnalytics.reduce((acc: number, cur: any) => acc + (cur.views || 0), 0);
-    const totalPostLikes = postAnalytics.reduce((acc: number, cur: any) => acc + (cur.likes || 0), 0);
-    const totalPostComments = postAnalytics.reduce((acc: number, cur: any) => acc + (cur.comments || 0), 0);
-    const totalPostShares = postAnalytics.reduce((acc: number, cur: any) => acc + (cur.shares || 0), 0);
-
-    console.log(`Calculated totals for accountId: ${accountId}`, {
-      totalPostViews,
-      totalPostLikes,
-      totalPostComments,
-      totalPostShares,
-    });
 
     const analyticsPayload = {
       tiktok_account_id: accountId,
@@ -125,14 +88,15 @@ serve(async (req) => {
       following_count: userDetails.user.following_count,
       likes_count: userDetails.user.likes_count,
       video_count: userDetails.user.video_count,
-      total_post_views: totalPostViews,
-      total_post_likes: totalPostLikes,
-      total_post_comments: totalPostComments,
-      total_post_shares: totalPostShares,
-      total_post_views_delta: totalPostViews - (latestAnalytics?.total_post_views || 0),
-      total_post_likes_delta: totalPostLikes - (latestAnalytics?.total_post_likes || 0),
-      total_post_comments_delta: totalPostComments - (latestAnalytics?.total_post_comments || 0),
-      total_post_shares_delta: totalPostShares - (latestAnalytics?.total_post_shares || 0),
+      total_post_views: latestAnalytics?.total_post_views || 0,
+      total_post_likes: latestAnalytics?.total_post_likes || 0,
+      total_post_comments: latestAnalytics?.total_post_comments || 0,
+      total_post_shares: latestAnalytics?.total_post_shares || 0,
+      total_post_views_delta: (latestAnalytics?.total_post_views || 0) - (latestAnalytics?.total_post_views || 0),
+      total_post_likes_delta: (latestAnalytics?.total_post_likes || 0) - (latestAnalytics?.total_post_likes || 0),
+      total_post_comments_delta:
+        (latestAnalytics?.total_post_comments || 0) - (latestAnalytics?.total_post_comments || 0),
+      total_post_shares_delta: (latestAnalytics?.total_post_shares || 0) - (latestAnalytics?.total_post_shares || 0),
       follower_count_delta: userDetails.user.follower_count - (latestAnalytics?.follower_count || 0),
       following_count_delta: userDetails.user.following_count - (latestAnalytics?.following_count || 0),
       likes_count_delta: userDetails.user.likes_count - (latestAnalytics?.likes_count || 0),
@@ -142,7 +106,7 @@ serve(async (req) => {
     console.log(`Inserting analytics for accountId: ${accountId}`, analyticsPayload);
 
     const { data: analytics, error: analyticsError } = await supabase
-      .from("account_analytics")
+      .from("account_analytics_raw")
       .insert(analyticsPayload)
       .select()
       .single();

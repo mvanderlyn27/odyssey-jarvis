@@ -35,7 +35,6 @@ serve(async (req: Request) => {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
 
-      // Get user_id from customer metadata
       const customer = await stripe.customers.retrieve(customerId);
       const userId = (customer as Stripe.Customer).metadata.user_id;
 
@@ -43,10 +42,21 @@ serve(async (req: Request) => {
         throw new Error("User ID not found in customer metadata.");
       }
 
+      const stripeProductId = subscription.items.data[0].price.product as string;
+      const { data: plan, error: planError } = await supabaseAdmin
+        .from("plans")
+        .select("id")
+        .eq("stripe_product_id", stripeProductId)
+        .single();
+
+      if (planError || !plan) {
+        throw new Error(`Plan with stripe_product_id ${stripeProductId} not found.`);
+      }
+
       const subscriptionData = {
         stripe_subscription_id: subscription.id,
         status: subscription.status,
-        plan_id: subscription.items.data[0].price.id,
+        plan_id: plan.id,
         start_date: new Date((subscription.start_date || subscription.created) * 1000).toISOString(),
         trial_starts_at: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
         trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
@@ -66,7 +76,6 @@ serve(async (req: Request) => {
         throw new Error("Could not update subscription in database.");
       }
 
-      // Update onboarding_data in the profiles table
       const { data: profile, error: profileError } = await supabaseAdmin
         .from("profiles")
         .select("onboarding_data")
@@ -79,7 +88,7 @@ serve(async (req: Request) => {
       }
 
       const updatedOnboardingData = {
-        ...profile.onboarding_data,
+        ...(profile.onboarding_data as Record<string, unknown>),
         hasCompletedPurchase: true,
       };
 

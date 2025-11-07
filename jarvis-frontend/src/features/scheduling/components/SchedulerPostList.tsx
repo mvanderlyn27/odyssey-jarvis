@@ -1,33 +1,27 @@
 import { PostWithAssets } from "@/features/posts/types";
 import DraggableSchedulerPostCard from "./DraggableSchedulerPostCard";
-import { useDroppable } from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import React from "react";
-import { SortableContext, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import SchedulerPostCardSkeleton from "./SchedulerPostCardSkeleton";
-import EmptyState from "@/components/shared/EmptyState";
-import { FilePlus2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
-const SortablePostCard = ({ post }: { post: PostWithAssets }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+const DraggablePostCard = ({ post }: { post: PostWithAssets }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: post.id,
   });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition: transition || undefined,
+    transform: CSS.Translate.toString(transform),
     visibility: isDragging ? "hidden" : "visible",
   };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <DraggableSchedulerPostCard
-        post={post}
-        isDragging={isDragging}
-        listeners={listeners}
-        transform={transform}
-        transition={transition}
-      />
+      <Link to={`/app/posts/${post.id}`}>
+        <DraggableSchedulerPostCard post={post} isDragging={isDragging} listeners={listeners} />
+      </Link>
     </div>
   );
 };
@@ -56,25 +50,24 @@ const SchedulerPostList = ({ posts, isLoading, onAction, actionText }: Scheduler
     if (posts.length === 0) {
       return (
         <div className="flex items-center justify-center h-full w-full">
-          <EmptyState
-            Icon={FilePlus2}
-            title="No Drafts"
-            description="You have no drafts to schedule. Create a new post to get started."
-            actionText={actionText}
-            onAction={onAction}
-          />
+          <div className="text-center">
+            <p className="text-muted-foreground">You have no drafts to schedule.</p>
+            {actionText && onAction && (
+              <Button onClick={onAction} variant="outline" className="mt-2">
+                {actionText}
+              </Button>
+            )}
+          </div>
         </div>
       );
     }
 
     return (
-      <SortableContext items={posts.map((p) => p.id)} strategy={horizontalListSortingStrategy}>
-        <div className="flex gap-4 h-full">
-          {posts.map((post) => (
-            <SortablePostCard key={post.id} post={post} />
-          ))}
-        </div>
-      </SortableContext>
+      <div className="flex gap-4 h-full">
+        {posts.map((post) => (
+          <DraggablePostCard key={post.id} post={post} />
+        ))}
+      </div>
     );
   };
 

@@ -33,7 +33,7 @@ serve(async (req) => {
       throw new Error(`Failed to fetch account: ${accountError.message}`);
     }
 
-    const fields = ["display_name", "avatar_url"];
+    const fields = ["display_name", "avatar_url", "username"];
     const url = `https://open.tiktokapis.com/v2/user/info/?fields=${fields.join(",")}`;
 
     const response = await fetch(url, {
@@ -71,9 +71,9 @@ serve(async (req) => {
     const { data: updatedAccount, error: updateError } = await supabase
       .from("tiktok_accounts")
       .update({
-        tiktok_display_name: userDetails.user.display_name,
-        tiktok_username: userDetails.username,
-        tiktok_avatar_url: publicUrlData.publicUrl,
+        display_name: userDetails.user.display_name,
+        username: userDetails.user.username,
+        profile_image_url: publicUrlData.publicUrl,
       })
       .eq("id", accountId)
       .select()

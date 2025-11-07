@@ -13,10 +13,10 @@ export const useUserPlan = () => {
   }
 
   // If user has a subscription, use that plan
-  if (subscription?.plan) {
+  if (subscription?.plans) {
     const planWithTypedFeatures = {
-      ...subscription.plan,
-      features: subscription.plan.features as unknown as PlanFeatures,
+      ...subscription.plans,
+      features: subscription.plans.features as unknown as PlanFeatures,
     } as Plan;
     return { plan: planWithTypedFeatures, isLoading: false };
   }

@@ -1,8 +1,12 @@
 import { supabase } from "@/lib/supabase/jarvisClient";
+import { fetchUserPlan, getAnalyticsTableName } from "./utils";
 
 export const getPostAnalyticsHistory = async (postId: string) => {
+  const plan = await fetchUserPlan();
+  const tableName = getAnalyticsTableName("post_analytics", plan);
+
   const { data, error } = await supabase
-    .from("post_analytics")
+    .from(tableName)
     .select("*")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });

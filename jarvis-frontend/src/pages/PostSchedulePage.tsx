@@ -1,4 +1,4 @@
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, DragCancelEvent } from "@dnd-kit/core";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SchedulerPostList from "@/features/scheduling/components/SchedulerPostList";
@@ -109,8 +109,7 @@ const PostSchedulePage = () => {
 
       const scheduled_at = scheduledAtDate.toISOString();
 
-      const post = posts?.find((p) => p.id === postId);
-      if (post?.assets[0]?.type === "video" && !gate("video_uploads")) {
+      if (activePost?.post_assets[0]?.asset_type === "videos" && !gate("video_uploads")) {
         return;
       }
 
@@ -131,8 +130,13 @@ const PostSchedulePage = () => {
     }
   };
 
+  const handleDragCancel = (event: DragCancelEvent) => {
+    console.log("Drag cancelled", event);
+    setActivePost(null);
+  };
+
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
       <div className="bg-card rounded-lg">
         <div id="scheduler-post-list" className="sticky top-0 z-50 p-4 bg-card">
           <SchedulerPostList

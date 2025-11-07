@@ -4,7 +4,8 @@ export const queries = createQueryKeyStore({
   posts: {
     all: () => ["posts"],
     detail: (id: string) => ["posts", id],
-    byStatus: (status: string, accountIds?: string[], startDate?: string, endDate?: string) => [
+    byStatus: (status: string, accountIds?: string[]) => ["posts", { status, accountIds }],
+    byStatusWithDateRange: (status: string, accountIds?: string[], startDate?: string, endDate?: string) => [
       "posts",
       { status, accountIds, startDate, endDate },
     ],

@@ -131,7 +131,11 @@ const OverviewCalendar = () => {
           scale: { duration: 0.1 },
         }}
         whileHover={hasPosts ? { scale: 1.05 } : {}}>
-        {hasPosts ? <Link to={`/day/${date.toISOString().split("T")[0]}`}>{dayContent}</Link> : <div>{dayContent}</div>}
+        {hasPosts ? (
+          <Link to={`/app/day/${date.toISOString().split("T")[0]}`}>{dayContent}</Link>
+        ) : (
+          <div>{dayContent}</div>
+        )}
       </motion.div>
     );
   }

@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { usePost } from "../features/posts/hooks/usePost";
 import DraftPostPage from "./DraftPostPage";
-import PublishedPostPage from "./PublishedPostPage";
+import PublishedPostDetails from "../features/posts/components/PublishedPostDetails";
 
 const PostDetailPage = () => {
   const { id } = useParams();
@@ -21,7 +21,7 @@ const PostDetailPage = () => {
     return <DraftPostPage />;
   }
 
-  return <PublishedPostPage postId={id} />;
+  return <PublishedPostDetails postId={id} />;
 };
 
 export default PostDetailPage;

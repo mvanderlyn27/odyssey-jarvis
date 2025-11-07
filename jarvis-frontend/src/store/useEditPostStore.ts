@@ -13,6 +13,7 @@ type EditPostState = {
   createNewPost: () => boolean;
   confirmDiscardChanges: () => boolean;
   clearPost: () => void;
+  clearPostInEdit: () => void;
   deleteUnsavedDraft: () => boolean;
   setCreatedPost: (post: PostWithAssets) => void;
   setPostAsSaved: (post: PostWithAssets) => void;
@@ -66,7 +67,7 @@ export const useEditPostStore = create(
       createNewPost: () => {
         if (get().confirmDiscardChanges()) {
           const newPost: DraftPost = {
-            id: "draft",
+            id: uuidv4(),
             title: "",
             description: "",
             post_assets: [],
@@ -105,6 +106,9 @@ export const useEditPostStore = create(
             })
           );
         }
+        set({ post: null, initialAssets: [], isDirty: false });
+      },
+      clearPostInEdit: () => {
         set({ post: null, initialAssets: [], isDirty: false });
       },
       setCreatedPost: (post) => {

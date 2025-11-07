@@ -44,7 +44,6 @@ export const fetchTikTokVideosAndAggregate = async (accessTokens: string[]) => {
 
 export const fetchAllTikTokAccountAnalytics = async () => {
   const { data, error } = await supabase.rpc("get_latest_account_analytics");
-
   if (error) {
     throw new Error(error.message);
   }

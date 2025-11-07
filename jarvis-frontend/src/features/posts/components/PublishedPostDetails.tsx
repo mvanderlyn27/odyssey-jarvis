@@ -16,6 +16,7 @@ import PostDetailAssetList from "./PostDetailAssetList";
 import AnalyticsGraph from "@/features/analytics/components/AnalyticsGraph";
 import { useUserPlan } from "@/features/billing/hooks/useUserPlan";
 import { useFeatureGateStore } from "@/store/useFeatureGateStore";
+import { useUpdatePostStatus } from "../hooks/useUpdatePostStatus";
 
 const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const { mutate: refreshPost, isPending: isRefreshing } = useRefreshPost();
   const { mutate: deletePost, isPending: isDeleting } = useDeletePost();
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
+  const { mutate: updatePostStatus, isPending: isUpdatingStatus } = useUpdatePostStatus();
   const analytics =
     post?.post_analytics
       ?.slice()
@@ -56,6 +58,20 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const handleDelete = () => {
     if (post) {
       deletePost(post.id);
+    }
+  };
+
+  const handleMoveToDrafts = () => {
+    if (post) {
+      updatePostStatus(
+        { postId: post.id, status: "DRAFT" },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries(queries.posts.byStatus("DRAFT"));
+            navigate("/app/drafts");
+          },
+        }
+      );
     }
   };
 
@@ -121,21 +137,33 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
                       </div>
                     </div>
                   )}
-                  <div>
-                    <p className="font-semibold">Published At</p>
-                    <p>{new Date(post.published_at).toLocaleString()}</p>
-                  </div>
-                  {post.tiktok_embed_url && (
+                  {post.status === "FAILED" ? (
                     <div>
-                      <p className="font-semibold">Link</p>
-                      <a
-                        href={post.tiktok_embed_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline">
-                        View on TikTok
-                      </a>
+                      <p className="font-semibold">Failed</p>
+                      <p className="text-red-500">{post.reason || "An unknown error occurred."}</p>
+                      <Button onClick={handleMoveToDrafts} className="mt-2" disabled={isUpdatingStatus}>
+                        {isUpdatingStatus ? "Moving..." : "Move to Drafts"}
+                      </Button>
                     </div>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="font-semibold">Published At</p>
+                        <p>{new Date(post.published_at).toLocaleString()}</p>
+                      </div>
+                      {post.tiktok_embed_url && (
+                        <div>
+                          <p className="font-semibold">Link</p>
+                          <a
+                            href={post.tiktok_embed_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline">
+                            View on TikTok
+                          </a>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

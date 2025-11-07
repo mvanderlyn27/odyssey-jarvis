@@ -83,7 +83,7 @@ serve(async (_req: Request) => {
       };
 
       try {
-        await fetchWithRetry(url, options, account.refresh_token);
+        await fetchWithRetry(url, options, account.refresh_token, Deno.env.get("INTERNAL_SECRET_KEY"));
         console.log(`Successfully initiated content post for post ${post.id}`);
       } catch (e: any) {
         console.error(`Failed to initiate content post for post ${post.id}:`, e);

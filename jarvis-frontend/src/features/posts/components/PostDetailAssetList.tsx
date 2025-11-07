@@ -19,16 +19,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { PostDetailAsset, AssetCard } from "@/features/posts/components/PostDetailAsset";
-import { useEditPostStore } from "@/store/useEditPostStore";
 import { Post, DraftPost, Asset } from "../types";
 import { NewPostDetailAssetButton } from "./NewPostDetailAssetButton";
 import { generateVideoThumbnail, processVideo } from "../utils";
 import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
 
-const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post | DraftPost; viewOnly?: boolean }) => {
-  const { post: postFromStore, reorderAssets, addAssets, removeAsset } = useEditPostStore();
+interface PostDetailAssetListProps {
+  post: Post | DraftPost | null;
+  setPost?: (post: Post | DraftPost) => void;
+  setIsDirty?: (isDirty: boolean) => void;
+  viewOnly?: boolean;
+}
+
+const PostDetailAssetList = ({ post, setPost, setIsDirty, viewOnly = false }: PostDetailAssetListProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const post = postProp || postFromStore;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -84,7 +89,11 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
     if (over && active.id !== over.id) {
       const oldIndex = assets.findIndex((asset) => asset.id === active.id);
       const newIndex = assets.findIndex((asset) => asset.id === over.id);
-      reorderAssets(arrayMove(assets, oldIndex, newIndex));
+      const newAssets = arrayMove(assets, oldIndex, newIndex);
+      if (post && setPost && setIsDirty) {
+        setPost({ ...post, post_assets: newAssets });
+        setIsDirty(true);
+      }
     }
     setActiveAsset(null);
   };
@@ -105,8 +114,8 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
         return;
       }
 
-      const processedFiles = [];
-      const thumbnails = [];
+      const processedFiles: File[] = [];
+      const thumbnails: (File | null)[] = [];
 
       setIsProcessing(true);
       for (const file of files) {
@@ -127,8 +136,22 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
       }
       setIsProcessing(false);
 
-      if (processedFiles.length > 0) {
-        addAssets(processedFiles, thumbnails);
+      if (processedFiles.length > 0 && post && setPost && setIsDirty) {
+        const newAssets: Asset[] = processedFiles.map((file, index) => ({
+          id: uuidv4(),
+          asset_url: URL.createObjectURL(file),
+          asset_type: file.type.startsWith("video/") ? "videos" : "slides",
+          status: "new",
+          file: file,
+          thumbnail_path: thumbnails[index] ? URL.createObjectURL(thumbnails[index] as Blob) : null,
+          blurhash: null,
+          created_at: new Date().toISOString(),
+          post_id: post.id,
+          sort_order: post.post_assets.length + index,
+          user_id: "", // This will be set on the server
+        }));
+        setPost({ ...post, post_assets: [...post.post_assets, ...newAssets] });
+        setIsDirty(true);
       }
     }
   };
@@ -168,7 +191,15 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
                 <PostDetailAsset
                   key={asset.id}
                   asset={asset}
-                  onRemove={() => removeAsset(asset.id)}
+                  onRemove={() => {
+                    if (post && setPost && setIsDirty) {
+                      const newAssets = post.post_assets.map((a) =>
+                        a.id === asset.id ? { ...a, status: "deleted" } : a
+                      );
+                      setPost({ ...post, post_assets: newAssets });
+                      setIsDirty(true);
+                    }
+                  }}
                   viewOnly={viewOnly}
                 />
               ))}

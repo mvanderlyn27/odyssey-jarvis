@@ -5,23 +5,26 @@ import { useTikTokAccounts } from "@/features/tiktok/hooks/useTikTokAccounts";
 import SingleAccountSelector from "@/components/tiktok/SingleAccountSelector";
 import { usePublishPost } from "../hooks/usePublishPost";
 import { useCallback, useState } from "react";
-import { useEditPostStore } from "@/store/useEditPostStore";
-import { usePosts } from "../hooks/usePosts";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 import { useUnschedulePost } from "../hooks/useUnschedulePost";
 import { useUserPlan } from "@/features/billing/hooks/useUserPlan";
 import { useFeatureGate } from "@/features/billing/services/featureGate";
+import { Post, PostWithAssets, DraftPost } from "../types";
 
-const PostPublisher = () => {
+interface PostPublisherProps {
+  posts: PostWithAssets[];
+  post: Post | DraftPost | null;
+  isDirty: boolean;
+}
+
+const PostPublisher = ({ posts, post, isDirty }: PostPublisherProps) => {
   const navigate = useNavigate();
   const { data: tikTokAccounts } = useTikTokAccounts();
-  const { data: posts } = usePosts({ status: "PUBLISHED" });
   const { plan } = useUserPlan();
   const [accountId, setAccountId] = useState<string | null>(null);
   const publishMutation = usePublishPost(() => navigate("/app/overview"));
   const unscheduleMutation = useUnschedulePost();
-  const { post, isDirty } = useEditPostStore();
   const { gate } = useFeatureGate();
 
   const features = plan?.features;

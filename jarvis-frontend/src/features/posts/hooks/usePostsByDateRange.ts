@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/lib/queries";
 import { fetchPostsByStatus } from "@/features/posts/api";
 
-export const usePosts = ({
+export const usePostsByDateRange = ({
   status,
   accountId,
   startDate,
@@ -14,14 +14,14 @@ export const usePosts = ({
   if (status) {
     const statuses = status.split(",");
     return useQuery({
-      ...queries.posts.byStatus(status, accountIds),
+      ...queries.posts.byStatusWithDateRange(status, accountIds, startDate, endDate),
       queryFn: () => fetchPostsByStatus(statuses, accountIds, startDate, endDate),
       staleTime,
     });
   }
 
   return useQuery({
-    ...queries.posts.byStatus("all", accountIds),
+    ...queries.posts.all(),
     queryFn: () =>
       fetchPostsByStatus(
         ["DRAFT", "FAILED", "PROCESSING", "PUBLISHED", "INBOX", "SCHEDULED"],

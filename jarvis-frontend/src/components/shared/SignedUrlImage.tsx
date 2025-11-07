@@ -34,20 +34,26 @@ export const SignedUrlImage = React.memo(
     const { signedUrls, isLoading } = useSignedUrls(pathsToFetch);
 
     useEffect(() => {
-      if (blobUrl) {
-        setImageSrc(blobUrl);
-        return;
-      }
-
       const thumbnailUrl = thumbnailPath ? signedUrls[thumbnailPath] : null;
       const fullSizeUrl = fullSizePath ? signedUrls[fullSizePath] : null;
 
-      if (preferFullSize && fullSizeUrl) {
-        setImageSrc(fullSizeUrl);
-      } else if (thumbnailUrl) {
-        setImageSrc(thumbnailUrl);
-      } else if (fullSizeUrl) {
-        setImageSrc(fullSizeUrl);
+      // If we have a path to a remote file, ignore any local blobUrl
+      if (fullSizePath && fullSizeUrl) {
+        if (preferFullSize) {
+          setImageSrc(fullSizeUrl);
+        } else if (thumbnailUrl) {
+          setImageSrc(thumbnailUrl);
+        } else {
+          // Fallback to full size if thumbnail isn't ready
+          setImageSrc(fullSizeUrl);
+        }
+        return;
+      }
+
+      // Otherwise, use the blobUrl for local previews
+      if (blobUrl) {
+        setImageSrc(blobUrl);
+        return;
       }
     }, [signedUrls, thumbnailPath, fullSizePath, blobUrl, preferFullSize]);
 

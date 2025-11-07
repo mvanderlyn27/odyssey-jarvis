@@ -1,9 +1,9 @@
 import { useEditPostStore } from "@/store/useEditPostStore";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePost } from "@/features/posts/hooks/usePost";
-import { PostWithAssets } from "@/features/posts/types";
+import { usePosts } from "@/features/posts/hooks/usePosts";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RefreshButton } from "@/components/RefreshButton";
 import { useSavePost } from "@/features/posts/hooks/useSavePost";
@@ -13,22 +13,79 @@ import PostDetailAssetList from "@/features/posts/components/PostDetailAssetList
 import PostDetails from "@/features/posts/components/PostDetails";
 import PostPublisher from "@/features/posts/components/PostPublisher";
 
+import { Post, DraftPost } from "@/features/posts/types";
+
 const EditPost = ({ postId }: { postId: string }) => {
   const navigate = useNavigate();
-  const { post, setPost, isDirty, clearPost } = useEditPostStore();
+  const { clearPostInEdit, confirmDiscardChanges } = useEditPostStore();
+  const [post, setPost] = useState<Post | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const { data: fetchedPost, isLoading, refetch, isFetching } = usePost(postId);
+  const { data: posts } = usePosts();
   const { mutate: savePost, isPending: isSaving } = useSavePost();
   const { mutate: deletePost, isPending: isDeleting } = useDeletePost();
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
 
   useEffect(() => {
-    if (fetchedPost && fetchedPost.id !== post?.id) {
-      setPost(fetchedPost as PostWithAssets);
+    refetch();
+  }, [postId, refetch]);
+
+  useEffect(() => {
+    console.log("DraftPostPage: EditPost mounted");
+    if (fetchedPost) {
+      console.log("DraftPostPage: Fetched post", fetchedPost);
+      setPost(fetchedPost);
     }
-  }, [fetchedPost, post?.id, setPost]);
+
+    return () => {
+      console.log("DraftPostPage: EditPost unmounted");
+      if (isDirty && !window.confirm("You have unsaved changes. Are you sure you want to discard them?")) {
+        return;
+      }
+      clearPostInEdit();
+    };
+  }, [fetchedPost, isDirty, clearPostInEdit]);
+
+  useEffect(() => {
+    if (post) {
+      const videoAssetWithoutThumbnail = post.post_assets.find(
+        (asset) => asset.asset_type === "videos" && !asset.thumbnail_path
+      );
+
+      if (videoAssetWithoutThumbnail) {
+        const interval = setInterval(() => {
+          refetch();
+        }, 2000);
+
+        const timeout = setTimeout(() => {
+          clearInterval(interval);
+        }, 10000); // Stop polling after 10 seconds
+
+        return () => {
+          clearInterval(interval);
+          clearTimeout(timeout);
+        };
+      }
+    }
+  }, [post, refetch]);
 
   const handleBack = () => {
-    navigate(-1);
+    if (isDirty) {
+      if (window.confirm("You have unsaved changes. Do you want to save them before leaving?")) {
+        if (post) {
+          savePost(post as DraftPost, {
+            onSuccess: () => {
+              clearPostInEdit();
+              navigate(-1);
+            },
+          });
+        }
+      } else {
+        navigate(-1);
+      }
+    } else {
+      navigate(-1);
+    }
   };
 
   const handleClonePost = () => {
@@ -45,7 +102,6 @@ const EditPost = ({ postId }: { postId: string }) => {
     if (post?.id) {
       deletePost(post.id, {
         onSuccess: () => {
-          clearPost();
           navigate(-1);
         },
       });
@@ -76,7 +132,7 @@ const EditPost = ({ postId }: { postId: string }) => {
       <PageHeader onBackClick={handleBack} status={post.status || undefined}>
         <RefreshButton onClick={() => refetch()} isRefreshing={isFetching} />
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
-        <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>
+        <Button onClick={() => savePost(post as DraftPost)} disabled={isSaving || !isDirty}>
           {isSaving ? "Saving..." : "Save"}
         </Button>
         {post.id && (
@@ -91,13 +147,13 @@ const EditPost = ({ postId }: { postId: string }) => {
         )}
       </PageHeader>
       <div className="max-w-[80vw] mx-auto">
-        <PostDetailAssetList />
+        <PostDetailAssetList post={post} setPost={setPost} setIsDirty={setIsDirty} />
         <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
           <div className="lg:col-span-1 space-y-4">
-            <PostDetails />
+            <PostDetails post={post} setPost={setPost} setIsDirty={setIsDirty} />
           </div>
           <div className="lg-col-span-1 space-y-4">
-            <PostPublisher />
+            <PostPublisher posts={posts || []} post={post} isDirty={isDirty} />
           </div>
         </div>
       </div>
@@ -107,15 +163,33 @@ const EditPost = ({ postId }: { postId: string }) => {
 
 const NewPost = () => {
   const navigate = useNavigate();
-  const { post, isDirty, deleteUnsavedDraft } = useEditPostStore();
+  const { post: postFromStore, isDirty: isDirtyFromStore, deleteUnsavedDraft } = useEditPostStore();
+  const [post, setPost] = useState<Post | null>(postFromStore);
+  const [isDirty, setIsDirty] = useState(isDirtyFromStore);
+  const { data: posts } = usePosts();
   const { mutate: savePost, isPending: isSaving } = useSavePost();
 
   const handleBack = () => {
-    navigate(-1);
+    if (isDirty) {
+      if (window.confirm("You have unsaved changes. Do you want to save them before leaving?")) {
+        if (post) {
+          savePost(post as DraftPost, {
+            onSuccess: () => navigate(-1),
+          });
+        }
+      } else {
+        deleteUnsavedDraft();
+        navigate(-1);
+      }
+    } else {
+      deleteUnsavedDraft();
+      navigate(-1);
+    }
   };
 
   const handleDelete = () => {
-    if (deleteUnsavedDraft()) {
+    if (window.confirm("Are you sure you want to delete this unsaved draft?")) {
+      deleteUnsavedDraft();
       navigate(-1);
     }
   };
@@ -135,7 +209,7 @@ const NewPost = () => {
     <div className="p-6">
       <PageHeader title={post.title || "New Draft"} onBackClick={handleBack}>
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
-        <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>
+        <Button onClick={() => savePost(post as DraftPost)} disabled={isSaving || !isDirty}>
           {isSaving ? "Saving..." : "Save"}
         </Button>
         <Button onClick={handleDelete} variant="destructive">
@@ -143,13 +217,13 @@ const NewPost = () => {
         </Button>
       </PageHeader>
       <div className="max-w-[80vw] mx-auto">
-        <PostDetailAssetList />
+        <PostDetailAssetList post={post} setPost={setPost} setIsDirty={setIsDirty} />
         <div className="grid grid-cols-1 lg:grid-cols-2 mt-4 gap-4">
           <div className="lg:col-span-1 space-y-4">
-            <PostDetails />
+            <PostDetails post={post} setPost={setPost} setIsDirty={setIsDirty} />
           </div>
           <div className="lg-col-span-1 space-y-4">
-            <PostPublisher />
+            <PostPublisher posts={posts || []} post={post} isDirty={isDirty} />
           </div>
         </div>
       </div>

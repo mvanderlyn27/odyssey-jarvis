@@ -7,6 +7,7 @@ import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
 import { motion } from "framer-motion";
 import { memo } from "react";
 import { format } from "date-fns";
+import { useEditPostStore } from "@/store/useEditPostStore";
 
 interface ConfigurablePostCardProps {
   post: Post;

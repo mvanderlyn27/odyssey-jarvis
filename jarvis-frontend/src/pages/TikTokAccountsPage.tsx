@@ -77,7 +77,8 @@ const TikTokAccountsPage = () => {
         return sorted.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
     }
   }, [accounts, analytics, sortOrder]);
-
+  console.log("sorted accounts", sortedAccounts);
+  console.log("analytics", analytics);
   return (
     <div className="space-y-4 p-6">
       <div className="flex justify-between items-center">

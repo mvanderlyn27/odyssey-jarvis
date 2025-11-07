@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { queries } from "@/lib/queries";
 import { useNavigate } from "react-router-dom";
 import { savePostChanges } from "../api";
 import { useEditPostStore } from "@/store/useEditPostStore";
 import { supabase } from "@/lib/supabase/jarvisClient"; // Import supabase client
 import { DraftPost } from "../types";
+import { usePostMutations } from "./usePostMutations";
+import { queries } from "@/lib/queries";
 
 const resizeImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
@@ -44,9 +45,10 @@ const resizeImage = (file: File): Promise<File> => {
 };
 
 export const useSavePost = () => {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { initialAssets, setPostAsSaved, setCreatedPost, setSaving, clearPost } = useEditPostStore();
+  const { invalidateAllPostLists, invalidatePostsByStatus } = usePostMutations();
 
   return useMutation({
     mutationFn: async (post: DraftPost) => {
@@ -55,8 +57,8 @@ export const useSavePost = () => {
 
       let currentPost = { ...post };
 
-      // If the post is new (id is "draft"), create it first
-      if (currentPost.id === "draft") {
+      // If the post is new (has no user_id), create it first
+      if (!currentPost.user_id) {
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -178,25 +180,13 @@ export const useSavePost = () => {
     },
     onSuccess: (data, variables) => {
       toast.success("Changes saved successfully!");
-      queryClient.invalidateQueries({
-        queryKey: queries.posts.byStatus("DRAFT").queryKey,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey,
-      });
-      queryClient.invalidateQueries({ queryKey: queries.posts.all().queryKey });
-      queryClient.invalidateQueries({
-        queryKey: queries.posts.detail(data.id).queryKey,
-      });
+      invalidatePostsByStatus("DRAFT");
+      invalidateAllPostLists();
+      queryClient.invalidateQueries({ queryKey: queries.post.detail(data.id).queryKey });
+      setPostAsSaved(data as any);
 
-      if (variables.id === "draft") {
-        queryClient.setQueryData(queries.posts.detail(data.id).queryKey, data);
-        navigate(`/app/posts/${data.id}`);
-        clearPost();
-      } else {
-        setPostAsSaved(data as any);
-        // navigate(`/drafts`);
-        toast.success("Post Saved");
+      if (!variables.user_id) {
+        navigate(`/app/posts/${data.id}`, { replace: true });
       }
     },
     onError: (error) => {

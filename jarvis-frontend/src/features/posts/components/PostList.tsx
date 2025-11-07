@@ -1,15 +1,16 @@
-import { Post, PostWithAssets } from "../types";
-import ConfigurablePostCard from "./ConfigurablePostCard";
+import { Post } from "../types";
 import { VirtuosoGrid } from "react-virtuoso";
-import { forwardRef, HTMLAttributes, useMemo, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import { useEditPostStore } from "@/store/useEditPostStore";
+import { forwardRef, HTMLAttributes, useContext } from "react";
 import { ScrollContext } from "../../../contexts/ScrollContext";
+import PostListCard from "./PostListCard";
+import PostCardSkeleton from "./PostCardSkeleton";
 
 interface PostListProps {
   posts: Post[];
   variant: "published" | "draft" | "scheduled";
   startItems?: React.ReactNode[];
+  isLoading?: boolean;
+  isFetching?: boolean;
 }
 
 const List = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>((props, ref) => {
@@ -21,27 +22,20 @@ const List = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>((props, 
   );
 });
 
-const PostList = ({ posts, variant, startItems = [] }: PostListProps) => {
-  const navigate = useNavigate();
-  const { post: postInEdit, setPost, isDirty } = useEditPostStore();
+const PostList = ({ posts, variant, startItems = [], isLoading = false, isFetching = false }: PostListProps) => {
   const scrollContainerRef = useContext(ScrollContext);
 
-  const handlePostClick = (post: Post) => {
-    if (variant === "draft") {
-      setPost(post as PostWithAssets);
-      if (post.id !== "draft") {
-        navigate(`/posts/${post.id}`);
-      } else {
-        navigate("/posts/draft");
-      }
-    } else {
-      navigate(`/posts/${post.id}`);
-    }
-  };
+  const items = [...startItems, ...posts];
 
-  const items = useMemo(() => {
-    return [...startItems, ...posts];
-  }, [posts, startItems]);
+  if (isLoading && !isFetching) {
+    return (
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <PostCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <VirtuosoGrid
@@ -56,21 +50,7 @@ const PostList = ({ posts, variant, startItems = [] }: PostListProps) => {
         const post = item as Post;
         if (!post) return null;
 
-        const isEditing = postInEdit?.id === post.id;
-        const coverImageUrl = isEditing ? postInEdit?.post_assets?.[0]?.asset_url : undefined;
-
-        return (
-          <ConfigurablePostCard
-            key={post.id}
-            post={post}
-            priority={index < 8}
-            index={index}
-            variant={variant}
-            onClick={handlePostClick}
-            isDirty={isEditing && isDirty}
-            coverImageUrl={coverImageUrl}
-          />
-        );
+        return <PostListCard post={post} variant={variant} index={index} />;
       }}
       components={{
         List,

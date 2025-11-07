@@ -3,7 +3,7 @@ import { TikTokAccount } from "@/features/tiktok/types";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TikTokAccountCardSkeleton } from "./TikTokAccountCardSkeleton";
 
 interface TikTokAccountCardProps {
   account: TikTokAccount;
@@ -13,23 +13,7 @@ interface TikTokAccountCardProps {
 
 export const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, onRemove, isLoading }) => {
   if (isLoading) {
-    return (
-      <Card className="w-full max-w-sm">
-        <CardContent className="flex flex-col items-center p-6">
-          <Skeleton className="h-24 w-24 rounded-full" />
-          <Skeleton className="h-6 w-32 mt-4" />
-          <Skeleton className="h-4 w-24 mt-2" />
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 mt-4 text-sm">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-4 w-12" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <TikTokAccountCardSkeleton />;
   }
 
   return (
@@ -48,9 +32,8 @@ export const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, o
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col items-center pt-0 p-6">
-          <img src={account.tiktok_avatar_url || ""} alt="Avatar" className="w-24 h-24 rounded-full" />
-          <CardTitle className="text-lg font-bold mt-4">{account.tiktok_display_name}</CardTitle>
-          <p className="text-sm text-muted-foreground">@{account.tiktok_username}</p>
+          <img src={account.profile_image_url || ""} alt="Avatar" className="w-24 h-24 rounded-full" />
+          <CardTitle className="text-lg font-bold mt-4">{account.display_name}</CardTitle>
           <div className="grid grid-cols-3 gap-x-8 gap-y-2 mt-4 text-sm text-center">
             <div>
               <p className="font-semibold">{(account.follower_count || 0).toLocaleString()}</p>

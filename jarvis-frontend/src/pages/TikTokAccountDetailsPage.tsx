@@ -27,12 +27,16 @@ import { queries } from "@/lib/queries";
 import { Separator } from "@/components/ui/separator";
 import { getLatestAnalytics } from "../features/posts/utils/getLatestAnalytics";
 import { useTikTokAccountAnalytics } from "../features/tiktok/hooks/useTikTokAccountAnalytics";
+import { useUserPlan } from "@/features/billing/hooks/useUserPlan";
+import { useFeatureGateStore } from "@/store/useFeatureGateStore";
 
 type SortOrder = "recency" | "views" | "likes" | "comments" | "shares";
 
 const TikTokAccountDetailsPage = () => {
   const { accountId } = useParams<{ accountId: string }>();
   const queryClient = useQueryClient();
+  const { plan } = useUserPlan();
+  const { openModal } = useFeatureGateStore();
   const { data: accounts, isLoading: isLoadingAccounts } = useTikTokAccounts();
   const account = accounts?.find((acc) => acc.id === accountId);
 
@@ -128,32 +132,28 @@ const TikTokAccountDetailsPage = () => {
     return null;
   }
 
+  const lastImportDate = account.last_video_import_at ? new Date(account.last_video_import_at) : null;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const isRateLimited = lastImportDate && lastImportDate > sevenDaysAgo;
+  const nextAvailableImport = lastImportDate ? new Date(lastImportDate.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+  const hasAnalyticsAccess = plan?.features?.analytics_granularity !== null;
+
   return (
     <div className="p-6 space-y-8">
-      <PageHeader title={account.tiktok_display_name || ""}></PageHeader>
+      <PageHeader title={account.display_name || ""}></PageHeader>
 
       <div className="max-w-[80vw] mx-auto space-y-8">
         {/* Analytics Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 ${!hasAnalyticsAccess ? "relative" : ""}`}>
+          <Card className={!hasAnalyticsAccess ? "blur-sm pointer-events-none" : ""}>
             <CardContent className="p-6">
               <div className="flex flex-col items-center justify-center w-full space-y-2 text-center">
                 <Avatar className="h-24 w-24 border-2 border-primary">
-                  <AvatarImage
-                    src={account.tiktok_avatar_url ?? undefined}
-                    alt={account.tiktok_display_name ?? undefined}
-                  />
-                  <AvatarFallback>{account.tiktok_display_name?.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={account.profile_image_url ?? undefined} alt={account.display_name ?? undefined} />
+                  <AvatarFallback>{account.display_name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <h1 className="text-2xl font-bold">{account.tiktok_display_name}</h1>
-                  <a
-                    href={`https://www.tiktok.com/@${account.tiktok_username}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:underline">
-                    @{account.tiktok_username}
-                  </a>
+                  <h1 className="text-2xl font-bold">{account.display_name}</h1>
                 </div>
               </div>
               <div className="my-6 border-t border-border" />
@@ -177,15 +177,26 @@ const TikTokAccountDetailsPage = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className={!hasAnalyticsAccess ? "blur-sm pointer-events-none" : ""}>
             <CardHeader>
               <CardTitle>Follower History</CardTitle>
             </CardHeader>
             <CardContent>{accountId && <AccountAnalyticsGraph accountId={accountId} />}</CardContent>
           </Card>
+          {!hasAnalyticsAccess && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+              <div className="text-center p-8 bg-background rounded-lg shadow-lg">
+                <h2 className="text-2xl font-bold mb-4">Upgrade for Account Analytics</h2>
+                <p className="text-muted-foreground mb-6">
+                  Unlock detailed analytics and track your account's performance over time.
+                </p>
+                <Button onClick={() => openModal("video_uploads")}>Upgrade Now</Button>
+              </div>
+            </div>
+          )}
         </div>
 
-        <Card>
+        <Card className={!hasAnalyticsAccess ? "blur-sm pointer-events-none" : ""}>
           <CardHeader>
             <CardTitle>Post Stats</CardTitle>
           </CardHeader>
@@ -249,9 +260,14 @@ const TikTokAccountDetailsPage = () => {
                 <p className="text-muted-foreground mt-2 mb-4">
                   Sync with TikTok to see your videos and analytics here.
                 </p>
-                <Button onClick={() => syncVideos(account.id)} disabled={isSyncing}>
+                <Button onClick={() => syncVideos(account.id)} disabled={isSyncing || isRateLimited || false}>
                   {isSyncing ? "Syncing..." : "Sync Account Videos"}
                 </Button>
+                {isRateLimited && nextAvailableImport && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You can import videos again on {nextAvailableImport.toLocaleDateString()}.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -275,10 +291,17 @@ const TikTokAccountDetailsPage = () => {
             </p>
           </div>
           <DialogFooter>
-            <Button onClick={() => syncVideos(account.id)} disabled={isSyncing}>
-              {isSyncing ? "Syncing..." : "Resync Videos"}
-            </Button>
-            <Button variant="secondary" onClick={() => setSettingsModalOpen(false)}>
+            <div className="flex flex-col w-full">
+              <Button onClick={() => syncVideos(account.id)} disabled={isSyncing || isRateLimited || false}>
+                {isSyncing ? "Syncing..." : "Resync Videos"}
+              </Button>
+              {isRateLimited && nextAvailableImport && (
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  You can import videos again on {nextAvailableImport.toLocaleDateString()}.
+                </p>
+              )}
+            </div>
+            <Button variant="secondary" onClick={() => setSettingsModalOpen(false)} className="w-full">
               Close
             </Button>
           </DialogFooter>

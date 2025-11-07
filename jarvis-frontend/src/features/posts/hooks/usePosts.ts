@@ -30,5 +30,6 @@ export const usePosts = ({
         endDate
       ),
     staleTime,
+    refetchOnMount: true,
   });
 };

@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useSession } from "@/features/auth/hooks/useSession";
 import { queries } from "@/lib/queries";
 import { fetchPostsByStatus } from "../api";
 
 export const useProcessingPosts = () => {
-  const session = useAuthStore((state) => state.session);
+  const { data: session } = useSession();
   const userId = session?.user?.id;
 
   return useQuery({

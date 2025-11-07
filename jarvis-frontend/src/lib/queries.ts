@@ -23,12 +23,19 @@ export const queries = createQueryKeyStore({
   },
   tiktokAccounts: {
     all: () => ["tiktokAccounts"],
-    details: () => ["tiktokAccounts", "details"],
+    detail: (id: string) => ["tiktokAccounts", id],
   },
   tiktokAccountAnalytics: {
     all: () => ["tiktokAccountAnalytics"],
     detail: (accountId: string | undefined) => ["tiktokAccountAnalytics", "detail", accountId],
-    history: (accountId: string | undefined) => ["tiktokAccountAnalytics", "history", accountId],
+    history: (accountId: string | undefined, granularity?: string, startDate?: Date, endDate?: Date) => [
+      "tiktokAccountAnalytics",
+      "history",
+      accountId,
+      granularity,
+      startDate,
+      endDate,
+    ],
   },
   tiktokPosts: {
     all: (accountId: string) => ["tiktokPosts", accountId],
@@ -39,5 +46,27 @@ export const queries = createQueryKeyStore({
   },
   tiktokVideos: {
     list: (accountId: string) => ["tiktokVideos", accountId],
+  },
+  organization: {
+    current: () => ["organization", "current"],
+    detail: (userId: string | undefined) => ["organization", userId],
+    members: (organizationId: string | undefined) => ["organizationMembers", organizationId],
+    invites: (organizationId: string | undefined) => ["organizationInvites", organizationId],
+  },
+  admin: {
+    dashboardStats: {
+      queryKey: ["admin", "dashboardStats"],
+    },
+  },
+  user: {
+    account: (userId: string | undefined) => ["user", "account", userId],
+    subscription: (userId: string | undefined) => ["user", "subscription", userId],
+  },
+  plans: {
+    all: () => ["plans"],
+    detail: (id: string | undefined) => ["plans", id],
+  },
+  auth: {
+    session: () => ["session"],
   },
 });

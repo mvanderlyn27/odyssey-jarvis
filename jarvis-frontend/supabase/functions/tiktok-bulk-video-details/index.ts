@@ -1,12 +1,13 @@
-/// <reference types="https://deno.land/x/supa_fly@0.2.1/types.d.ts" />
+// This function is designed to be run as a cron job.
+// It fetches analytics for all tenants based on their subscription plan.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
-import { authenticateRequest } from "../_shared/auth.ts";
 
 const TIKTOK_API_BASE = "https://open.tiktokapis.com/v2";
+const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
 interface TikTokVideoStat {
   id: string;
@@ -20,34 +21,39 @@ interface Account {
   id: string;
   access_token: string;
   refresh_token: string;
+  user_id: string;
+  organization_id?: string;
 }
 
-interface PostAnalytic {
+interface PostAnalyticRaw {
   post_id: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  views: number;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  views_count: number;
+  user_id: string;
+  organization_id?: string;
+}
+interface PlanFeatures {
+  analytics_granularity: "raw" | "hourly" | "daily" | "off";
+  max_accounts: number;
+  video_uploads: boolean;
+  data_retention_days: number;
+  daily_direct_post_limit: number;
 }
 
-const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
-
-async function fetchVideoStatsForAccount(account: Account, postIds: string[], authorization: string) {
-  if (!postIds || postIds.length === 0) {
-    console.log(`No posts to update for account ${account.id}.`);
-    return;
-  }
+// Fetches video stats for a single TikTok account, handling batching.
+async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
+  if (!postIds || postIds.length === 0) return;
 
   const BATCH_SIZE = 20;
-  const batches = [];
-  for (let i = 0; i < postIds.length; i += BATCH_SIZE) {
-    batches.push(postIds.slice(i, i + BATCH_SIZE));
-  }
+  const batches = Array.from({ length: Math.ceil(postIds.length / BATCH_SIZE) }, (_, i) =>
+    postIds.slice(i * BATCH_SIZE, i * BATCH_SIZE + BATCH_SIZE)
+  );
 
   const fetchPromises = batches.map(async (batch) => {
     const url = new URL(`${TIKTOK_API_BASE}/video/query/`);
     url.searchParams.append("fields", "id,like_count,comment_count,share_count,view_count");
-
     const options = {
       method: "POST",
       headers: {
@@ -57,248 +63,165 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[], au
       body: JSON.stringify({ filters: { video_ids: batch } }),
     };
 
-    const response = await fetchWithRetry(url.toString(), options, account.refresh_token, authorization);
-
+    const response = await fetchWithRetry(
+      url.toString(),
+      options,
+      account.refresh_token,
+      Deno.env.get("INTERNAL_SECRET")!
+    );
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: "Failed to parse error JSON" }));
-      console.error(
-        `TikTok Video Query API HTTP error for account ${account.id}, status: ${response.status}, batch:`,
-        errorData
-      );
-      return []; // Return empty on HTTP error
-    }
-
-    const responseData = await response.json();
-
-    // TikTok API can return 200 OK but still have an error in the body
-    if (responseData.error && responseData.error.code !== "ok") {
-      console.error(`TikTok Video Query API logical error for account ${account.id}, batch:`, responseData.error);
-      // Here we could handle specific errors, e.g., refresh token if expired
-      return []; // Return empty on logical error
-    }
-
-    const videos = responseData.data?.videos as TikTokVideoStat[];
-
-    // Validate the data before returning
-    if (!videos || !Array.isArray(videos)) {
-      console.warn(
-        `TikTok API returned unexpected data structure for account ${account.id}. Expected 'data.videos' array.`,
-        responseData
-      );
+      console.error(`TikTok API HTTP error for account ${account.id}`, await response.json());
       return [];
     }
-
-    return videos;
+    const responseData = await response.json();
+    if (responseData.error?.code !== "ok") {
+      console.error(`TikTok API logical error for account ${account.id}`, responseData.error);
+      return [];
+    }
+    return (responseData.data?.videos as TikTokVideoStat[]) || [];
   });
 
   const results = await Promise.all(fetchPromises);
   const allVideoStats = results.flat();
 
-  if (allVideoStats.length === 0) {
-    return;
-  }
+  if (allVideoStats.length === 0) return;
 
   const { data: posts, error: postsError } = await supabaseAdmin
     .from("posts")
-    .select("id, post_id, created_at")
+    .select("id, post_id")
     .in(
       "post_id",
-      allVideoStats.map((v: TikTokVideoStat) => v.id)
+      allVideoStats.map((v) => v.id)
     );
 
   if (postsError) throw postsError;
   if (!posts) return;
 
-  // Fetch all analytics for these posts and determine the latest one for each.
-  const internalPostIds = posts.map((p: { id: string }) => p.id);
-  const { data: allAnalytics, error: latestAnalyticsError } = await supabaseAdmin
-    .from("post_analytics")
-    .select("post_id, likes, comments, shares, views, created_at")
-    .in("post_id", internalPostIds);
-
-  if (latestAnalyticsError) throw latestAnalyticsError;
-
-  // Manually find the latest analytic for each post.
-  const latestAnalyticsMap = new Map<string, PostAnalytic & { created_at: string }>();
-  if (allAnalytics) {
-    for (const analytic of allAnalytics) {
-      const existing = latestAnalyticsMap.get(analytic.post_id);
-      if (!existing || new Date(analytic.created_at) > new Date(existing.created_at)) {
-        latestAnalyticsMap.set(analytic.post_id, analytic);
-      }
-    }
-  }
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const analyticsToUpsert = allVideoStats
+  const analyticsToInsert: PostAnalyticRaw[] = allVideoStats
     .map((video) => {
-      const post = posts.find((p: { id: string; post_id: string; created_at: string }) => p.post_id === video.id);
+      const post = posts.find((p) => p.post_id === video.id);
       if (!post) return null;
-
-      const postCreationDate = new Date(post.created_at);
-      const latest = latestAnalyticsMap.get(post.id);
-
-      // Failsafe: Ensure new analytic values are not less than the latest recorded ones.
-      const newLikes = latest ? Math.max(latest.likes, video.like_count || 0) : video.like_count || 0;
-      const newComments = latest ? Math.max(latest.comments, video.comment_count || 0) : video.comment_count || 0;
-      const newShares = latest ? Math.max(latest.shares, video.share_count || 0) : video.share_count || 0;
-      const newViews = latest ? Math.max(latest.views, video.view_count || 0) : video.view_count || 0;
-
-      // If the post is older than 30 days, check if stats have changed.
-      if (postCreationDate < thirtyDaysAgo && latest) {
-        const statsChanged =
-          newLikes !== latest.likes ||
-          newComments !== latest.comments ||
-          newShares !== latest.shares ||
-          newViews !== latest.views;
-
-        if (!statsChanged) {
-          return null; // Stats are the same, so we skip inserting a new record.
-        }
-      }
-
       return {
         post_id: post.id,
-        likes: newLikes,
-        comments: newComments,
-        shares: newShares,
-        views: newViews,
+        likes_count: video.like_count || 0,
+        comments_count: video.comment_count || 0,
+        shares_count: video.share_count || 0,
+        views_count: video.view_count || 0,
+        user_id: account.user_id,
+        organization_id: account.organization_id,
       };
     })
-    .filter((p): p is PostAnalytic => p !== null);
+    .filter((p): p is PostAnalyticRaw => p !== null);
 
-  if (analyticsToUpsert.length > 0) {
-    const { error: analyticsError } = await supabaseAdmin.from("post_analytics").insert(analyticsToUpsert);
-    if (analyticsError) throw analyticsError;
+  if (analyticsToInsert.length > 0) {
+    const { error } = await supabaseAdmin.from("post_analytics_raw").insert(analyticsToInsert);
+    if (error) throw error;
   }
 
-  console.log(`Successfully updated stats for ${analyticsToUpsert.length} videos for account ${account.id}.`);
+  console.log(`Inserted ${analyticsToInsert.length} new analytics records for account ${account.id}.`);
 }
 
+// Main function triggered by cron job.
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  // Optional: Secure the endpoint with a secret
+  const internalSecret = req.headers.get("X-Internal-Secret");
+  if (internalSecret !== Deno.env.get("INTERNAL_SECRET")) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
-  console.log("tiktok-bulk-video-details function invoked.", {
-    url: req.url,
-    method: req.method,
-    headers: Object.fromEntries(req.headers.entries()),
-  });
-
   try {
-    const { error: authError } = await authenticateRequest(req);
-    if (authError) {
-      return new Response(JSON.stringify({ error: authError.message }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
-    // It's crucial to know what payload we receive, especially from the cron job.
-    const payload = await req.json().catch((error) => {
-      console.warn("Could not parse JSON from request body. Proceeding with empty payload.", error.message);
-      return {};
+    console.log("Starting tenant-aware bulk analytics fetch.");
+
+    // 1. Get all tenants with active, analytics-enabled subscriptions.
+    const { data: subscriptions, error: subsError } = await supabaseAdmin
+      .from("subscriptions")
+      .select("user_id, organization_id, plans ( features )")
+      .eq("status", "active");
+
+    if (subsError) throw subsError;
+
+    const eligibleTenants = subscriptions.filter((sub) => {
+      const features = sub.plans?.features as PlanFeatures;
+      return features && features.analytics_granularity && features.analytics_granularity !== "off";
     });
-    console.log("Received payload:", payload);
 
-    const { account_id, post_ids } = payload;
+    console.log(`Found ${eligibleTenants.length} tenants with analytics-enabled plans.`);
 
-    // Mode 1: On-demand fetch for a specific account and posts (from frontend)
-    if (account_id && post_ids) {
-      if (!Array.isArray(post_ids) || post_ids.length === 0) {
-        throw new Error("post_ids array is required when account_id is provided.");
-      }
+    // 2. Get all TikTok accounts linked to these tenants.
+    const tenantUserIds = eligibleTenants.map((t) => t.user_id).filter(Boolean);
+    const tenantOrgIds = eligibleTenants.map((t) => t.organization_id).filter(Boolean);
 
-      const { data: account, error: accountError } = await supabaseAdmin
-        .from("tiktok_accounts")
-        .select("id, access_token, refresh_token")
-        .eq("id", account_id)
-        .single();
-
-      if (accountError) throw accountError;
-      if (!account) throw new Error("TikTok account not found.");
-
-      const authorization = req.headers.get("Authorization") ?? req.headers.get("X-Internal-Secret");
-      if (!authorization) {
-        throw new Error("Missing authorization headers.");
-      }
-
-      await fetchVideoStatsForAccount(account, post_ids, authorization);
-
-      return new Response(JSON.stringify({ message: `Successfully processed stats for account ${account_id}.` }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    // Mode 2: Bulk fetch for all accounts (from cron job)
-    console.log("Starting bulk analytics fetch for all accounts.");
     const { data: accounts, error: accountsError } = await supabaseAdmin
       .from("tiktok_accounts")
-      .select("id, access_token, refresh_token");
+      .select("id, access_token, refresh_token, user_id, organization_id, last_analytics_sync_at")
+      .or(`user_id.in.(${tenantUserIds.join(",")}),organization_id.in.(${tenantOrgIds.join(",")})`);
 
-    if (accountsError) {
-      console.error("Error fetching tiktok_accounts:", accountsError);
-      throw accountsError;
-    }
-
+    if (accountsError) throw accountsError;
     if (!accounts || accounts.length === 0) {
-      console.log("No active TikTok accounts found to process.");
-    } else {
-      console.log(`Found ${accounts.length} active accounts to process.`);
+      return new Response("No accounts found for eligible tenants.", { status: 200 });
     }
 
+    console.log(`Processing ${accounts.length} accounts across all eligible tenants.`);
+
+    // 3. For each account, fetch its posts and trigger the analytics update.
     for (const account of accounts) {
+      const tenantSub = eligibleTenants.find(
+        (sub) => sub.user_id === account.user_id || sub.organization_id === account.organization_id
+      );
+      if (!tenantSub) continue;
+
+      const features = tenantSub.plans?.features as PlanFeatures;
+      const granularity = features.analytics_granularity;
+      const lastSync = account.last_analytics_sync_at ? new Date(account.last_analytics_sync_at) : null;
+      const now = new Date();
+
+      let shouldSync = false;
+      if (!lastSync) {
+        shouldSync = true;
+      } else {
+        const timeDiffHours = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60);
+        if (granularity === "raw" && timeDiffHours >= 0.5) shouldSync = true; // ~30 mins for "raw"
+        if (granularity === "hourly" && timeDiffHours >= 1) shouldSync = true;
+        if (granularity === "daily" && timeDiffHours >= 24) shouldSync = true;
+      }
+
+      if (!shouldSync) {
+        console.log(`Skipping analytics sync for account ${account.id} based on granularity '${granularity}'.`);
+        continue;
+      }
+
       const { data: posts, error: postsError } = await supabaseAdmin
         .from("posts")
         .select("post_id")
         .eq("tiktok_account_id", account.id)
         .eq("status", "PUBLISHED")
-        .not("post_id", "is", null)
-        .neq("post_id", "");
+        .not("post_id", "is", null);
 
       if (postsError) {
         console.error(`Failed to fetch posts for account ${account.id}:`, postsError);
-        continue; // Skip to the next account
-      }
-
-      // Defensive coding: ensure posts is an array before processing.
-      if (!Array.isArray(posts)) {
-        console.warn(`Received non-array data for posts for account ${account.id}. Skipping.`);
         continue;
       }
+      if (!posts || posts.length === 0) continue;
 
-      // Log the raw posts data from the database to see what we're working with.
-      console.log(`Fetched ${posts.length} raw posts for account ${account.id}:`, JSON.stringify(posts, null, 2));
+      const postIds = posts.map((p) => p.post_id).filter(Boolean);
+      await fetchVideoStatsForAccount(account, postIds);
 
-      const accountPostIds = posts
-        .map((p: { post_id: string | null }) => p.post_id)
-        .filter((id): id is string => typeof id === "string" && id.length > 0);
-
-      console.log(`Processing ${accountPostIds.length} valid posts for account ${account.id}.`, {
-        postIds: accountPostIds,
-      });
-
-      const authorization = req.headers.get("Authorization") ?? req.headers.get("X-Internal-Secret");
-      if (!authorization) {
-        console.error("Missing authorization headers for bulk processing. Skipping account:", account.id);
-        continue;
-      }
-
-      await fetchVideoStatsForAccount(account, accountPostIds, authorization);
+      // Update the sync timestamp
+      await supabaseAdmin
+        .from("tiktok_accounts")
+        .update({ last_analytics_sync_at: now.toISOString() })
+        .eq("id", account.id);
     }
 
-    return new Response(JSON.stringify({ message: "Successfully completed bulk analytics update." }), {
+    return new Response(JSON.stringify({ message: "Bulk analytics update completed successfully." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: any) {
-    // Log the full error object for better debugging.
-    console.error("An unexpected error occurred:", error);
+    console.error("An unexpected error occurred in bulk analytics processing:", error);
     return new Response(JSON.stringify({ error: "An internal error occurred.", details: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500, // Use 500 for internal server errors
+      status: 500,
     });
   }
 });

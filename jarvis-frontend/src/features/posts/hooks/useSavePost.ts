@@ -57,6 +57,11 @@ export const useSavePost = () => {
 
       // If the post is new (id is "draft"), create it first
       if (currentPost.id === "draft") {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
+
         const { id, post_assets, ...postData } = currentPost;
         const { data, error } = await supabase
           .from("posts")
@@ -64,6 +69,7 @@ export const useSavePost = () => {
             ...postData,
             title: currentPost.title,
             description: currentPost.description,
+            user_id: user.id,
           })
           .select()
           .single();
@@ -72,10 +78,39 @@ export const useSavePost = () => {
         setCreatedPost(currentPost as any); // Update the store with the new post, including the ID
       }
 
-      // 1. Upload new assets and update their URLs
-      const updatedAssets = await Promise.all(
+      // Pre-calculate all file paths and update asset URLs in one go
+      currentPost.post_assets.forEach((asset) => {
+        if (asset.status === "new" || asset.status === "modified") {
+          asset.asset_url = `${asset.asset_type}/${currentPost.id}/${asset.id}`;
+        }
+      });
+
+      // 1. Delete old assets if they are being replaced
+      await Promise.all(
         currentPost.post_assets.map(async (asset) => {
-          if (asset.status === "new" && asset.file) {
+          if (asset.status === "modified") {
+            const originalAsset = initialAssets.find((a) => a.id === asset.id);
+            if (originalAsset) {
+              const pathsToDelete = [];
+              if (originalAsset.asset_url) pathsToDelete.push(originalAsset.asset_url);
+              if (originalAsset.thumbnail_path) pathsToDelete.push(originalAsset.thumbnail_path);
+
+              if (pathsToDelete.length > 0) {
+                const { error: deleteError } = await supabase.storage.from("tiktok_assets").remove(pathsToDelete);
+                if (deleteError) {
+                  console.error(`Failed to delete old asset files for ${asset.id}:`, deleteError.message);
+                  // Decide if you want to throw an error or just log it
+                }
+              }
+            }
+          }
+        })
+      );
+
+      // 2. Upload new and modified assets
+      await Promise.all(
+        currentPost.post_assets.map(async (asset) => {
+          if ((asset.status === "new" || asset.status === "modified") && asset.file) {
             let fileToUpload = asset.file;
             if (fileToUpload.type.startsWith("image")) {
               try {
@@ -85,33 +120,45 @@ export const useSavePost = () => {
                 throw new Error(`Failed to process image ${asset.file?.name}.`);
               }
             }
-            const filePath = `${asset.asset_type}/${currentPost.id}/${asset.id}`;
-            const { error } = await supabase.storage.from("tiktok_assets").upload(filePath, fileToUpload);
+
+            const { error } = await supabase.storage.from("tiktok_assets").upload(asset.asset_url!, fileToUpload);
             if (error) {
               throw new Error(`Failed to upload asset: ${error.message}`);
             }
-            // We save the path, not the public URL, as the URL can change.
-            const { file, ...assetWithoutFile } = asset;
-            return { ...assetWithoutFile, asset_url: filePath, post_id: currentPost.id };
+
+            if (asset.asset_type === "videos" && asset.editSettings?.thumbnail) {
+              const thumbnailFilePath = `thumbnails/${currentPost.id}/${asset.id}.jpg`;
+              const { error: thumbnailError } = await supabase.storage
+                .from("tiktok_assets")
+                .upload(thumbnailFilePath, asset.editSettings.thumbnail);
+              if (thumbnailError) {
+                console.error("Failed to upload thumbnail:", thumbnailError.message);
+              } else {
+                asset.thumbnail_path = thumbnailFilePath;
+              }
+            }
           }
-          return asset;
         })
       );
 
-      const updatedPost = { ...currentPost, post_assets: updatedAssets };
+      // Separate assets to delete from the main list
+      const assetsToDelete = currentPost.post_assets.filter((asset) => asset.status === "deleted");
+      const assetsToKeep = currentPost.post_assets.filter((asset) => asset.status !== "deleted");
 
-      // 2. Identify assets to be deleted
-      const assetsToDelete = initialAssets.filter(
-        (initialAsset) => !updatedPost.post_assets.some((currentAsset) => currentAsset.id === initialAsset.id)
-      );
+      const updatedAssets = assetsToKeep.map(({ file, editSettings, ...assetWithoutFile }) => assetWithoutFile);
+
+      const updatedPost = { ...currentPost, post_assets: updatedAssets };
 
       // 3. Delete assets from storage and database
       if (assetsToDelete.length > 0) {
-        const pathsToDelete = assetsToDelete.map((asset) => `${asset.asset_type}/${currentPost.id}/${asset.id}`);
+        const pathsToDelete = assetsToDelete
+          .map((asset) => [asset.asset_url, asset.thumbnail_path])
+          .flat()
+          .filter(Boolean) as string[];
+
         if (pathsToDelete.length > 0) {
           const { error: storageError } = await supabase.storage.from("tiktok_assets").remove(pathsToDelete);
           if (storageError) {
-            // Log the error but don't throw, to allow DB deletion to proceed
             console.error("Failed to delete assets from storage:", storageError.message);
           }
         }
@@ -126,7 +173,7 @@ export const useSavePost = () => {
       }
 
       // 4. Call the existing savePostChanges function
-      await savePostChanges(updatedPost, initialAssets);
+      await savePostChanges(updatedPost);
       return updatedPost;
     },
     onSuccess: (data, variables) => {
@@ -137,10 +184,14 @@ export const useSavePost = () => {
       queryClient.invalidateQueries({
         queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey,
       });
+      queryClient.invalidateQueries({ queryKey: queries.posts.all().queryKey });
+      queryClient.invalidateQueries({
+        queryKey: queries.posts.detail(data.id).queryKey,
+      });
 
       if (variables.id === "draft") {
         queryClient.setQueryData(queries.posts.detail(data.id).queryKey, data);
-        navigate(`/posts/${data.id}`);
+        navigate(`/app/posts/${data.id}`);
         clearPost();
       } else {
         setPostAsSaved(data as any);

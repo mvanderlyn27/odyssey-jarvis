@@ -13,12 +13,12 @@ export const refreshTikTokAccountStats = async (account: TikTokAccount) => {
     body: {
       access_token: account.access_token,
       refresh_token: account.refresh_token,
-      open_id: account.tiktok_open_id,
+      open_id: account.open_id,
     },
   });
 
   if (error) {
-    throw new Error(`Failed to refresh stats for ${account.tiktok_username}: ${error.message}`);
+    throw new Error(`Failed to refresh stats for ${account.display_name}: ${error.message}`);
   }
 };
 
@@ -84,7 +84,7 @@ export const initiateTikTokPost = async (
 };
 
 export const fetchTikTokPosts = async (account: TikTokAccount) => {
-  if (account.token_status !== "active") {
+  if (account.status !== "active") {
     return [];
   }
 

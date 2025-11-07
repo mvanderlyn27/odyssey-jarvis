@@ -1,8 +1,7 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { supabase as jarvisClient } from "../../lib/supabase/jarvisClient";
-import { useAuthStore } from "../../store/useAuthStore";
 import { ModeToggle } from "../mode-toggle";
+import { useLogout } from "@/features/auth/hooks/useLogout";
 
 interface SideMenuProps {
   isCollapsed: boolean;
@@ -10,17 +9,10 @@ interface SideMenuProps {
 }
 
 const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
-  const setSession = useAuthStore((state) => state.setSession);
-  const navigate = useNavigate();
+  const { mutate: logout } = useLogout();
 
-  const handleLogout = async () => {
-    const { error } = await jarvisClient.auth.signOut();
-    if (error) {
-      console.error("Error logging out:", error);
-    } else {
-      setSession(null);
-      navigate("/login");
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -51,31 +43,45 @@ const SideMenu = ({ isCollapsed, onToggle }: SideMenuProps) => {
         </Button>
       </div>
       <nav className="flex flex-col space-y-2 mt-4">
-        <NavLink to="/home">
+        <NavLink to="/app/home">
           {({ isActive }) => (
             <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
               {isCollapsed ? "🏠" : "Home"}
             </Button>
           )}
         </NavLink>
-        <NavLink to="/drafts">
+        <NavLink to="/app/drafts">
           {({ isActive }) => (
             <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
               {isCollapsed ? "✍️" : "Drafts"}
             </Button>
           )}
         </NavLink>
-        <NavLink to="/schedule">
+        <NavLink to="/app/schedule">
           {({ isActive }) => (
             <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
               {isCollapsed ? "🗓️" : "Scheduler"}
             </Button>
           )}
         </NavLink>
-        <NavLink to="/overview">
+        <NavLink to="/app/overview">
           {({ isActive }) => (
             <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
               {isCollapsed ? "📊" : "Post Overview"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/app/settings">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "⚙️" : "Settings"}
+            </Button>
+          )}
+        </NavLink>
+        <NavLink to="/app/support">
+          {({ isActive }) => (
+            <Button variant={isActive ? "secondary" : "ghost"} className="w-full justify-start">
+              {isCollapsed ? "❓" : "Support"}
             </Button>
           )}
         </NavLink>

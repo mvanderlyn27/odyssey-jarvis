@@ -7,17 +7,10 @@ const getFileType = (fileType: string) => {
   return "unknown";
 };
 
-export const uploadMedia = async (file: File, postId: string) => {
+export const uploadMedia = async (file: File, filePath: string) => {
   const fileType = getFileType(file.type);
   if (fileType === "unknown") {
     throw new Error("Unsupported file type.");
-  }
-
-  let filePath: string;
-  if (fileType === "slides") {
-    filePath = `slides/${postId}/${file.name}`;
-  } else {
-    filePath = `videos/${postId}/${file.name}`;
   }
 
   const { data, error } = await supabase.storage.from("tiktok_assets").upload(filePath, file);
@@ -43,10 +36,10 @@ export const createPost = async () => {
   return data;
 };
 
-export const updatePostAssets = async (postId: number, assets: { id: string; order: number }[]) => {
+export const updatePostAssets = async (postId: number, assets: { id: string; sort_order: number }[]) => {
   const updates = assets.map((asset, index) => ({
     id: asset.id,
-    order: index + 1,
+    sort_order: index + 1,
   }));
 
   const { data, error } = await supabase.from("post_assets").upsert(updates).eq("post_id", postId);
@@ -80,7 +73,7 @@ export const getPost = async (postId: string) => {
 export const getPostById = async (postId: string) => {
   const { data, error } = await supabase
     .from("posts")
-    .select("*, post_assets(*), tiktok_accounts(*), post_analytics(*)")
+    .select("*, post_assets(*), tiktok_accounts(*)")
     .eq("id", postId)
     .single();
 
@@ -104,7 +97,7 @@ export const updatePost = async (postId: number, updates: { title?: string; desc
 export const deletePost = async (postId: string) => {
   const { data: assets, error: assetsError } = await supabase
     .from("post_assets")
-    .select("asset_url")
+    .select("asset_url, thumbnail_path")
     .eq("post_id", postId);
 
   if (assetsError) {
@@ -112,10 +105,17 @@ export const deletePost = async (postId: string) => {
   }
 
   if (assets && assets.length > 0) {
-    const assetUrls = assets.map((a) => a.asset_url);
-    const { error: storageError } = await supabase.storage.from("tiktok_assets").remove(assetUrls);
-    if (storageError) {
-      throw new Error(`Failed to delete assets from storage: ${storageError.message}`);
+    const pathsToDelete = assets
+      .map((a) => [a.asset_url, a.thumbnail_path])
+      .flat()
+      .filter(Boolean) as string[];
+
+    if (pathsToDelete.length > 0) {
+      const { error: storageError } = await supabase.storage.from("tiktok_assets").remove(pathsToDelete);
+      if (storageError) {
+        // Log the error but don't throw, to allow the post deletion to proceed
+        console.error(`Failed to delete assets from storage: ${storageError.message}`);
+      }
     }
   }
 
@@ -130,7 +130,7 @@ export const addPostAsset = async (asset: {
   post_id: number;
   asset_url: string;
   asset_type: string;
-  order: number;
+  sort_order: number;
 }) => {
   const { data, error } = await supabase.from("post_assets").insert(asset).select().single();
 
@@ -157,7 +157,8 @@ export const syncPostAssets = async (postId: number, assets: Asset[]) => {
   const newOrModifiedAssets = assets.filter((asset) => asset.status === "new" || asset.status === "modified");
   for (const asset of newOrModifiedAssets) {
     if (asset.file) {
-      const uploadedMedia = await uploadMedia(asset.file, postId.toString());
+      const filePath = `${asset.asset_type}/${postId}/${asset.id}`;
+      const uploadedMedia = await uploadMedia(asset.file, filePath);
       asset.asset_url = uploadedMedia.asset_url;
     }
   }
@@ -169,7 +170,7 @@ export const syncPostAssets = async (postId: number, assets: Asset[]) => {
       post_id: postId,
       asset_url: asset.asset_url,
       asset_type: asset.asset_type,
-      order: index,
+      sort_order: index,
     }));
 
   if (orderedAssets.length > 0) {
@@ -181,72 +182,34 @@ export const syncPostAssets = async (postId: number, assets: Asset[]) => {
   return [];
 };
 
-export const savePostChanges = async (post: any, initialAssets: Asset[]) => {
+export const savePostChanges = async (post: any) => {
   if (!post?.id) throw new Error("No post to save");
 
+  // 1. Update post title, description, and status
   const updates: any = {
     title: post.title,
     description: post.description,
   };
-
   if (post.status === "FAILED") {
     updates.status = "DRAFT";
   }
-
   const { error: postUpdateError } = await supabase.from("posts").update(updates).eq("id", post.id);
   if (postUpdateError) throw new Error(`Failed to update post: ${postUpdateError.message}`);
 
-  const assets = post.post_assets || [];
-  const postId = post.id.toString();
+  // 2. Prepare the final list of assets to be saved in the database
+  const finalAssets = post.post_assets
+    .filter((asset: Asset) => asset.status !== "deleted")
+    .map((asset: Asset, index: number) => ({
+      id: asset.id,
+      post_id: post.id,
+      asset_url: asset.asset_url, // The URL is already correctly set in useSavePost
+      asset_type: asset.asset_type,
+      sort_order: index,
+      blurhash: asset.blurhash,
+      thumbnail_path: asset.thumbnail_path,
+    }));
 
-  const deletedAssets = assets.filter((a: Asset) => a.status === "deleted");
-  if (deletedAssets.length > 0) {
-    const assetUrlsToDelete = deletedAssets.map((a: { asset_url: any }) => a.asset_url).filter(Boolean);
-    if (assetUrlsToDelete.length > 0) {
-      await supabase.storage.from("tiktok_assets").remove(assetUrlsToDelete as string[]);
-    }
-    await supabase
-      .from("post_assets")
-      .delete()
-      .in(
-        "id",
-        deletedAssets.map((a: { id: any }) => a.id)
-      );
-  }
-
-  const modifiedAssetsWithOldUrls = assets
-    .filter((a: Asset) => a.status === "modified" && a.file)
-    .map((currentAsset: Asset) => {
-      const initialAsset = initialAssets.find((initial) => initial.id === currentAsset.id);
-      return initialAsset?.asset_url;
-    })
-    .filter(Boolean);
-
-  if (modifiedAssetsWithOldUrls.length > 0) {
-    await supabase.storage.from("tiktok_assets").remove(modifiedAssetsWithOldUrls as string[]);
-  }
-
-  const assetsToUpload = assets.filter((a: Asset) => (a.status === "new" || a.status === "modified") && a.file);
-  const uploadPromises = assetsToUpload.map(async (asset: Asset) => {
-    const { asset_url, asset_type } = await uploadMedia(asset.file!, postId);
-    return { ...asset, asset_url, asset_type };
-  });
-  const uploadedAssets = await Promise.all(uploadPromises);
-  const uploadedAssetsMap = new Map(uploadedAssets.map((a) => [a.id, a]));
-
-  const finalAssets = assets
-    .filter((a: Asset) => a.status !== "deleted")
-    .map((asset: Asset, index: number) => {
-      const uploadedAsset = uploadedAssetsMap.get(asset.id);
-      return {
-        id: asset.id,
-        post_id: post.id,
-        asset_url: uploadedAsset ? uploadedAsset.asset_url : asset.asset_url,
-        asset_type: uploadedAsset ? uploadedAsset.asset_type : asset.asset_type,
-        order: index,
-      };
-    });
-
+  // 3. Upsert the assets into the database
   if (finalAssets.length > 0) {
     const { error: upsertError } = await supabase.from("post_assets").upsert(finalAssets).select();
     if (upsertError) throw new Error(`Failed to upsert post assets: ${upsertError.message}`);
@@ -280,30 +243,32 @@ export const clonePost = async (postId: string, newFiles?: { file: File }[]) => 
 
   if (assetsToClone && assetsToClone.length > 0) {
     const newAssets = await Promise.all(
-      assetsToClone.map(async (asset: Asset, index: number) => {
-        const fromPath = asset.asset_url;
-        let toPath: string;
+      assetsToClone
+        .filter((asset: Asset) => asset.asset_url)
+        .map(async (asset: Asset, index: number) => {
+          const fromPath = asset.asset_url!;
+          let toPath: string;
 
-        if (fromPath.includes(`/${postId}/`)) {
-          toPath = fromPath.replace(`/${postId}/`, `/${newPost.id}/`);
-        } else {
-          const fileName = fromPath.split("/").pop();
-          toPath = `${asset.asset_type}/${newPost.id}/${fileName}`;
-        }
+          if (fromPath.includes(`/${postId}/`)) {
+            toPath = fromPath.replace(`/${postId}/`, `/${newPost.id}/`);
+          } else {
+            const fileName = fromPath.split("/").pop();
+            toPath = `${asset.asset_type}/${newPost.id}/${fileName}`;
+          }
 
-        const { error: copyError } = await supabase.storage.from("tiktok_assets").copy(fromPath, toPath);
-        if (copyError) {
-          console.error("Failed to copy asset:", fromPath, "to", toPath, copyError);
-          throw new Error(`Failed to copy asset: ${copyError.message}`);
-        }
+          const { error: copyError } = await supabase.storage.from("tiktok_assets").copy(fromPath, toPath);
+          if (copyError) {
+            console.error("Failed to copy asset:", fromPath, "to", toPath, copyError);
+            throw new Error(`Failed to copy asset: ${copyError.message}`);
+          }
 
-        return {
-          post_id: newPost.id,
-          asset_url: toPath,
-          asset_type: asset.asset_type,
-          order: index,
-        };
-      })
+          return {
+            post_id: newPost.id,
+            asset_url: toPath,
+            asset_type: asset.asset_type,
+            sort_order: index,
+          };
+        })
     );
 
     const { error: assetsError } = await supabase.from("post_assets").insert(newAssets);
@@ -312,12 +277,16 @@ export const clonePost = async (postId: string, newFiles?: { file: File }[]) => 
 
   if (newFiles && newFiles.length > 0) {
     const uploadPromises = newFiles.map(async (fileData, index) => {
-      const { asset_url, asset_type } = await uploadMedia(fileData.file, newPost.id.toString());
+      const fileType = getFileType(fileData.file.type);
+      const assetId = crypto.randomUUID();
+      const filePath = `${fileType}/${newPost.id}/${assetId}`;
+      const { asset_url, asset_type } = await uploadMedia(fileData.file, filePath);
       return {
+        id: assetId,
         post_id: newPost.id,
         asset_url,
         asset_type,
-        order: (assetsToClone?.length || 0) + index,
+        sort_order: (assetsToClone?.length || 0) + index,
       };
     });
 
@@ -335,10 +304,7 @@ export const fetchPostsByStatus = async (
   startDate?: string,
   endDate?: string
 ) => {
-  let query = supabase
-    .from("posts")
-    .select("*, post_assets(*), tiktok_accounts(*), post_analytics(*)")
-    .in("status", statuses);
+  let query = supabase.from("posts").select("*, post_assets(*), tiktok_accounts(*)").in("status", statuses);
 
   if (accountIds && accountIds.length > 0) {
     query = query.in("tiktok_account_id", accountIds);

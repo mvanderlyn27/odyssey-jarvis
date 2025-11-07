@@ -3,6 +3,8 @@ import PostOverviewPostCard from "./PostOverviewPostCard";
 import { VirtuosoGrid } from "react-virtuoso";
 import { forwardRef, HTMLAttributes, useContext } from "react";
 import { ScrollContext } from "../../../contexts/ScrollContext";
+import { LucideStopCircle } from "lucide-react";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface PostOverviewListProps {
   posts: Post[];
@@ -19,6 +21,16 @@ const List = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>((props, 
 
 const PostOverviewList = ({ posts }: PostOverviewListProps) => {
   const scrollContainerRef = useContext(ScrollContext);
+
+  if (posts.length === 0) {
+    return (
+      <EmptyState
+        Icon={LucideStopCircle}
+        title="No posts to display"
+        description="There are currently no posts to show in this view."
+      />
+    );
+  }
 
   return (
     <VirtuosoGrid

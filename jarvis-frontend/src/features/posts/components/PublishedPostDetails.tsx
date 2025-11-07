@@ -14,13 +14,17 @@ import { useDeletePost } from "../hooks/useDeletePost";
 import { useClonePost } from "../hooks/useClonePost";
 import PostDetailAssetList from "./PostDetailAssetList";
 import AnalyticsGraph from "@/features/analytics/components/AnalyticsGraph";
+import { useUserPlan } from "@/features/billing/hooks/useUserPlan";
+import { useFeatureGateStore } from "@/store/useFeatureGateStore";
 
 const PublishedPostDetails = ({ postId }: { postId: string }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { plan } = useUserPlan();
+  const { openModal } = useFeatureGateStore();
   const { data: post, isLoading } = usePost(postId);
   const { mutate: refreshPost, isPending: isRefreshing } = useRefreshPost();
-  const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => navigate("/posts"));
+  const { mutate: deletePost, isPending: isDeleting } = useDeletePost();
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
   const analytics =
     post?.post_analytics
@@ -62,6 +66,8 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
   if (!post) {
     return <div>Post not found</div>;
   }
+
+  const hasAnalyticsAccess = plan?.features?.analytics_granularity !== null;
 
   return (
     <div className="p-6">
@@ -136,8 +142,8 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
             </CardContent>
           </Card>
         </div>
-        <div className="mt-4">
-          <Card>
+        <div className={`mt-4 ${!hasAnalyticsAccess ? "relative" : ""}`}>
+          <Card className={!hasAnalyticsAccess ? "blur-sm pointer-events-none" : ""}>
             <CardHeader>
               <CardTitle>Analytics</CardTitle>
             </CardHeader>
@@ -180,6 +186,17 @@ const PublishedPostDetails = ({ postId }: { postId: string }) => {
               <AnalyticsGraph postId={postId} />
             </CardContent>
           </Card>
+          {!hasAnalyticsAccess && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+              <div className="text-center p-8 bg-background rounded-lg shadow-lg">
+                <h2 className="text-2xl font-bold mb-4">Upgrade for Detailed Analytics</h2>
+                <p className="text-muted-foreground mb-6">
+                  Unlock detailed analytics and track your post's performance over time.
+                </p>
+                <Button onClick={() => openModal("video_uploads")}>Upgrade Now</Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

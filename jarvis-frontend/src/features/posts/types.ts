@@ -1,7 +1,7 @@
 import { Database, Tables } from "@/lib/supabase/database";
 
 export type PostAsset = Tables<"post_assets">;
-export type PostAnalytics = Tables<"post_analytics">;
+export type PostAnalytics = Tables<"post_analytics_raw">;
 
 export interface CroppedArea {
   x: number;
@@ -10,7 +10,8 @@ export interface CroppedArea {
   height: number;
 }
 
-export type Asset = PostAsset & {
+export type Asset = Omit<PostAsset, "order"> & {
+  sort_order: number;
   status: "new" | "deleted" | "modified" | "unchanged";
   file?: File;
   originalFile?: File;
@@ -18,6 +19,7 @@ export type Asset = PostAsset & {
     crop?: CroppedArea;
     zoom?: number;
     rotation?: number;
+    thumbnail?: File;
   };
 };
 

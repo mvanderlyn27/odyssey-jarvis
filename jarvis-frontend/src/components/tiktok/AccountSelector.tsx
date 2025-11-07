@@ -1,10 +1,12 @@
 import { useTikTokAccounts } from "@/features/tiktok/hooks/useTikTokAccounts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { TikTokAccount } from "@/features/tiktok/types";
 import { useAllTikTokAccountAnalytics } from "@/features/tiktok/hooks/useAllTikTokAccountAnalytics";
+import AccountSelectorSkeleton from "./AccountSelectorSkeleton";
 import { useEffect, useMemo } from "react";
+import EmptyState from "../shared/EmptyState";
+import { Users } from "lucide-react";
 
 interface AccountSelectorProps {
   selectedAccounts: TikTokAccount[];
@@ -12,14 +14,18 @@ interface AccountSelectorProps {
 }
 
 const AccountSelector: React.FC<AccountSelectorProps> = ({ selectedAccounts, onSelectionChange }) => {
-  const { data: accounts, isLoading: isLoadingAccounts } = useTikTokAccounts();
-  const { data: analytics, isLoading: isLoadingAnalytics } = useAllTikTokAccountAnalytics();
+  const { data: accounts, isLoading: isLoadingAccounts, isFetching: isFetchingAccounts } = useTikTokAccounts();
+  const {
+    data: analytics,
+    isLoading: isLoadingAnalytics,
+    isFetching: isFetchingAnalytics,
+  } = useAllTikTokAccountAnalytics();
 
   useEffect(() => {
-    if (accounts) {
+    if (accounts && selectedAccounts.length === 0) {
       onSelectionChange(accounts);
     }
-  }, [accounts]);
+  }, [accounts, onSelectionChange, selectedAccounts.length]);
 
   const sortedAccounts = useMemo(() => {
     if (!accounts || !analytics) return [];
@@ -47,13 +53,17 @@ const AccountSelector: React.FC<AccountSelectorProps> = ({ selectedAccounts, onS
     onSelectionChange([]);
   };
 
-  if (isLoadingAccounts || isLoadingAnalytics) {
+  if ((isLoadingAccounts && !isFetchingAccounts) || (isLoadingAnalytics && !isFetchingAnalytics)) {
+    return <AccountSelectorSkeleton />;
+  }
+
+  if (!accounts || accounts.length === 0) {
     return (
-      <div className="flex space-x-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 w-20 rounded-lg" />
-        ))}
-      </div>
+      <EmptyState
+        Icon={Users}
+        title="No TikTok Accounts"
+        description="You haven't connected any TikTok accounts yet."
+      />
     );
   }
 
@@ -77,10 +87,10 @@ const AccountSelector: React.FC<AccountSelectorProps> = ({ selectedAccounts, onS
               }`}
               onClick={() => handleAccountClick(account)}>
               <Avatar className="h-16 w-16">
-                <AvatarImage src={account.tiktok_avatar_url ?? undefined} />
-                <AvatarFallback>{account.tiktok_username?.charAt(0).toUpperCase()}</AvatarFallback>
+                <AvatarImage src={account.profile_image_url ?? undefined} />
+                <AvatarFallback>{account.display_name?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="text-xs text-center truncate w-full">{account.tiktok_display_name}</span>
+              <span className="text-xs text-center truncate w-full">{account.display_name}</span>
             </div>
           ))}
         </div>

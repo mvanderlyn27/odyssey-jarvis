@@ -21,7 +21,7 @@ export const useSyncTikTokAccountProfile = () => {
     },
     onSuccess: () => {
       toast.success("Account profile refreshed successfully!");
-      queryClient.invalidateQueries({ queryKey: queries.tiktokAccounts.details().queryKey });
+      queryClient.invalidateQueries({ queryKey: queries.tiktokAccounts.all().queryKey });
     },
     onError: (error) => {
       toast.error(`Failed to refresh account profile: ${error.message}`);

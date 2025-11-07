@@ -2,19 +2,29 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/jarvisClient";
 import { queries } from "@/lib/queries";
 
-import { subDays } from "date-fns";
+type Granularity = "hourly" | "daily" | "weekly" | "monthly";
 
-const fetchTikTokAccountAnalyticsHistory = async (accountId: string | undefined) => {
+interface AnalyticsHistoryParams {
+  accountId: string | undefined;
+  granularity: Granularity;
+  startDate: Date;
+  endDate: Date;
+}
+
+const fetchTikTokAccountAnalyticsHistory = async ({
+  accountId,
+  granularity,
+  startDate,
+  endDate,
+}: AnalyticsHistoryParams) => {
   if (!accountId) return null;
 
-  const twoDaysAgo = subDays(new Date(), 2).toISOString();
-
-  const { data, error } = await supabase
-    .from("account_analytics")
-    .select("*")
-    .eq("tiktok_account_id", accountId)
-    .gte("created_at", twoDaysAgo)
-    .order("created_at", { ascending: true });
+  const { data, error } = await supabase.rpc("get_account_analytics_history", {
+    p_account_id: accountId,
+    p_granularity: granularity,
+    start_date: startDate.toISOString(),
+    end_date: endDate.toISOString(),
+  });
 
   if (error) {
     throw new Error(error.message);
@@ -23,10 +33,15 @@ const fetchTikTokAccountAnalyticsHistory = async (accountId: string | undefined)
   return data;
 };
 
-export const useTikTokAccountAnalyticsHistory = (accountId: string | undefined) => {
+export const useTikTokAccountAnalyticsHistory = ({
+  accountId,
+  granularity,
+  startDate,
+  endDate,
+}: AnalyticsHistoryParams) => {
   return useQuery({
-    ...queries.tiktokAccountAnalytics.history(accountId),
-    queryFn: () => fetchTikTokAccountAnalyticsHistory(accountId),
+    ...queries.tiktokAccountAnalytics.history(accountId, granularity, startDate, endDate),
+    queryFn: () => fetchTikTokAccountAnalyticsHistory({ accountId, granularity, startDate, endDate }),
     enabled: !!accountId,
   });
 };

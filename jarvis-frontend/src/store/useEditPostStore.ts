@@ -29,7 +29,8 @@ type EditPostState = {
     editSettings?: { crop?: CroppedArea; zoom?: number; rotation?: number }
   ) => void;
   setPostAssets: (assets: Asset[]) => void;
-  addAssets: (files: File[]) => void;
+  addAssets: (files: File[], thumbnails?: (File | null)[]) => void;
+  replaceAsset: (assetId: string, file: File, thumbnail?: File | null) => void;
 };
 
 export const useEditPostStore = create(
@@ -46,8 +47,10 @@ export const useEditPostStore = create(
 
         if (get().confirmDiscardChanges()) {
           if (post) {
-            const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
+            const sortedAssets = post.post_assets.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+            const assetsWithStatus: Asset[] = sortedAssets.map((asset, index) => ({
               ...asset,
+              sort_order: asset.sort_order ?? index + 1,
               status: "unchanged",
             }));
             set({
@@ -105,8 +108,10 @@ export const useEditPostStore = create(
         set({ post: null, initialAssets: [], isDirty: false });
       },
       setCreatedPost: (post) => {
-        const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
+        const sortedAssets = post.post_assets.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        const assetsWithStatus: Asset[] = sortedAssets.map((asset, index) => ({
           ...asset,
+          sort_order: asset.sort_order ?? index + 1,
           status: "unchanged",
         }));
         set((state) => ({
@@ -118,8 +123,10 @@ export const useEditPostStore = create(
         }));
       },
       setPostAsSaved: (post) => {
-        const assetsWithStatus: Asset[] = post.post_assets.map((asset) => ({
+        const sortedAssets = post.post_assets.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        const assetsWithStatus: Asset[] = sortedAssets.map((asset, index) => ({
           ...asset,
+          sort_order: asset.sort_order ?? index + 1,
           status: "unchanged",
         }));
         set({
@@ -147,7 +154,7 @@ export const useEditPostStore = create(
             post_id: state.post.id as any,
             asset_url: URL.createObjectURL(file),
             asset_type: file.type.startsWith("video") ? "videos" : "slides",
-            order: (state.post.post_assets?.length || 0) + 1,
+            sort_order: (state.post.post_assets?.length || 0) + 1,
             created_at: new Date().toISOString(),
             status: "new",
             file,
@@ -203,7 +210,7 @@ export const useEditPostStore = create(
               ...state.post,
               post_assets: assets.map((asset, index) => ({
                 ...asset,
-                order: index + 1,
+                sort_order: index + 1,
                 status: asset.status === "new" ? "new" : "modified",
               })),
             },
@@ -245,22 +252,28 @@ export const useEditPostStore = create(
             isDirty: true,
           };
         }),
-      addAssets: (files: File[]) => {
+      addAssets: (files: File[], thumbnails?: (File | null)[]) => {
         set((state) => {
           if (!state.post) return {};
-          const newAssets: Asset[] = files.map((file, index) => ({
-            id: uuidv4(),
-            post_id: state.post!.id,
-            asset_url: URL.createObjectURL(file),
-            asset_type: file.type.startsWith("video") ? "videos" : "slides",
-            order: (state.post?.post_assets?.length || 0) + index + 1,
-            created_at: new Date().toISOString(),
-            status: "new",
-            file,
-            originalFile: file,
-            blurhash: null,
-            thumbnail_path: null,
-          }));
+          const newAssets: Asset[] = files.map((file, index) => {
+            const thumbnailFile = thumbnails?.[index];
+            return {
+              id: uuidv4(),
+              post_id: state.post!.id,
+              asset_url: URL.createObjectURL(file),
+              asset_type: file.type.startsWith("video") ? "videos" : "slides",
+              sort_order: (state.post?.post_assets?.length || 0) + index + 1,
+              created_at: new Date().toISOString(),
+              status: "new",
+              file,
+              originalFile: file,
+              blurhash: null,
+              thumbnail_path: thumbnailFile ? "thumb.jpg" : null,
+              editSettings: {
+                thumbnail: thumbnailFile || undefined,
+              },
+            };
+          });
 
           return {
             post: {
@@ -271,6 +284,30 @@ export const useEditPostStore = create(
           };
         });
       },
+      replaceAsset: (assetId, file, thumbnail) =>
+        set((state) => {
+          if (!state.post) return {};
+          const updatedAssets = state.post.post_assets.map((asset) => {
+            if (asset.id === assetId) {
+              return {
+                ...asset,
+                asset_url: URL.createObjectURL(file),
+                status: (asset.status === "new" ? "new" : "modified") as "new" | "modified",
+                file,
+                originalFile: file,
+                thumbnail_path: thumbnail ? "thumb.jpg" : null, // Placeholder
+                editSettings: {
+                  thumbnail: thumbnail || undefined,
+                },
+              };
+            }
+            return asset;
+          });
+          return {
+            post: { ...state.post, post_assets: updatedAssets },
+            isDirty: true,
+          };
+        }),
     }),
     {
       name: "edit-post-storage",

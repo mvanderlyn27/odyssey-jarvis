@@ -1,6 +1,6 @@
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SchedulerPostList from "@/features/scheduling/components/SchedulerPostList";
 import ScheduleCalendar from "@/features/scheduling/components/ScheduleCalendar";
 import { useSchedulePost } from "@/features/posts/hooks/useSchedulePost";
@@ -9,25 +9,22 @@ import { usePosts } from "@/features/posts/hooks/usePosts";
 import { useSchedulePageStore } from "@/store/useSchedulePageStore";
 import DraggableSchedulerPostCard from "@/features/scheduling/components/DraggableSchedulerPostCard";
 import { PostWithAssets } from "@/features/posts/types";
+import { useFeatureGate } from "@/features/billing/services/featureGate";
+import { useUserPlan } from "@/features/billing/hooks/useUserPlan";
 
 const PostSchedulePage = () => {
+  const navigate = useNavigate();
   const { daySettings } = useSchedulePageStore();
   const { mutate: schedulePost } = useSchedulePost();
+  const { gate } = useFeatureGate();
+  const { plan } = useUserPlan();
   const { mutate: unschedulePost } = useUnschedulePost();
   const [activePost, setActivePost] = useState<PostWithAssets | null>(null);
 
   const { data: posts, isLoading } = usePosts({ status: "DRAFT,SCHEDULED" });
-  const { draftPosts, scheduledPosts, setDraftPosts, setScheduledPosts, movePostToSchedule, movePostToDrafts } =
-    useSchedulePageStore();
 
-  useEffect(() => {
-    if (posts) {
-      const drafts = posts.filter((p) => p.status === "DRAFT");
-      const scheduled = posts.filter((p) => p.status === "SCHEDULED");
-      setDraftPosts(drafts);
-      setScheduledPosts(scheduled);
-    }
-  }, [posts, setDraftPosts, setScheduledPosts]);
+  const draftPosts = posts?.filter((p) => p.status === "DRAFT") ?? [];
+  const scheduledPosts = posts?.filter((p) => p.status === "SCHEDULED") ?? [];
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -61,22 +58,15 @@ const PostSchedulePage = () => {
 
     console.log(`Moving from ${activeContainer} to ${overContainer}`);
 
-    // Reordering within drafts
+    // Reordering within drafts is disabled pending a fix for optimistic update flickering.
     if (activeContainer === "drafts" && overContainer === "drafts") {
-      console.log("Reordering within drafts.");
-      const oldIndex = draftPosts.findIndex((p) => p.id === active.id);
-      const newIndex = draftPosts.findIndex((p) => p.id === over.id);
-      if (oldIndex !== newIndex && oldIndex !== -1 && newIndex !== -1) {
-        const newDrafts = arrayMove(draftPosts, oldIndex, newIndex);
-        setDraftPosts(newDrafts);
-      }
+      console.log("Reordering within drafts is currently disabled.");
       return;
     }
 
     // Moving from calendar to drafts
     if (activeContainer === "calendar" && overContainer === "drafts") {
       console.log(`Moving post ${postId} from calendar to drafts.`);
-      movePostToDrafts(postId);
       unschedulePost(postId);
       return;
     }
@@ -119,21 +109,47 @@ const PostSchedulePage = () => {
 
       const scheduled_at = scheduledAtDate.toISOString();
 
-      movePostToSchedule(postId, scheduled_at, accountId);
+      const post = posts?.find((p) => p.id === postId);
+      if (post?.assets[0]?.type === "video" && !gate("video_uploads")) {
+        return;
+      }
+
+      if (plan && plan.features.max_posts_per_day > 0) {
+        const postsToday = scheduledPosts.filter((p) => {
+          const postDate = new Date(p.scheduled_at as string).toDateString();
+          const today = new Date().toDateString();
+          return postDate === today;
+        }).length;
+
+        if (postsToday >= plan.features.max_posts_per_day) {
+          gate("max_posts_per_day");
+          return;
+        }
+      }
+
       schedulePost({ postId, scheduledAt: scheduled_at, accountId });
     }
   };
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      {/* <div className="bg-card rounded-lg"> */}
-      <div className="sticky top-0 z-50 p-4  bg-card">
-        <SchedulerPostList posts={draftPosts} isLoading={isLoading} />
+      <div className="bg-card rounded-lg">
+        <div id="scheduler-post-list" className="sticky top-0 z-50 p-4 bg-card">
+          <SchedulerPostList
+            posts={draftPosts}
+            isLoading={isLoading}
+            actionText="Create New Post"
+            onAction={() => navigate("/app/drafts")}
+          />
+        </div>
+        <div className="overflow-x-auto p-4">
+          <ScheduleCalendar
+            posts={scheduledPosts}
+            isLoading={isLoading}
+            onAddAccountClick={() => navigate("/app/home")}
+          />
+        </div>
       </div>
-      <div className="overflow-x-auto p-4">
-        <ScheduleCalendar posts={scheduledPosts} isLoading={isLoading} />
-      </div>
-      {/* </div> */}
       <DragOverlay>{activePost ? <DraggableSchedulerPostCard post={activePost} /> : null}</DragOverlay>
     </DndContext>
   );

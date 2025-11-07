@@ -4,7 +4,7 @@ import { TikTokAccount } from "../types";
 import { queries } from "../../../lib/queries";
 
 const fetchTikTokBulkStats = async (accounts: TikTokAccount[]) => {
-  const activeAccounts = accounts.filter((acc) => acc.token_status === "active");
+  const activeAccounts = accounts.filter((acc) => acc.status === "active");
   if (activeAccounts.length === 0) {
     return [];
   }

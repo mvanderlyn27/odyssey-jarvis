@@ -28,9 +28,44 @@ const METRICS: { value: AccountMetric; label: string }[] = [
 
 const AccountAnalyticsGraph = ({ accountId }: { accountId: string }) => {
   const { theme } = useTheme();
-  const { data: history, isLoading } = useTikTokAccountAnalyticsHistory(accountId);
   const [metric, setMetric] = useState<AccountMetric>("follower_count");
   const [dateRange, setDateRange] = useState<DateRange>("all");
+
+  const { startDate, endDate, granularity } = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
+    let granularity: "hourly" | "daily" | "weekly" | "monthly";
+
+    switch (dateRange) {
+      case "1d":
+        startDate = subDays(now, 1);
+        granularity = "hourly";
+        break;
+      case "7d":
+        startDate = subDays(now, 7);
+        granularity = "daily";
+        break;
+      case "30d":
+        startDate = subDays(now, 30);
+        granularity = "daily";
+        break;
+      case "90d":
+        startDate = subDays(now, 90);
+        granularity = "weekly";
+        break;
+      default:
+        startDate = subDays(now, 365);
+        granularity = "monthly";
+    }
+    return { startDate, endDate: now, granularity };
+  }, [dateRange]);
+
+  const { data: history, isLoading } = useTikTokAccountAnalyticsHistory({
+    accountId,
+    granularity,
+    startDate,
+    endDate,
+  });
 
   const processedData = useMemo(() => {
     if (!history || history.length === 0) return [];
@@ -74,7 +109,7 @@ const AccountAnalyticsGraph = ({ accountId }: { accountId: string }) => {
       current = incrementBucket(current);
     }
 
-    history.forEach((entry) => {
+    history.forEach((entry: any) => {
       const entryDate = new Date(entry.created_at);
       if (entryDate >= startDate) {
         const bucketKey = startOfBucket(entryDate).toISOString();

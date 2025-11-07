@@ -6,17 +6,35 @@ import SingleAccountSelector from "@/components/tiktok/SingleAccountSelector";
 import { usePublishPost } from "../hooks/usePublishPost";
 import { useCallback, useState } from "react";
 import { useEditPostStore } from "@/store/useEditPostStore";
+import { usePosts } from "../hooks/usePosts";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 import { useUnschedulePost } from "../hooks/useUnschedulePost";
+import { useUserPlan } from "@/features/billing/hooks/useUserPlan";
+import { useFeatureGate } from "@/features/billing/services/featureGate";
 
 const PostPublisher = () => {
   const navigate = useNavigate();
   const { data: tikTokAccounts } = useTikTokAccounts();
+  const { data: posts } = usePosts({ status: "PUBLISHED" });
+  const { plan } = useUserPlan();
   const [accountId, setAccountId] = useState<string | null>(null);
   const publishMutation = usePublishPost(() => navigate("/inbox"));
   const unscheduleMutation = useUnschedulePost();
   const { post, isDirty } = useEditPostStore();
+  const { gate } = useFeatureGate();
+
+  const features = plan?.features;
+  const postLimit = features?.max_posts_per_day ?? 0;
+  const postsToday = useMemo(() => {
+    if (!posts) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return posts.filter((p) => {
+      const publishedDate = new Date(p.published_at!);
+      return publishedDate >= today;
+    }).length;
+  }, [posts]);
 
   const canPublish = useMemo(() => {
     if (!post || isDirty) return false;
@@ -28,6 +46,10 @@ const PostPublisher = () => {
   }, []);
 
   const handlePublish = () => {
+    if (!gate("max_posts_per_day", postsToday)) {
+      return;
+    }
+
     const hasUnsavedChanges = post?.post_assets.some((asset) => asset.asset_url?.startsWith("blob:"));
     if (hasUnsavedChanges) {
       alert("You have unsaved changes. Please save the post before publishing.");
@@ -63,6 +85,11 @@ const PostPublisher = () => {
     <Card className={!canPublish ? "bg-gray-100 dark:bg-neutral-700" : ""}>
       <CardHeader>
         <CardTitle className={!canPublish ? "text-muted-foreground" : ""}>Post Publisher</CardTitle>
+        {plan && postLimit > 0 && (
+          <div className="text-sm text-muted-foreground">
+            Today's Posts: {postsToday} / {postLimit}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <fieldset disabled={!canPublish || isScheduled} className="space-y-4">

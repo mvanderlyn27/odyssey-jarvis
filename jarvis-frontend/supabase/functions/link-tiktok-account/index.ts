@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { getUserPlanFeatures } from "../_shared/get_user_plan_features.ts";
 
 const TIKTOK_CLIENT_KEY = Deno.env.get("VITE_TIKTOK_CLIENT_KEY");
 const TIKTOK_CLIENT_SECRET = Deno.env.get("VITE_TIKTOK_CLIENT_SECRET");
@@ -84,8 +85,22 @@ serve(async (req: Request) => {
 
     if (!jarvisUser) throw new Error("Could not get Jarvis user.");
 
+    // Check if the user has reached their max accounts limit
+    const features = await getUserPlanFeatures(jarvisUser.id);
+    const { data: accounts, error: countError } = await supabaseAdmin
+      .from("tiktok_accounts")
+      .select("id", { count: "exact" })
+      .eq("user_id", jarvisUser.id);
+
+    if (countError) throw countError;
+
+    if (accounts.length >= features.max_accounts) {
+      throw new Error("You have reached the maximum number of accounts for your plan.");
+    }
+
     const { error: upsertError } = await supabaseAdmin.from("tiktok_accounts").upsert(
       {
+        user_id: jarvisUser.id,
         tiktok_open_id: userInfo.open_id,
         tiktok_username: userInfo.username,
         tiktok_display_name: userInfo.display_name,

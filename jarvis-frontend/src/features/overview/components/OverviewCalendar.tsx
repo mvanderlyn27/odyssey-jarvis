@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getLatestAnalytics } from "@/features/posts/utils/getLatestAnalytics";
 import { usePosts } from "@/features/posts/hooks/usePosts";
-import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { CheckCircle, Clock } from "lucide-react";
+import OverviewCalendarSkeleton from "./OverviewCalendarSkeleton";
 import { cn } from "@/lib/utils";
 
 const OverviewCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const { data: posts, isLoading } = usePosts();
+
+  if (isLoading) {
+    return <OverviewCalendarSkeleton />;
+  }
 
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -64,88 +68,72 @@ const OverviewCalendar = () => {
   }
   for (let i = 1; i <= daysInMonth; i++) {
     const dayIndex = startDay + i - 1;
-    if (isLoading) {
-      days.push(
-        <motion.div
-          key={`skeleton-${i}`}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: dayIndex * 0.02 }}>
-          <Skeleton className="h-32" />
-        </motion.div>
-      );
-    } else {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
-      const dayData = monthlyAnalytics.dailyData[i] || { views: 0, published: 0, scheduled: 0 };
-      const { views, published, scheduled } = dayData;
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
+    const dayData = monthlyAnalytics.dailyData[i] || { views: 0, published: 0, scheduled: 0 };
+    const { views, published, scheduled } = dayData;
 
-      const isFutureDate = date > new Date();
-      const hasPosts = published > 0 || scheduled > 0;
+    const isFutureDate = date > new Date();
+    const hasPosts = published > 0 || scheduled > 0;
 
-      const opacity = Math.log(views / 10000 + 1) / Math.log(1000000 / 10000 + 1);
+    const opacity = Math.log(views / 10000 + 1) / Math.log(1000000 / 10000 + 1);
 
-      const dayContent = (
-        <div
-          className={cn(
-            "h-32 border rounded-md p-2 flex flex-col transition-colors justify-between",
-            !hasPosts && "cursor-not-allowed",
-            views > 0 ? "bg-green-500" : "bg-muted",
-            views >= 1000000 && "shadow-[0_0_15px_rgba(74,222,128,0.8)] border-green-400"
-          )}
-          style={
-            views > 0
-              ? ({
-                  "--tw-bg-opacity": Math.max(0.1, opacity),
-                  "--tw-text-opacity": 1,
-                } as React.CSSProperties)
-              : {}
-          }>
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-medium">{i}</p>
-            <div className="flex space-x-1">
-              {published > 0 && (
-                <div className="text-xs inline-flex items-center px-2 py-1 rounded-md">
-                  <CheckCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                  <span className="font-bold">{published}</span>
-                </div>
-              )}
-              {scheduled > 0 && (
-                <div className="text-xs inline-flex items-center px-2 py-1 rounded-md">
-                  <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
-                  <span className="font-bold">{scheduled}</span>
-                </div>
-              )}
-            </div>
+    const dayContent = (
+      <div
+        className={cn(
+          "h-32 border rounded-md p-2 flex flex-col transition-colors justify-between",
+          !hasPosts && "cursor-not-allowed",
+          views > 0 ? "bg-green-500" : "bg-muted",
+          views >= 1000000 && "shadow-[0_0_15px_rgba(74,222,128,0.8)] border-green-400"
+        )}
+        style={
+          views > 0
+            ? ({
+                "--tw-bg-opacity": Math.max(0.1, opacity),
+                "--tw-text-opacity": 1,
+              } as React.CSSProperties)
+            : {}
+        }>
+        <div className="flex justify-between items-start">
+          <p className="text-sm font-medium">{i}</p>
+          <div className="flex space-x-1">
+            {published > 0 && (
+              <div className="text-xs inline-flex items-center px-2 py-1 rounded-md">
+                <CheckCircle className="h-4 w-4 mr-1 flex-shrink-0" />
+                <span className="font-bold">{published}</span>
+              </div>
+            )}
+            {scheduled > 0 && (
+              <div className="text-xs inline-flex items-center px-2 py-1 rounded-md">
+                <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
+                <span className="font-bold">{scheduled}</span>
+              </div>
+            )}
           </div>
-          {!isFutureDate && views > 0 && (
-            <div className="text-center">
-              <p className="text-lg font-bold">{views.toLocaleString()}</p>
-              <p className="text-xs">Views</p>
-            </div>
-          )}
-          <div />
         </div>
-      );
+        {!isFutureDate && views > 0 && (
+          <div className="text-center">
+            <p className="text-lg font-bold">{views.toLocaleString()}</p>
+            <p className="text-xs">Views</p>
+          </div>
+        )}
+        <div />
+      </div>
+    );
 
-      days.push(
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            opacity: { delay: dayIndex * 0.02, duration: 0.2 },
-            y: { delay: dayIndex * 0.02, duration: 0.2 },
-            scale: { duration: 0.1 },
-          }}
-          whileHover={hasPosts ? { scale: 1.05 } : {}}>
-          {hasPosts ? (
-            <Link to={`/day/${date.toISOString().split("T")[0]}`}>{dayContent}</Link>
-          ) : (
-            <div>{dayContent}</div>
-          )}
-        </motion.div>
-      );
-    }
+    days.push(
+      <motion.div
+        key={i}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          opacity: { delay: dayIndex * 0.02, duration: 0.2 },
+          y: { delay: dayIndex * 0.02, duration: 0.2 },
+          scale: { duration: 0.1 },
+        }}
+        whileHover={hasPosts ? { scale: 1.05 } : {}}>
+        {hasPosts ? <Link to={`/day/${date.toISOString().split("T")[0]}`}>{dayContent}</Link> : <div>{dayContent}</div>}
+      </motion.div>
+    );
   }
   const remainingDays = 42 - days.length;
   for (let i = 0; i < remainingDays; i++) {

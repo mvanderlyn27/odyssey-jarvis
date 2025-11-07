@@ -54,7 +54,7 @@ const Auth = ({ children }: { children: React.ReactNode }) => {
   const { data: userAccount, isLoading: isProfileLoading } = useUserProfile(user?.id);
   const { mutateAsync: logout } = useLogout();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<AuthStatus>("loading");
+  const [, setStatus] = useState<AuthStatus>("loading");
 
   useEffect(() => {
     const handleAuth = async () => {

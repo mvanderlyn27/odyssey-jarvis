@@ -3,7 +3,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { XIcon, Video, Replace } from "lucide-react";
+import { XIcon, Video } from "lucide-react";
 import { SignedUrlImage } from "@/components/shared/SignedUrlImage";
 import { Asset } from "../types";
 import { useEditPostStore } from "@/store/useEditPostStore";
@@ -38,10 +38,6 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
           replaceAsset(asset.id, file);
         }
       }
-    };
-
-    const handleReplaceClick = () => {
-      fileInputRef.current?.click();
     };
 
     return (

@@ -1,6 +1,5 @@
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SchedulerPostList from "@/features/scheduling/components/SchedulerPostList";
 import ScheduleCalendar from "@/features/scheduling/components/ScheduleCalendar";
@@ -22,7 +21,7 @@ const PostSchedulePage = () => {
   const { mutate: unschedulePost } = useUnschedulePost();
   const [activePost, setActivePost] = useState<PostWithAssets | null>(null);
 
-  const { data: posts, isLoading, isFetching } = usePosts({ status: "DRAFT,SCHEDULED" });
+  const { data: posts, isLoading } = usePosts({ status: "DRAFT,SCHEDULED" });
 
   const draftPosts = posts?.filter((p) => p.status === "DRAFT") ?? [];
   const scheduledPosts = posts?.filter((p) => p.status === "SCHEDULED") ?? [];

@@ -1,6 +1,6 @@
 import { Post } from "../types";
 import { VirtuosoGrid } from "react-virtuoso";
-import { forwardRef, HTMLAttributes, useMemo, useContext } from "react";
+import { forwardRef, HTMLAttributes, useContext } from "react";
 import { ScrollContext } from "../../../contexts/ScrollContext";
 import PostListCard from "./PostListCard";
 import PostCardSkeleton from "./PostCardSkeleton";

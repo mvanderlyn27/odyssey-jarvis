@@ -11,7 +11,7 @@ export const useSyncTikTokVideos = () => {
     onMutate: () => {
       toast.loading("Refreshing TikTok videos...");
     },
-    onSuccess: (data, accountId) => {
+    onSuccess: (_, accountId) => {
       toast.success("TikTok videos refreshed successfully!");
       queryClient.invalidateQueries({
         queryKey: queries.tiktokAccounts.all().queryKey,

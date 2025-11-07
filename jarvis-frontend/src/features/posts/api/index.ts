@@ -7,7 +7,7 @@ const getFileType = (fileType: string) => {
   return "unknown";
 };
 
-export const uploadMedia = async (file: File, postId: string, filePath: string) => {
+export const uploadMedia = async (file: File, filePath: string) => {
   const fileType = getFileType(file.type);
   if (fileType === "unknown") {
     throw new Error("Unsupported file type.");
@@ -158,7 +158,7 @@ export const syncPostAssets = async (postId: number, assets: Asset[]) => {
   for (const asset of newOrModifiedAssets) {
     if (asset.file) {
       const filePath = `${asset.asset_type}/${postId}/${asset.id}`;
-      const uploadedMedia = await uploadMedia(asset.file, postId.toString(), filePath);
+      const uploadedMedia = await uploadMedia(asset.file, filePath);
       asset.asset_url = uploadedMedia.asset_url;
     }
   }
@@ -182,7 +182,7 @@ export const syncPostAssets = async (postId: number, assets: Asset[]) => {
   return [];
 };
 
-export const savePostChanges = async (post: any, initialAssets: Asset[]) => {
+export const savePostChanges = async (post: any) => {
   if (!post?.id) throw new Error("No post to save");
 
   // 1. Update post title, description, and status
@@ -280,7 +280,7 @@ export const clonePost = async (postId: string, newFiles?: { file: File }[]) => 
       const fileType = getFileType(fileData.file.type);
       const assetId = crypto.randomUUID();
       const filePath = `${fileType}/${newPost.id}/${assetId}`;
-      const { asset_url, asset_type } = await uploadMedia(fileData.file, newPost.id.toString(), filePath);
+      const { asset_url, asset_type } = await uploadMedia(fileData.file, filePath);
       return {
         id: assetId,
         post_id: newPost.id,

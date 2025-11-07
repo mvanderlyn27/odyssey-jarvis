@@ -173,7 +173,7 @@ export const useSavePost = () => {
       }
 
       // 4. Call the existing savePostChanges function
-      await savePostChanges(updatedPost, initialAssets);
+      await savePostChanges(updatedPost);
       return updatedPost;
     },
     onSuccess: (data, variables) => {

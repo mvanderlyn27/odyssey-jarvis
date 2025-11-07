@@ -20,7 +20,7 @@ const SingleAccountSelector: React.FC<SingleAccountSelectorProps> = ({
       <SelectContent>
         {accounts.map((account) => (
           <SelectItem key={account.id} value={account.id}>
-            {account.tiktok_display_name || account.tiktok_username}
+            {account.display_name}
           </SelectItem>
         ))}
       </SelectContent>

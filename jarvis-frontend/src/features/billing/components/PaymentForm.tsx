@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { createCheckoutSession } from "../api";
 import { useSession } from "@/features/auth/hooks/useSession";
 
-const PaymentForm = ({ onPaymentSuccess }: { onPaymentSuccess: () => void }) => {
+const PaymentForm = () => {
   const stripe = useStripe();
   const { data: session } = useSession();
   const [error, setError] = useState<string | null>(null);

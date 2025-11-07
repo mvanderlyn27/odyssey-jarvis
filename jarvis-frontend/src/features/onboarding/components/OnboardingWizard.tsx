@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect } from "react";
+import { useState, useLayoutEffect } from "react";
 import ReactDOM from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +56,6 @@ const OnboardingWizard = () => {
   const [highlightedElement, setHighlightedElement] = useState<DOMRect | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
   // const forceShowOnboarding = false;
 
   const step = steps[currentStep];

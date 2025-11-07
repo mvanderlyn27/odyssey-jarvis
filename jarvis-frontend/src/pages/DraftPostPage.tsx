@@ -132,7 +132,15 @@ const EditPost = ({ postId }: { postId: string }) => {
       <PageHeader onBackClick={handleBack} status={post.status || undefined}>
         <RefreshButton onClick={() => refetch()} isRefreshing={isFetching} />
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
-        <Button onClick={() => savePost(post as DraftPost)} disabled={isSaving || !isDirty}>
+        <Button
+          onClick={() =>
+            savePost(post as DraftPost, {
+              onSuccess: () => {
+                navigate("/app/drafts");
+              },
+            })
+          }
+          disabled={isSaving || !isDirty}>
           {isSaving ? "Saving..." : "Save"}
         </Button>
         {post.id && (

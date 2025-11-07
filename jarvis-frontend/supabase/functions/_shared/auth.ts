@@ -10,12 +10,16 @@ export async function authenticateRequest(req: Request) {
   console.log("INTERNAL_SECRET_KEY from env:", internalSecretKey ? "loaded" : "not loaded");
 
   // 1. Check for the internal secret (for server-to-server calls)
-  if (internalSecret && internalSecretKey) {
-    if (internalSecret === internalSecretKey) {
+  if (internalSecret) {
+    if (internalSecretKey && internalSecret === internalSecretKey) {
       console.log("Authenticated with internal secret.");
       return { user: null, error: null };
     } else {
-      console.log("Internal secret mismatch.");
+      console.error("Internal secret mismatch or not set in environment.");
+      return {
+        user: null,
+        error: new Error("Invalid internal secret."),
+      };
     }
   }
 

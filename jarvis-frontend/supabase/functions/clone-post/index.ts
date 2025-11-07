@@ -38,6 +38,7 @@ serve(async (req) => {
         description: originalPost.description,
         status: "DRAFT",
         user_id: originalPost.user_id,
+        organization_id: originalPost.organization_id,
         tiktok_account_id: originalPost.tiktok_account_id,
       })
       .select()
@@ -49,7 +50,7 @@ serve(async (req) => {
     if (originalPost.post_assets && originalPost.post_assets.length > 0) {
       const bucketName = "tiktok_assets";
       const oldPostId = originalPost.id;
-      const assetType = originalPost.post_assets[0].asset_type === "video" ? "video" : "slides";
+      const assetType = originalPost.post_assets[0].asset_type;
       const oldPostFolderPath = `${assetType}/${oldPostId}`;
       const newPostFolderPath = `${assetType}/${newPostId}`;
 
@@ -75,13 +76,21 @@ serve(async (req) => {
 
       // Create new post_assets records with the correct paths
       const newAssets = originalPost.post_assets.map((asset: any) => {
-        const oldPath = asset.asset_url;
+        const oldUrl = new URL(asset.asset_url);
+        const oldPath = oldUrl.pathname.substring(oldUrl.pathname.indexOf(bucketName) + bucketName.length + 1);
         const fileName = oldPath.split("/").pop();
+        const newPath = `${newPostFolderPath}/${fileName}`;
+
+        const newThumbnailPath = asset.thumbnail_path ? asset.thumbnail_path.replace(oldPostId, newPostId) : null;
+
         return {
-          ...asset,
           id: crypto.randomUUID(),
           post_id: newPostId,
-          asset_url: `${newPostFolderPath}/${fileName}`,
+          asset_url: newPath,
+          asset_type: asset.asset_type,
+          sort_order: asset.sort_order,
+          blurhash: asset.blurhash,
+          thumbnail_path: newThumbnailPath,
         };
       });
 

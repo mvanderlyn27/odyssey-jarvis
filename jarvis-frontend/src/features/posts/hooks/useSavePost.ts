@@ -184,10 +184,6 @@ export const useSavePost = () => {
       invalidateAllPostLists();
       queryClient.invalidateQueries({ queryKey: queries.post.detail(data.id).queryKey });
       setPostAsSaved(data as any);
-
-      if (!variables.user_id) {
-        navigate(`/app/posts/${data.id}`, { replace: true });
-      }
     },
     onError: (error) => {
       toast.error(`Failed to save changes: ${error.message}`);

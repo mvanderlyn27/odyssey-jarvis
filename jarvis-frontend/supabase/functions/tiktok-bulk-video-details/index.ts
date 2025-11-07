@@ -5,6 +5,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const TIKTOK_API_BASE = "https://open.tiktokapis.com/v2";
 const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -27,10 +28,10 @@ interface Account {
 
 interface PostAnalyticRaw {
   post_id: string;
-  likes_count: number;
-  comments_count: number;
-  shares_count: number;
-  views_count: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  views: number;
   user_id: string;
   organization_id?: string;
 }
@@ -103,10 +104,10 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
       if (!post) return null;
       return {
         post_id: post.id,
-        likes_count: video.like_count || 0,
-        comments_count: video.comment_count || 0,
-        shares_count: video.share_count || 0,
-        views_count: video.view_count || 0,
+        likes: video.like_count || 0,
+        comments: video.comment_count || 0,
+        shares: video.share_count || 0,
+        views: video.view_count || 0,
         user_id: account.user_id,
         organization_id: account.organization_id,
       };
@@ -123,10 +124,12 @@ async function fetchVideoStatsForAccount(account: Account, postIds: string[]) {
 
 // Main function triggered by cron job.
 serve(async (req: Request) => {
-  // Optional: Secure the endpoint with a secret
-  const internalSecret = req.headers.get("X-Internal-Secret");
-  if (internalSecret !== Deno.env.get("INTERNAL_SECRET")) {
-    return new Response("Unauthorized", { status: 401 });
+  const { error: authError } = await authenticateRequest(req);
+  if (authError) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 401,
+    });
   }
 
   try {

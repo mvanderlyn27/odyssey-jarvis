@@ -76,8 +76,6 @@ serve(async (req: Request) => {
       .update({
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
-        expires_in: tokenData.expires_in,
-        refresh_expires_in: tokenData.refresh_expires_in,
       })
       .eq("refresh_token", refresh_token);
 

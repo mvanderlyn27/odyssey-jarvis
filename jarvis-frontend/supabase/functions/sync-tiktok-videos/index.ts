@@ -52,7 +52,7 @@ serve(async (req: Request) => {
     console.log("Querying for account with ID:", account_id);
     const { data: account, error: accountError } = await supabaseAdmin
       .from("tiktok_accounts")
-      .select("access_token, last_video_import_at")
+      .select("access_token, last_video_import_at, organization_id")
       .eq("id", account_id)
       .single();
 
@@ -173,6 +173,7 @@ serve(async (req: Request) => {
           description: video.video_description,
           status: "PUBLISHED" as const,
           created_in_jarvis: false,
+          organization_id: account.organization_id,
           tiktok_share_url: video.share_url,
           tiktok_embed_url: video.embed_link,
           published_at: new Date(video.create_time * 1000).toISOString(),
@@ -206,7 +207,7 @@ serve(async (req: Request) => {
 
         if (analyticsToInsert.length > 0) {
           console.log("Inserting analytics for new posts:", analyticsToInsert);
-          const { error: analyticsError } = await supabaseAdmin.from("post_analytics").insert(analyticsToInsert);
+          const { error: analyticsError } = await supabaseAdmin.from("post_analytics_raw").insert(analyticsToInsert);
           if (analyticsError) {
             console.error("Error inserting post analytics:", analyticsError);
             throw analyticsError;
@@ -306,7 +307,7 @@ serve(async (req: Request) => {
       });
 
       console.log("Inserting analytics for existing posts:", analyticsToInsert);
-      const { error: analyticsError } = await supabaseAdmin.from("post_analytics").insert(analyticsToInsert);
+      const { error: analyticsError } = await supabaseAdmin.from("post_analytics_raw").insert(analyticsToInsert);
 
       if (analyticsError) {
         console.error("Error inserting post analytics for existing posts:", analyticsError);

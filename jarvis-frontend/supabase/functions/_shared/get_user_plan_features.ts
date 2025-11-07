@@ -11,34 +11,32 @@ export async function getUserPlanFeatures(userId: string) {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
-  // First, try to get the user's active subscription directly
-  let { data: subscription } = await supabaseAdmin
+  // Find an active subscription for the user
+  const { data: subscription, error: subError } = await supabaseAdmin
     .from("subscriptions")
-    .select("plan_id, organization_id")
-    .eq("user_id", userId)
+    .select("plan_id")
     .eq("status", "active")
+    .eq("user_id", userId)
+    .limit(1)
     .maybeSingle();
 
-  // If no direct subscription, check for an organization-level subscription
-  if (!subscription) {
-    const { data: profile } = await supabaseAdmin.from("profiles").select("organization_id").eq("id", userId).single();
-
-    if (profile && profile.organization_id) {
-      const { data: orgSubscription } = await supabaseAdmin
-        .from("subscriptions")
-        .select("plan_id, organization_id")
-        .eq("organization_id", profile.organization_id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (orgSubscription) {
-        subscription = orgSubscription;
-      }
-    }
+  if (subError) {
+    console.error("Error fetching subscription:", subError);
+    throw new Error("An error occurred while fetching the subscription.");
   }
 
   if (!subscription) {
-    throw new Error("Could not find an active subscription for the user.");
+    // If no active subscription, default to the "Free" plan
+    const { data: freePlan, error: freePlanError } = await supabaseAdmin
+      .from("plans")
+      .select("features")
+      .eq("name", "Free")
+      .single();
+
+    if (freePlanError || !freePlan) {
+      throw new Error("Could not find the default 'Free' plan.");
+    }
+    return freePlan.features;
   }
 
   // Now, get the features of that plan

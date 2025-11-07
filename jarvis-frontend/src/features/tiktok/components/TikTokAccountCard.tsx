@@ -17,7 +17,7 @@ export const TikTokAccountCard: React.FC<TikTokAccountCardProps> = ({ account, o
   }
 
   return (
-    <Link to={`/tiktok/${account.id}`} className="w-full max-w-sm">
+    <Link to={`/app/tiktok/${account.id}`} className="w-full max-w-sm">
       <Card className="transition-transform duration-200 hover:scale-105">
         <CardHeader className="flex flex-row items-center justify-end space-y-0 p-2">
           <Button

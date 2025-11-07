@@ -51,9 +51,11 @@ const TikTokAccountsPage = () => {
   };
 
   const sortedAccounts = useMemo(() => {
-    if (!accounts || !analytics) return [];
+    if (!accounts) return [];
 
-    const analyticsMap = new Map(analytics.map((a: TikTokAccountAnalytics) => [a.account_id, a]));
+    const analyticsMap = analytics
+      ? new Map(analytics.map((a: TikTokAccountAnalytics) => [a.account_id, a]))
+      : new Map();
     const merged: TikTokAccount[] = accounts.map((acc) => {
       const analyticsData = analyticsMap.get(acc.id) || {};
       return {

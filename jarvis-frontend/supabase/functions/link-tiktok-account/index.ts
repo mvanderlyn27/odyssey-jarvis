@@ -15,60 +15,76 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
+  console.log("[link-tiktok-account] Function invoked.");
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    console.log("[link-tiktok-account] Authenticating request.");
     const { error: authError } = await authenticateRequest(req);
     if (authError) {
+      console.error("[link-tiktok-account] Authentication error:", authError);
       return new Response(JSON.stringify({ error: authError.message }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
+    console.log("[link-tiktok-account] Authentication successful.");
+
     const { code, code_verifier } = await req.json();
+    console.log("[link-tiktok-account] Received code and verifier.");
 
     if (!code) throw new Error("Authorization code is missing.");
     if (!code_verifier) throw new Error("Code verifier is missing.");
 
     // 1. Exchange authorization code for access token
+    console.log("[link-tiktok-account] Exchanging authorization code for access token.");
     const tokenResponse = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `client_key=${TIKTOK_CLIENT_KEY}&client_secret=${TIKTOK_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${TIKTOK_REDIRECT_URI}&code_verifier=${code_verifier}`,
     });
 
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json();
-      throw new Error(`TikTok Token API error: ${errorData.error_description}`);
-    }
-
     const tokenData = await tokenResponse.json();
+    console.log("[link-tiktok-account] Token response received:", tokenData);
+
+    if (!tokenResponse.ok) {
+      throw new Error(`TikTok Token API error: ${tokenData.error_description || "Unknown error"}`);
+    }
     if (tokenData.error) {
       throw new Error(`TikTok Token API error: ${tokenData.error_description || tokenData.error}`);
     }
     const accessToken = tokenData.access_token;
+    console.log("[link-tiktok-account] Access token obtained.");
 
     // 2. Fetch user info from TikTok API
+    console.log("[link-tiktok-account] Fetching user info from TikTok API.");
     const userResponse = await fetch(
       `https://open.tiktokapis.com/v2/user/info/?fields=open_id,username,display_name,avatar_large_url`,
       {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       }
     );
 
     if (!userResponse.ok) {
-      const errorData = await userResponse.json();
+      const errorText = await userResponse.text();
+      console.error("[link-tiktok-account] User info request failed. Raw response:", errorText);
       const grantedScopes = tokenData.scope || "N/A";
-      throw new Error(`TikTok User API error: ${errorData.error.message} (Granted Scopes: ${grantedScopes})`);
+      throw new Error(`TikTok User API error: ${errorText} (Granted Scopes: ${grantedScopes})`);
     }
 
     const userData = await userResponse.json();
+    console.log("[link-tiktok-account] User info response received:", userData);
     const userInfo = userData.data.user;
+    console.log("[link-tiktok-account] User info obtained:", userInfo);
 
     // 3. Get the current Jarvis user and upsert data into the database
+    console.log("[link-tiktok-account] Getting current Jarvis user.");
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -81,8 +97,10 @@ serve(async (req: Request) => {
     }).auth.getUser();
 
     if (!jarvisUser) throw new Error("Could not get Jarvis user.");
+    console.log("[link-tiktok-account] Jarvis user found:", jarvisUser.id);
 
     // Check if the user has reached their max accounts limit
+    console.log("[link-tiktok-account] Checking user plan features.");
     const features = await getUserPlanFeatures(jarvisUser.id);
     const { data: accounts, error: countError } = await supabaseAdmin
       .from("tiktok_accounts")
@@ -94,44 +112,47 @@ serve(async (req: Request) => {
     if (accounts.length >= features.max_accounts) {
       throw new Error("You have reached the maximum number of accounts for your plan.");
     }
+    console.log("[link-tiktok-account] User has not reached max accounts limit.");
 
+    console.log("[link-tiktok-account] Upserting TikTok account data.");
     const { error: upsertError } = await supabaseAdmin.from("tiktok_accounts").upsert(
       {
         user_id: jarvisUser.id,
-        tiktok_open_id: userInfo.open_id,
-        tiktok_username: userInfo.username,
-        tiktok_display_name: userInfo.display_name,
-        tiktok_avatar_url: userInfo.avatar_large_url,
+        open_id: userInfo.open_id,
+        display_name: userInfo.display_name,
+        profile_image_url: userInfo.avatar_large_url,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
-        expires_in: tokenData.expires_in,
-        refresh_expires_in: tokenData.refresh_expires_in,
-        token_type: tokenData.token_type,
         scope: tokenData.scope,
       },
-      { onConflict: "tiktok_open_id" }
+      { onConflict: "open_id" }
     );
 
     if (upsertError) throw upsertError;
+    console.log("[link-tiktok-account] TikTok account data upserted successfully.");
 
     // After successfully linking the account, trigger the video sync
+    console.log("[link-tiktok-account] Triggering video sync.");
     const { data: newAccount } = await supabaseAdmin
       .from("tiktok_accounts")
       .select("id")
-      .eq("tiktok_open_id", userInfo.open_id)
+      .eq("open_id", userInfo.open_id)
       .single();
 
     if (newAccount) {
       await supabaseAdmin.functions.invoke("sync-tiktok-videos", {
         body: { account_id: newAccount.id },
       });
+      console.log("[link-tiktok-account] Video sync triggered for account:", newAccount.id);
     }
 
+    console.log("[link-tiktok-account] Function completed successfully.");
     return new Response(JSON.stringify({ message: "TikTok account linked and videos synced." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: any) {
+    console.error("[link-tiktok-account] An error occurred:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

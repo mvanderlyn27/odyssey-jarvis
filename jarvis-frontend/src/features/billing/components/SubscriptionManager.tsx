@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useUserSubscription } from "../hooks/useUserSubscription";
 import { useSession } from "@/features/auth/hooks/useSession";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,9 +38,18 @@ const reactivateSubscription = async () => {
 const SubscriptionManager: React.FC = () => {
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const { data: subscription, isLoading } = useUserSubscription();
+  const { data: subscription, isLoading, isFetching } = useUserSubscription();
   const { plan } = useUserPlan();
   const queryClient = useQueryClient();
+
+  console.log("Subscription Data:", subscription);
+  console.log("Plan Data:", plan);
+
+  const handleRefresh = () => {
+    toast.info("Refreshing subscription details...");
+    queryClient.invalidateQueries({ queryKey: queries.user.subscription(session?.user?.id).queryKey });
+    queryClient.invalidateQueries({ queryKey: queries.plans.all().queryKey });
+  };
 
   const cancelMutation = useMutation({
     mutationFn: cancelSubscription,
@@ -157,8 +167,15 @@ const SubscriptionManager: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Subscription</CardTitle>
-        <CardDescription>Manage your billing and subscription details.</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Subscription</CardTitle>
+            <CardDescription>Manage your billing and subscription details.</CardDescription>
+          </div>
+          <Button onClick={handleRefresh} variant="outline" size="icon" disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {!subscription && renderNoSubscription()}

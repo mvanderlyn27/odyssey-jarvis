@@ -17,7 +17,8 @@ export const useSignedUrls = (paths: (string | undefined | null)[]) => {
       for (const path of validPaths) {
         const { data } = await supabase.storage.from("tiktok_assets").createSignedUrl(path, fiveMinutes);
         if (data) {
-          urls[path] = data.signedUrl;
+          const separator = data.signedUrl.includes("?") ? "&" : "?";
+          urls[path] = `${data.signedUrl}${separator}t=${new Date().getTime()}`;
         }
       }
       return urls;

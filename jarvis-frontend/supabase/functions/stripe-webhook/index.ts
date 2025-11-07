@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import Stripe from "https://esm.sh/stripe@14.5.0?target=deno";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -46,19 +46,51 @@ serve(async (req: Request) => {
       const subscriptionData = {
         stripe_subscription_id: subscription.id,
         status: subscription.status,
-        plan_id: subscription.items.data[0].price.lookup_key,
+        plan_id: subscription.items.data[0].price.id,
+        start_date: new Date((subscription.start_date || subscription.created) * 1000).toISOString(),
         trial_starts_at: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
         trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
-        current_period_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_ends_at: new Date(
+          (subscription.current_period_end || subscription.created) * 1000
+        ).toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        ended_at: subscription.ended_at ? new Date(subscription.ended_at * 1000).toISOString() : null,
       };
 
-      const { error } = await supabaseAdmin
+      const { error: subscriptionError } = await supabaseAdmin
         .from("subscriptions")
         .upsert({ user_id: userId, ...subscriptionData }, { onConflict: "stripe_subscription_id" });
 
-      if (error) {
-        console.error("Error upserting subscription:", error);
+      if (subscriptionError) {
+        console.error("Error upserting subscription:", subscriptionError);
         throw new Error("Could not update subscription in database.");
+      }
+
+      // Update onboarding_data in the profiles table
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .select("onboarding_data")
+        .eq("id", userId)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        throw new Error("Could not fetch user profile.");
+      }
+
+      const updatedOnboardingData = {
+        ...profile.onboarding_data,
+        hasCompletedPurchase: true,
+      };
+
+      const { error: updateProfileError } = await supabaseAdmin
+        .from("profiles")
+        .update({ onboarding_data: updatedOnboardingData })
+        .eq("id", userId);
+
+      if (updateProfileError) {
+        console.error("Error updating profile:", updateProfileError);
+        throw new Error("Could not update user profile.");
       }
     }
 
@@ -66,9 +98,10 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
-    console.error("Webhook error:", error);
-    return new Response(JSON.stringify({ error: `Webhook error: ${error.message}` }), {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.log(`Stripe webhook error: ${errorMessage}`);
+    return new Response(JSON.stringify({ error: `Webhook error: ${errorMessage}` }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });

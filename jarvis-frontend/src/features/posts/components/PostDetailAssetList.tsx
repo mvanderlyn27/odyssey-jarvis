@@ -22,11 +22,12 @@ import { PostDetailAsset, AssetCard } from "@/features/posts/components/PostDeta
 import { useEditPostStore } from "@/store/useEditPostStore";
 import { Post, DraftPost, Asset } from "../types";
 import { NewPostDetailAssetButton } from "./NewPostDetailAssetButton";
-import { generateVideoThumbnail } from "../utils";
+import { generateVideoThumbnail, processVideo } from "../utils";
 import { toast } from "sonner";
 
 const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post | DraftPost; viewOnly?: boolean }) => {
   const { post: postFromStore, reorderAssets, addAssets, removeAsset } = useEditPostStore();
+  const [isProcessing, setIsProcessing] = useState(false);
   const post = postProp || postFromStore;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
@@ -92,7 +93,7 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
     if (event.target.files) {
       const files = Array.from(event.target.files);
       const videoFile = files.find((file) => file.type.startsWith("video/"));
-      const hasVideo = assets.some((asset) => asset.asset_type === "video");
+      const hasVideo = assets.some((asset) => asset.asset_type === "videos");
 
       if (videoFile && hasVideo) {
         toast.error("Only one video is allowed per post.");
@@ -107,21 +108,24 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
       const processedFiles = [];
       const thumbnails = [];
 
+      setIsProcessing(true);
       for (const file of files) {
         if (file.type.startsWith("video/")) {
           try {
-            const thumbnail = await generateVideoThumbnail(file);
-            processedFiles.push(file);
+            const processedVideoFile = await processVideo(file);
+            const thumbnail = await generateVideoThumbnail(processedVideoFile);
+            processedFiles.push(processedVideoFile);
             thumbnails.push(thumbnail);
           } catch (error) {
-            console.error("Error generating video thumbnail:", error);
-            toast.error("Failed to generate video thumbnail.");
+            console.error("Error processing video:", error);
+            toast.error("Failed to process video.");
           }
         } else {
           processedFiles.push(file);
           thumbnails.push(null);
         }
       }
+      setIsProcessing(false);
 
       if (processedFiles.length > 0) {
         addAssets(processedFiles, thumbnails);
@@ -169,7 +173,7 @@ const PostDetailAssetList = ({ post: postProp, viewOnly = false }: { post?: Post
                 />
               ))}
             </SortableContext>
-            {!viewOnly && <NewPostDetailAssetButton onFileChange={handleFileChange} />}
+            {!viewOnly && <NewPostDetailAssetButton onFileChange={handleFileChange} disabled={isProcessing} />}
           </div>
           <DragOverlay>
             {activeAsset ? <AssetCard asset={activeAsset} onRemove={() => {}} viewOnly={viewOnly} isDragging /> : null}

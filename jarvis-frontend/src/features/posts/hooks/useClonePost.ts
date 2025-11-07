@@ -27,7 +27,7 @@ export const useClonePost = () => {
         queryKey: queries.posts.byStatus("DRAFT,SCHEDULED").queryKey,
       });
       clearPost();
-      navigate(`/drafts/${data.post.id}`);
+      navigate(`/app/posts/${data.post.id}`);
       toast.success("Post cloned successfully!");
     },
     onError: (error) => {

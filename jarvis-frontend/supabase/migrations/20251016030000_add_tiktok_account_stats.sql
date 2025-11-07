@@ -1,5 +1,5 @@
 ALTER TABLE tiktok_accounts
-ADD COLUMN follower_count INTEGER,
-ADD COLUMN following_count INTEGER,
-ADD COLUMN likes_count INTEGER,
-ADD COLUMN video_count INTEGER;
+ADD COLUMN IF NOT EXISTS follower_count INTEGER,
+ADD COLUMN IF NOT EXISTS following_count INTEGER,
+ADD COLUMN IF NOT EXISTS likes_count INTEGER,
+ADD COLUMN IF NOT EXISTS video_count INTEGER;

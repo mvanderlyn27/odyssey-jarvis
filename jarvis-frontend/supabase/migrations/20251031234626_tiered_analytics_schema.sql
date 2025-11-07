@@ -7,31 +7,45 @@
 ALTER TABLE post_analytics RENAME TO post_analytics_raw;
 ALTER TABLE account_analytics RENAME TO account_analytics_raw;
 
+-- Add fetched_at columns if they don't exist for idempotency
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='post_analytics_raw' AND column_name='fetched_at') THEN
+        ALTER TABLE post_analytics_raw ADD COLUMN fetched_at TIMESTAMPTZ DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='account_analytics_raw' AND column_name='fetched_at') THEN
+        ALTER TABLE account_analytics_raw ADD COLUMN fetched_at TIMESTAMPTZ DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='account_analytics_raw' AND column_name='account_id') THEN
+        ALTER TABLE account_analytics_raw ADD COLUMN account_id UUID;
+    END IF;
+END $$;
+
 -- Create Aggregated Tables for Post Analytics
 CREATE TABLE post_analytics_hourly (
-    LIKE post_analytics_raw INCLUDING ALL,
+    LIKE post_analytics_raw,
     PRIMARY KEY (post_id, fetched_at)
 );
 CREATE TABLE post_analytics_daily (
-    LIKE post_analytics_raw INCLUDING ALL,
+    LIKE post_analytics_raw,
     PRIMARY KEY (post_id, fetched_at)
 );
 CREATE TABLE post_analytics_monthly (
-    LIKE post_analytics_raw INCLUDING ALL,
+    LIKE post_analytics_raw,
     PRIMARY KEY (post_id, fetched_at)
 );
 
 -- Create Aggregated Tables for Account Analytics
 CREATE TABLE account_analytics_hourly (
-    LIKE account_analytics_raw INCLUDING ALL,
+    LIKE account_analytics_raw,
     PRIMARY KEY (account_id, fetched_at)
 );
 CREATE TABLE account_analytics_daily (
-    LIKE account_analytics_raw INCLUDING ALL,
+    LIKE account_analytics_raw,
     PRIMARY KEY (account_id, fetched_at)
 );
 CREATE TABLE account_analytics_monthly (
-    LIKE account_analytics_raw INCLUDING ALL,
+    LIKE account_analytics_raw,
     PRIMARY KEY (account_id, fetched_at)
 );
 

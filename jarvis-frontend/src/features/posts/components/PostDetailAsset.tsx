@@ -21,7 +21,7 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
   ({ asset, onRemove, viewOnly, isDragging, ...props }, ref) => {
     const [isHovering, setIsHovering] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { updateAssetFile } = useEditPostStore();
+    const { replaceAsset } = useEditPostStore();
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       if (event.target.files && event.target.files[0]) {
@@ -29,13 +29,13 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
         if (file.type.startsWith("video/")) {
           try {
             const thumbnail = await generateVideoThumbnail(file);
-            updateAssetFile(asset.id, file, { thumbnail });
+            replaceAsset(asset.id, file, thumbnail);
           } catch (error) {
             console.error("Error generating video thumbnail:", error);
             toast.error("Failed to generate video thumbnail.");
           }
         } else {
-          updateAssetFile(asset.id, file);
+          replaceAsset(asset.id, file);
         }
       }
     };
@@ -57,8 +57,8 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
           whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
           animate={{ scale: isDragging ? 1.05 : 1 }}>
           <div className="w-full h-full">
-            {asset.asset_type === "video" && <Video className="absolute top-2 left-2 text-white h-6 w-6 z-10" />}
-            {asset.asset_type === "video" && isHovering ? (
+            {asset.asset_type === "videos" && <Video className="absolute top-2 left-2 text-white h-6 w-6 z-10" />}
+            {asset.asset_type === "videos" && isHovering ? (
               <video src={asset.asset_url} className="w-full h-full object-cover rounded-lg" autoPlay muted loop />
             ) : (
               <SignedUrlImage
@@ -81,7 +81,7 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
                 onChange={handleFileChange}
                 accept="image/webp,image/jpeg,video/mp4"
               />
-              <Button
+              {/* <Button
                 variant="outline"
                 size="icon"
                 className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -91,7 +91,7 @@ export const AssetCard = React.forwardRef<HTMLDivElement, AssetCardProps & { [ke
                   handleReplaceClick();
                 }}>
                 <Replace className="h-4 w-4" />
-              </Button>
+              </Button> */}
               <Button
                 variant="destructive"
                 size="icon"

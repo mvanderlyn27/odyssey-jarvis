@@ -1,1 +1,1 @@
-ALTER TABLE post_analytics ADD CONSTRAINT post_analytics_post_id_created_at_unique UNIQUE (post_id, created_at);
+ALTER TABLE public.post_analytics ADD CONSTRAINT post_analytics_post_id_created_at_unique UNIQUE (post_id, created_at);

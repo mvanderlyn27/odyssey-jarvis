@@ -5,6 +5,7 @@ import { useFetchVideoAnalytics } from "@/features/analytics/hooks/useFetchVideo
 import { usePosts } from "@/features/posts/hooks/usePosts";
 import PostOverviewList from "@/features/posts/components/PostOverviewList";
 import { TikTokAccount } from "@/features/tiktok/types";
+import PostOverviewListSkeleton from "@/features/posts/components/PostOverviewListSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
 import { DateRange } from "react-day-picker";
@@ -13,8 +14,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import OverviewCalendar from "@/features/overview/components/OverviewCalendar";
 import { Separator } from "@/components/ui/separator";
 import { getLatestAnalytics } from "@/features/posts/utils/getLatestAnalytics";
+import { useUserPlan } from "@/features/billing/hooks/useUserPlan";
+import { Button } from "@/components/ui/button";
+import { useFeatureGateStore } from "@/store/useFeatureGateStore";
 
 const PostOverviewPage = () => {
+  const { plan } = useUserPlan();
+  const { openModal } = useFeatureGateStore();
   const [selectedAccounts, setSelectedAccounts] = useState<TikTokAccount[]>([]);
   const [sortOption, setSortOption] = useState("published_at-desc");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -106,6 +112,51 @@ const PostOverviewPage = () => {
     );
   }, [filteredPosts]);
 
+  const hasAnalyticsAccess = plan?.features?.analytics_granularity !== null;
+
+  if (!hasAnalyticsAccess) {
+    return (
+      <div className="relative p-6 blur-sm pointer-events-none">
+        {/* Placeholder for blurred content */}
+        <OverviewCalendar />
+        <Card>
+          <CardHeader>
+            <CardTitle>Post List</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Views</h3>
+                <p>0</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Likes</h3>
+                <p>0</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Comments</h3>
+                <p>0</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-bold text-lg mb-2">Total Shares</h3>
+                <p>0</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+          <div className="text-center p-8 bg-background rounded-lg shadow-lg pointer-events-auto">
+            <h2 className="text-2xl font-bold mb-4">Upgrade for Post Analytics</h2>
+            <p className="text-muted-foreground mb-6">
+              Gain deeper insights into your post performance by upgrading your plan.
+            </p>
+            <Button onClick={() => openModal("video_uploads")}>Upgrade Now</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 p-6">
       <OverviewCalendar />
@@ -165,10 +216,10 @@ const PostOverviewPage = () => {
         </div>
         <Separator className="my-4" />
         <TabsContent value="published">
-          {isLoadingPosts ? <div>Loading posts...</div> : <PostOverviewList posts={posts || []} />}
+          {isLoadingPosts ? <PostOverviewListSkeleton /> : <PostOverviewList posts={posts || []} />}
         </TabsContent>
         <TabsContent value="failed">
-          {isLoadingPosts ? <div>Loading failed posts...</div> : <PostOverviewList posts={failedPosts || []} />}
+          {isLoadingPosts ? <PostOverviewListSkeleton /> : <PostOverviewList posts={failedPosts || []} />}
         </TabsContent>
       </Tabs>
     </div>

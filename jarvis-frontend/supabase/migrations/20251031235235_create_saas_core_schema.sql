@@ -4,14 +4,14 @@
 -- Step 1: Create Core SaaS Schema with Flexible Plans
 
 -- Create Organizations Table
-CREATE TABLE organizations (
+CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Create Profiles Table to link users to organizations
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id),
     organization_id UUID REFERENCES organizations(id),
     full_name TEXT,
@@ -19,7 +19,7 @@ CREATE TABLE profiles (
 );
 
 -- Create Plans Table with a flexible JSONB features column
-CREATE TABLE plans (
+CREATE TABLE IF NOT EXISTS plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     description TEXT,
@@ -29,7 +29,7 @@ CREATE TABLE plans (
 );
 
 -- Create Subscriptions Table
-CREATE TABLE subscriptions (
+CREATE TABLE IF NOT EXISTS subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id),
     organization_id UUID REFERENCES organizations(id),

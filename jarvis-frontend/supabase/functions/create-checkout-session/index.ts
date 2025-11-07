@@ -41,6 +41,21 @@ serve(async (req: Request) => {
       });
     }
 
+    const { data: plan, error: planError } = await supabaseAdmin
+      .from("plans")
+      .select("stripe_price_id")
+      .eq("id", priceId)
+      .single();
+
+    if (planError) {
+      console.error("Error fetching plan:", planError);
+      throw new Error("Could not fetch plan.");
+    }
+
+    if (!plan.stripe_price_id) {
+      throw new Error("Stripe price ID not found for the selected plan.");
+    }
+
     // Get or create a Stripe customer
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
@@ -48,12 +63,12 @@ serve(async (req: Request) => {
       .eq("id", user.id)
       .single();
 
-    if (profileError) {
+    if (profileError && profileError.code !== "PGRST116") {
       console.error("Error fetching profile:", profileError);
       throw new Error("Could not fetch user profile.");
     }
 
-    let customerId = profile.stripe_customer_id;
+    let customerId = profile?.stripe_customer_id;
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,
@@ -72,13 +87,38 @@ serve(async (req: Request) => {
       }
     }
 
+    // Check if the user already has an active subscription
+    const { data: existingSubscription, error: subError } = await supabaseAdmin
+      .from("subscriptions")
+      .select("stripe_subscription_id")
+      .in("status", ["trialing", "active"])
+      .eq("user_id", user.id)
+      .single();
+
+    if (subError && subError.code !== "PGRST116") {
+      console.error("Error fetching existing subscription:", subError);
+      throw new Error("Could not fetch existing subscription.");
+    }
+
+    if (existingSubscription) {
+      // User has an active subscription, create a billing portal session
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: returnUrl,
+      });
+      return new Response(JSON.stringify({ url: portalSession.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Create a checkout session with a trial period
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       customer: customerId,
       line_items: [
         {
-          price: priceId,
+          price: plan.stripe_price_id,
           quantity: 1,
         },
       ],
@@ -90,7 +130,7 @@ serve(async (req: Request) => {
       cancel_url: returnUrl,
     });
 
-    return new Response(JSON.stringify({ sessionId: session.id }), {
+    return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

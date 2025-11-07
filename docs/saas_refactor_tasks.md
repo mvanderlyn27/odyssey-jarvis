@@ -50,49 +50,104 @@ This document provides a detailed, file-by-file checklist for refactoring the ap
     - [x] **Client-Side Logic**:
         - [x] Create a new utility function in `jarvis-frontend/src/features/posts/utils.ts` to generate a thumbnail from the first frame of a video.
         - [x] Modify the existing upload components to accept both image and video files, enforcing a single file limit for videos while allowing multiple files for photos.
-        - [ ] Implement client-side video processing (e.g., resizing, compression) before uploading to Supabase Storage.
+        - [x] Implement client-side video processing (e.g., resizing, compression) before uploading to Supabase Storage.
         - [x] When creating a post asset, include an `asset_type` field ('photo' or 'video').
     - [x] **Database Schema (`post_assets`)**:
         - [x] Create a migration to add an `asset_type` column to the `post_assets` table.
-    - [ ] **Backend Logic (Edge Function)**:
-        - [ ] Instead of creating a new `process-video` function, refactor the existing `process-post-asset` function to handle both asset types.
-        - [ ] The function will use the `asset_type` to determine which TikTok endpoint to use for publishing.
+    - [x] **Backend Logic (Edge Function)**:
+        - [x] Instead of creating a new `process-video` function, refactor the existing `process-post-init` function to handle both asset types.
+        - [x] The function will use the `asset_type` to determine which TikTok endpoint to use for publishing.
     - [x] **UI Components**:
         - [x] Develop video-specific UI components, such as a video player for previews and thumbnails in the post list.
 
-- [ ] **SaaS Landing Page**
-    - [ ] Create `jarvis-frontend/src/pages/LandingPage.tsx`.
-    - [ ] Update routing in `jarvis-frontend/src/App.tsx`.
+- [ ] **Hybrid Sign-Up, Verification & Purchase Flow**
+    - [ ] **Objective**: Implement a flexible, dual-path sign-up and purchase flow to cater to both high-intent "buyers" and "explorers" who want to try a freemium version first. This involves creating two distinct user journeys that converge into a single, unified application experience.
+    - [ ] **Path 1: The "Buyer" Express Lane (Pricing Page -> Purchase)**
+        - [ ] **`LandingPage.tsx` / `PublicHeader.tsx`**: Ensure a prominent "Pricing" button is present in the main navigation.
+        - [ ] **`PricingPage.tsx` (New Page)**:
+            - [ ] Create a new page to display subscription plans (e.g., Free, Pro, Business).
+            - [ ] Implement a Monthly/Annual billing toggle with clear savings displayed.
+            - [ ] Highlight a "Most Popular" plan to guide user choice.
+            - [ ] Each paid plan will have a "Choose Plan" button that navigates to a sign-up flow, passing the selected `priceId`.
+        - [ ] **`SignUpPage.tsx` Refactor**:
+            - [ ] Modify the sign-up page to be context-aware. When a `priceId` is present in the URL, the title should reflect the chosen plan (e.g., "Create your Pro Account").
+            - [ ] Upon successful account creation, redirect the user *directly* to the `PurchasePage`.
+        - [ ] **`PurchasePage.tsx`**:
+            - [ ] This page will now serve as the immediate checkout step for the buyer path. It should display the order summary for the selected plan.
+            - [ ] Integrate Stripe Elements for secure payment processing.
+        - [ ] **Post-Payment Flow**:
+            - [ ] After successful payment, the user's subscription is activated in the backend.
+            - [ ] The user is logged in and lands in the fully unlocked application. The email verification can happen post-payment without blocking access.
+    - [ ] **Path 2: The "Explorer" Freemium Lane (Sign Up -> Freemium)**
+        - [ ] **`LandingPage.tsx` / `PublicHeader.tsx`**: Ensure a "Sign Up Free" button is present.
+        - [ ] **`SignUpPage.tsx`**: When no `priceId` is passed, this page functions as the entry point for the freemium plan.
+        - [ ] **Email Verification**: Maintain the current flow where users must verify their email before gaining full access to the freemium tier.
+        - [ ] **Freemium Experience**:
+            - [ ] Once logged in, the user is on the "Free" plan with strategic limitations applied (e.g., max 1 social account, limited posts).
+            - [ ] The application will be populated with sample data or guided prompts to demonstrate value.
 
-- [ ] **Organization Management UI**
-    - [ ] Build out `jarvis-frontend/src/features/organization/` feature.
-    - [ ] Create `jarvis-frontend/src/pages/SettingsPage.tsx`.
+- [ ] **In-App Upsell & Feature Gating UI**
+    - [ ] **Objective**: Develop a suite of reusable UI components to visually gate premium features and create contextual prompts that encourage freemium users to upgrade.
+    - [ ] **`useUserPlanFeatures` Hook (Enhancement)**:
+        - [ ] Refactor the hook that checks user permissions to be the central source of truth for feature access. It should return not just a boolean, but also metadata like the user's current limit and the limit of the next tier.
+    - [ ] **Feature Gating Components**:
+        - [ ] Create a `LockedFeature` wrapper component that can disable buttons or UI elements, showing a tooltip or popover on interaction that explains the feature and prompts an upgrade.
+        - [ ] Implement visual cues for locked features (e.g., greyed-out styles, lock icons).
+    - [ ] **Upsell Modals & Banners**:
+        - [ ] Create a generic `UpgradeModal` that can be triggered from anywhere in the app, displaying the benefits of upgrading.
+        - [ ] Design non-intrusive banners to place on pages with premium features (e.g., "Unlock real-time analytics. [Upgrade to Pro]").
+        - [ ] All upgrade CTAs should lead to the `PricingPage`.
 
-- [ ] **Rate-Limit Manual TikTok Video Import**
-    - [ ] **Objective**: Allow users to import existing TikToks not posted via Jarvis, while preventing abuse of the `sync-tiktok-videos` function.
-    - [ ] **Database**: Add a `last_video_import_at` timestamp column to the `tiktok_accounts` table.
-    - [ ] **Backend**:
-        - [ ] Modify the `sync-tiktok-videos` Edge Function to check the `last_video_import_at` timestamp.
-        - [ ] If the last import was less than 7 days ago, return an error.
-        - [ ] On successful import, update the timestamp to the current time.
-    - [ ] **Frontend**:
-        - [ ] Update the UI on the `TikTokAccountDetailsPage` to disable the import button if an import is not allowed.
-        - [ ] Display the next available import time to the user.
-    - [ ] **Admin Override**: Note that manual overrides can be performed by a database administrator by updating the `last_video_import_at` field.
+- [ ] **Subscription & Billing Management UI**
+    - [ ] **Objective**: Provide users with a clear and simple interface to manage their subscription, view invoices, and update payment details.
+    - [ ] **`SettingsPage.tsx` (Enhancement)**:
+        - [ ] Add a new "Billing" or "Subscription" tab to the user settings page.
+    - [ ] **`SubscriptionManagement.tsx` (New Component)**:
+        - [ ] Display the user's current plan, billing cycle (monthly/annual), and next renewal date.
+        - [ ] Provide a button to "Manage Subscription" which redirects to the Stripe Customer Portal for secure management of payment methods, invoices, and cancellations.
+        - [ ] Implement the backend logic to generate a Stripe Customer Portal session for the user.
+    - [ ] **Organization Billing**:
+        - [ ] For organization owners, the billing UI should reflect the organization's subscription, including the number of seats and any add-ons.
+- [ ] **First-Time User Experience Wizard**
+    - [ ] **Objective**: Create a wizard that guides new users through the initial setup process after they have signed up (either for a free or paid plan).
+    - [ ] **Wizard Steps**:
+        - [ ] Welcome message.
+        - [ ] Prompt to connect their first social account.
+        - [ ] Guide to create their first post.
+        - [ ] Introduction to the scheduling calendar.
+- [x] **SaaS Landing Page**
+    - [x] Create `jarvis-frontend/src/pages/LandingPage.tsx`.
+    - [x] Update routing in `jarvis-frontend/src/App.tsx`.
+
+- [x] **Organization Management UI**
+    - [x] Build out `jarvis-frontend/src/features/organization/` feature. to allow users to manage organizations, 
+    - [x] Create `jarvis-frontend/src/pages/SettingsPage.tsx`.
+
+- [x] **Rate-Limit Manual TikTok Video Import**
+    - [x] **Objective**: Allow users to import existing TikToks not posted via Jarvis, while preventing abuse of the `sync-tiktok-videos` function.
+    - [x] **Database**: Add a `last_video_import_at` timestamp column to the `tiktok_accounts` table.
+    - [x] **Backend**:
+        - [x] Modify the `sync-tiktok-videos` Edge Function to check the `last_video_import_at` timestamp.
+        - [x] If the last import was less than 7 days ago, return an error.
+        - [x] On successful import, update the timestamp to the current time.
+    - [x] **Frontend**:
+        - [x] Update the UI on the `TikTokAccountDetailsPage` to disable the import button if an import is not allowed.
+        - [x] Display the next available import time to the user.
+    - [x] **Admin Override**: Note that manual overrides can be performed by a database administrator by updating the `last_video_import_at` field.
 
 ---
 
 ## Phase 6: User and Organization Management
 
-- [ ] **Implement Organization Roles**
-    - [ ] **Database**: Add a `role` column to the `profiles` table (e.g., 'owner', 'member').
-    - [ ] **Backend (RLS)**: Update RLS policies to grant owners administrative privileges over their organization.
-    - [ ] **Frontend**: Build UI for organization owners to invite and manage members.
+- [x] **Implement Organization Roles**
+    - [x] **Database**: Add a `role` column to the `profiles` table (e.g., 'owner', 'member').
+    - [x] **Backend (RLS)**: Update RLS policies to grant owners administrative privileges over their organization.
+    - [x] **Frontend**: Build UI for organization owners to invite and manage members.
 
-- [ ] **Implement Jarvis Admin Role**
-    - [ ] **Database**: Create a new table `jarvis_admins` to store the `user_id` of admin accounts.
-    - [ ] **Backend**: Create a helper function `is_jarvis_admin(user_id)` that returns true if the user is in the admin table.
-    - [ ] **Frontend**: Build a separate admin dashboard for managing tenants, subscriptions, and troubleshooting.
+- [x] **Implement Jarvis Admin Role**
+    - [x] **Database**: Create a new table `jarvis_admins` to store the `user_id` of admin accounts.
+    - [x] **Backend**: Create a helper function `is_jarvis_admin(user_id)` that returns true if the user is in the admin table.
+    - [x] **Frontend**: Build a separate admin dashboard for managing tenants, subscriptions, and troubleshooting.
 
 ---
 

@@ -5,7 +5,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { fetchWithRetry } from "../_shared/tiktok-fetch.ts";
-import { PlanFeatures } from "../../src/features/billing/types.ts"; // Assuming relative path is correct
 
 const TIKTOK_API_BASE = "https://open.tiktokapis.com/v2";
 const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -34,6 +33,13 @@ interface PostAnalyticRaw {
   views_count: number;
   user_id: string;
   organization_id?: string;
+}
+interface PlanFeatures {
+  analytics_granularity: "raw" | "hourly" | "daily" | "off";
+  max_accounts: number;
+  video_uploads: boolean;
+  data_retention_days: number;
+  daily_direct_post_limit: number;
 }
 
 // Fetches video stats for a single TikTok account, handling batching.

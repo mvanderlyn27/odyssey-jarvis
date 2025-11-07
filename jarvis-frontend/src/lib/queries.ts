@@ -47,4 +47,26 @@ export const queries = createQueryKeyStore({
   tiktokVideos: {
     list: (accountId: string) => ["tiktokVideos", accountId],
   },
+  organization: {
+    current: () => ["organization", "current"],
+    detail: (userId: string | undefined) => ["organization", userId],
+    members: (organizationId: string | undefined) => ["organizationMembers", organizationId],
+    invites: (organizationId: string | undefined) => ["organizationInvites", organizationId],
+  },
+  admin: {
+    dashboardStats: {
+      queryKey: ["admin", "dashboardStats"],
+    },
+  },
+  user: {
+    account: (userId: string | undefined) => ["user", "account", userId],
+    subscription: (userId: string | undefined) => ["user", "subscription", userId],
+  },
+  plans: {
+    all: () => ["plans"],
+    detail: (id: string | undefined) => ["plans", id],
+  },
+  auth: {
+    session: () => ["session"],
+  },
 });

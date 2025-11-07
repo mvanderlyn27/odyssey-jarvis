@@ -3,9 +3,10 @@ import React from "react";
 
 interface NewPostDetailAssetButtonProps {
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
 }
 
-export const NewPostDetailAssetButton = ({ onFileChange }: NewPostDetailAssetButtonProps) => {
+export const NewPostDetailAssetButton = ({ onFileChange, disabled = false }: NewPostDetailAssetButtonProps) => {
   return (
     <div className="w-[300px] flex-shrink-0">
       <motion.div
@@ -14,7 +15,9 @@ export const NewPostDetailAssetButton = ({ onFileChange }: NewPostDetailAssetBut
         whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}>
         <label
           htmlFor="file-upload"
-          className="w-full h-full flex items-center justify-center bg-muted rounded-lg cursor-pointer">
+          className={`w-full h-full flex items-center justify-center bg-muted rounded-lg ${
+            disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+          }`}>
           <span className="text-4xl">+</span>
           <input
             id="file-upload"
@@ -23,6 +26,7 @@ export const NewPostDetailAssetButton = ({ onFileChange }: NewPostDetailAssetBut
             className="hidden"
             onChange={onFileChange}
             accept="image/webp,image/jpeg,video/mp4"
+            disabled={disabled}
           />
         </label>
       </motion.div>

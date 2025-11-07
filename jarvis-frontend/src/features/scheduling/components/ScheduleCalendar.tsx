@@ -6,7 +6,7 @@ import DraggableSchedulerPostCard from "./DraggableSchedulerPostCard";
 import { PostWithAssets } from "@/features/posts/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { Settings, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,13 @@ import React from "react";
 import { Switch } from "@/components/ui/switch";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import ScheduleCalendarSkeleton from "./ScheduleCalendarSkeleton";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface ScheduleCalendarProps {
   posts: PostWithAssets[];
   isLoading: boolean;
+  onAddAccountClick?: () => void;
 }
 
 const DroppableSlot = ({
@@ -92,7 +95,7 @@ const SortablePostCard = ({ post, isDraggable }: { post: PostWithAssets; isDragg
   );
 };
 
-const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
+const ScheduleCalendar = ({ posts, isLoading, onAddAccountClick }: ScheduleCalendarProps) => {
   const { data: accounts, isLoading: isLoadingAccounts } = useTikTokAccounts();
   const calendarRef = useRef<HTMLDivElement>(null);
   const dayAbbreviations = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -165,7 +168,21 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
     }
   }, [isLoadingAccounts]);
 
-  if (isLoadingAccounts || isLoading) return <div>Loading...</div>;
+  if (isLoadingAccounts || isLoading) return <ScheduleCalendarSkeleton />;
+
+  if (!accounts || accounts.length === 0) {
+    return (
+      <div className="mt-8">
+        <EmptyState
+          Icon={UserPlus}
+          title="No TikTok Accounts"
+          description="You haven't linked any TikTok accounts yet. Please add one to schedule posts."
+          actionText="Add Account"
+          onAction={onAddAccountClick}
+        />
+      </div>
+    );
+  }
 
   const todayDateString = new Date().toDateString();
 
@@ -201,12 +218,10 @@ const ScheduleCalendar = ({ posts, isLoading }: ScheduleCalendarProps) => {
                     to={`/tiktok/${account.id}`}
                     className="flex flex-col items-center space-y-1 w-full max-w-full transition-transform duration-200 hover:scale-110">
                     <Avatar className="w-10 h-10">
-                      <AvatarImage src={account.tiktok_avatar_url ?? undefined} />
-                      <AvatarFallback>{account.tiktok_display_name?.[0]}</AvatarFallback>
+                      <AvatarImage src={account.profile_image_url ?? undefined} />
+                      <AvatarFallback>{account.display_name?.[0]}</AvatarFallback>
                     </Avatar>
-                    <div className="w-full px-1 text-xs font-semibold text-center truncate">
-                      {account.tiktok_display_name}
-                    </div>
+                    <div className="w-full px-1 text-xs font-semibold text-center truncate">{account.display_name}</div>
                   </Link>
                 </div>
                 {weekDays.map((day, index) => {

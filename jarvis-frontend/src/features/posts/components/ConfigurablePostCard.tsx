@@ -51,7 +51,7 @@ const ConfigurablePostCard = ({
 
     return (
       <>
-        {firstAsset.asset_type === "video" && (
+        {firstAsset.asset_type === "videos" && (
           <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded-full p-1">
             <Video className="w-4 h-4 text-white" />
           </div>

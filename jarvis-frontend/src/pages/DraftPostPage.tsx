@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { usePost } from "@/features/posts/hooks/usePost";
 import { PostWithAssets } from "@/features/posts/types";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { RefreshButton } from "@/components/RefreshButton";
 import { useSavePost } from "@/features/posts/hooks/useSavePost";
 import { useDeletePost } from "@/features/posts/hooks/useDeletePost";
 import { useClonePost } from "@/features/posts/hooks/useClonePost";
@@ -15,12 +16,9 @@ import PostPublisher from "@/features/posts/components/PostPublisher";
 const EditPost = ({ postId }: { postId: string }) => {
   const navigate = useNavigate();
   const { post, setPost, isDirty, clearPost } = useEditPostStore();
-  const { data: fetchedPost, isLoading } = usePost(postId);
+  const { data: fetchedPost, isLoading, refetch, isFetching } = usePost(postId);
   const { mutate: savePost, isPending: isSaving } = useSavePost();
-  const { mutate: deletePost, isPending: isDeleting } = useDeletePost(() => {
-    clearPost();
-    navigate(-1);
-  });
+  const { mutate: deletePost, isPending: isDeleting } = useDeletePost();
   const { mutate: clonePost, isPending: isCloning } = useClonePost();
 
   useEffect(() => {
@@ -37,7 +35,7 @@ const EditPost = ({ postId }: { postId: string }) => {
     if (post?.id) {
       clonePost(post.id, {
         onSuccess: (data) => {
-          navigate(`/posts/${data.post.id}`);
+          navigate(`/app/posts/${data.post.id}`);
         },
       });
     }
@@ -45,7 +43,12 @@ const EditPost = ({ postId }: { postId: string }) => {
 
   const handleDelete = () => {
     if (post?.id) {
-      deletePost(post.id);
+      deletePost(post.id, {
+        onSuccess: () => {
+          clearPost();
+          navigate(-1);
+        },
+      });
     }
   };
 
@@ -61,7 +64,7 @@ const EditPost = ({ postId }: { postId: string }) => {
     return (
       <div className="p-4 sm:p-6 md:p-8 text-center">
         <p>Post not found.</p>
-        <Button onClick={() => navigate("/drafts")} className="mt-4">
+        <Button onClick={() => navigate("/app/drafts")} className="mt-4">
           Go to Drafts
         </Button>
       </div>
@@ -71,6 +74,7 @@ const EditPost = ({ postId }: { postId: string }) => {
   return (
     <div className="p-6">
       <PageHeader onBackClick={handleBack} status={post.status || undefined}>
+        <RefreshButton onClick={() => refetch()} isRefreshing={isFetching} />
         {isDirty && <span className="text-sm text-yellow-500">Unsaved changes</span>}
         <Button onClick={() => savePost(post)} disabled={isSaving || !isDirty}>
           {isSaving ? "Saving..." : "Save"}
@@ -120,7 +124,7 @@ const NewPost = () => {
     return (
       <div className="p-4 sm:p-6 md:p-8 text-center">
         <p>No post is currently being edited.</p>
-        <Button onClick={() => navigate("/drafts")} className="mt-4">
+        <Button onClick={() => navigate("/app/drafts")} className="mt-4">
           Go to Drafts
         </Button>
       </div>

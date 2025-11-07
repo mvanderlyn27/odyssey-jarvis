@@ -1,3 +1,3 @@
 ALTER TABLE post_assets
-ADD COLUMN blurhash TEXT,
-ADD COLUMN thumbnail_url TEXT;
+ADD COLUMN IF NOT EXISTS blurhash TEXT,
+ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;

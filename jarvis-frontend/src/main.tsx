@@ -22,9 +22,7 @@ const persister = createSyncStoragePersister({
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-      <Auth>
-        <App />
-      </Auth>
+      <App />
     </PersistQueryClientProvider>
   </React.StrictMode>
 );

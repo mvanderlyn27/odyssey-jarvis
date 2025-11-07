@@ -1,0 +1,6 @@
+CREATE TABLE
+    IF NOT EXISTS jarvis_admins (
+        user_id UUID PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE
+    );
+
+ALTER TABLE jarvis_admins ENABLE ROW LEVEL SECURITY;

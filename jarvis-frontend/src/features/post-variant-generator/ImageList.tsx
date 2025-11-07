@@ -23,7 +23,7 @@ export const ImageList = ({ assets, selectedAsset, onSelectAsset, onAddNewAsset 
     const file = event.target.files?.[0];
     if (file) {
       const asset_type = file.type.startsWith("video/") ? "video" : "photo";
-      if (asset_type === "video" && assets.some((asset) => asset.asset_type === "video")) {
+      if (asset_type === "video" && assets.some((asset) => asset.asset_type === "videos")) {
         alert("You can only upload one video per post.");
         return;
       }

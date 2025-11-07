@@ -34,6 +34,13 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ message: "Not a tiktok_asset, skipping." }), { status: 200 });
     }
 
+    if (path.startsWith("videos/")) {
+      console.log(`Asset is a video (path: ${path}), skipping processing.`);
+      return new Response(JSON.stringify({ message: "Asset is a video, skipping processing." }), {
+        status: 200,
+      });
+    }
+
     if (!path || !path.startsWith("slides/") || path.endsWith("_thumb")) {
       console.log(`Not a slide asset or is already a thumbnail (path: ${path}), skipping.`);
       return new Response(JSON.stringify({ message: "Not a slide asset or is already a thumbnail, skipping." }), {
@@ -94,6 +101,13 @@ serve(async (req: Request) => {
       });
     }
 
+    // The asset ID is the third part of the path (e.g., slides/{post_id}/{asset_id})
+    const pathParts = path.split("/");
+    if (pathParts.length < 3) {
+      throw new Error(`Invalid asset path format: ${path}`);
+    }
+    const assetId = pathParts[2];
+
     // If processing was successful, update the database
     const { data: updatedAssets, error: updateError } = await supabaseAdmin
       .from("post_assets")
@@ -101,7 +115,7 @@ serve(async (req: Request) => {
         blurhash: blurhash,
         thumbnail_path: thumbnailPath,
       })
-      .eq("asset_url", path)
+      .eq("id", assetId)
       .select();
 
     if (updateError) {
